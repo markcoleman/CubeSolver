@@ -9,7 +9,7 @@ import Foundation
 
 /// Represents a face color on the Rubik's Cube
 /// Each color corresponds to one of the six faces in a standard Rubik's Cube
-public enum FaceColor: String, CaseIterable {
+public enum FaceColor: String, CaseIterable, Equatable {
     /// White face color
     case white = "W"
     /// Yellow face color
@@ -25,7 +25,7 @@ public enum FaceColor: String, CaseIterable {
 }
 
 /// Represents a single face of the Rubik's Cube as a 3x3 grid of colors
-public struct CubeFace {
+public struct CubeFace: Equatable {
     /// 2D array representing the 3x3 grid of colors on this face
     public var colors: [[FaceColor]]
     
@@ -58,7 +58,7 @@ public struct CubeFace {
 }
 
 /// Represents a complete 3x3x3 Rubik's Cube with six faces
-public struct RubiksCube {
+public struct RubiksCube: Equatable {
     /// The front face (typically red in standard orientation)
     public var front: CubeFace
     /// The back face (typically orange in standard orientation)

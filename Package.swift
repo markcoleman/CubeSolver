@@ -28,7 +28,8 @@ let package = Package(
                 "RubiksCube.swift",
                 "CubeSolver.swift",
                 "CubeDataStructures.swift",
-                "CubeValidation.swift"
+                "CubeValidation.swift",
+                "EnhancedCubeSolver.swift"
             ]
         ),
         .testTarget(

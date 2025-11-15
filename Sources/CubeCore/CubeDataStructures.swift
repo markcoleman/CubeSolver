@@ -211,7 +211,7 @@ public struct Move: Equatable, Codable, Sendable {
 
 public extension CubeState {
     /// Convert from existing RubiksCube structure
-    public init(from cube: RubiksCube) {
+    init(from cube: RubiksCube) {
         self.init()
         
         // Convert each face
@@ -224,7 +224,7 @@ public extension CubeState {
     }
     
     /// Convert to existing RubiksCube structure
-    public func toRubiksCube() -> RubiksCube {
+    func toRubiksCube() -> RubiksCube {
         var cube = RubiksCube()
         
         // Convert each face

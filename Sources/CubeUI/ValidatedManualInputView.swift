@@ -164,7 +164,7 @@ public struct ValidatedManualInputView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .automatic) {
                     Button("Close") {
                         dismiss()
                     }

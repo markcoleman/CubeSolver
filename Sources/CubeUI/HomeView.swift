@@ -137,7 +137,7 @@ public struct HomeView: View {
             )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .automatic) {
                     NavigationLink(destination: SettingsView()) {
                         Image(systemName: "gearshape.fill")
                             .foregroundColor(.white)

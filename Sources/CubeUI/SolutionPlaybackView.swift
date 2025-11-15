@@ -82,7 +82,7 @@ public struct SolutionPlaybackView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .automatic) {
                     Button("Done") {
                         stopPlayback()
                         dismiss()

@@ -137,7 +137,7 @@ public struct ManualInputView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .automatic) {
                     Button("Close") {
                         dismiss()
                     }

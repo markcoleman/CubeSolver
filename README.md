@@ -1,30 +1,68 @@
-# 🎲 CubeSolver
+# 🎲 CubeSolver - Next-Gen
 
 [![iOS CI](https://github.com/markcoleman/CubeSolver/workflows/iOS%20CI/badge.svg)](https://github.com/markcoleman/CubeSolver/actions)
-[![Swift Version](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
-[![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20iPadOS%20%7C%20macOS-lightgrey.svg)](https://developer.apple.com)
+[![Swift Version](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
+[![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20iPadOS%20%7C%20macOS%20%7C%20watchOS-lightgrey.svg)](https://developer.apple.com)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A beautiful, universal iOS/iPadOS/macOS application for solving Rubik's Cubes with a stunning glassmorphic interface.
+A next-generation, modular iOS/iPadOS/macOS/watchOS application for solving Rubik's Cubes with camera scanning, AR visualization, and a stunning glassmorphic interface.
 
 ![CubeSolver](docs/images/screenshot.png)
 
 ## ✨ Features
 
-- 🎯 **Universal App**: Runs seamlessly on iPhone, iPad, and Mac
-- 🎨 **Glassmorphism Design**: Modern Mac-style UI with beautiful glass effects
-- 🧩 **Enhanced Solver**: Two-phase solving algorithm with step-by-step solutions
-- ✅ **Cube Validation**: Physical legality checking with detailed error messages
-- 🎬 **Solution Playback**: Interactive visualization with play/pause controls
-- 🔀 **Smart Scramble**: Generate random valid cube configurations
-- ⌨️ **Validated Manual Input**: Input real-life cube patterns with live validation feedback
-- 📊 **Move Notation**: Standard Rubik's Cube notation (R, U', F2, etc.)
-- ♿ **Accessibility**: Full VoiceOver support with accessibility labels and hints
-- 🧪 **UI Testing**: Comprehensive UI test suite with screenshot capture
-- ⚡ **High Performance**: Native Swift/SwiftUI for optimal performance
-- 🧪 **Well Tested**: 56+ comprehensive unit tests with 100% pass rate
-- 📱 **iOS 17+**: Built for the latest iOS features
-- 💻 **macOS 14+**: Full macOS support with optimized UI
+### 🎯 Core Features
+- **Universal App**: Runs seamlessly on iPhone, iPad, Mac, and Apple Watch
+- **Modular Architecture**: Clean Swift Package modules (CubeCore, CubeUI, CubeScanner, CubeAR)
+- **Swift 6 Ready**: Modern concurrency with async/await and Sendable conformance
+- **Glassmorphism Design**: Beautiful Mac-style UI with glass effects
+
+### 📸 Camera Scanning (Core ML + Vision)
+- **Live Camera View**: Real-time cube scanning with AVFoundation
+- **3×3 Grid Overlay**: Visual guide for accurate face scanning
+- **Color Detection**: Vision framework-powered sticker recognition
+- **Confidence Scoring**: Automatic quality assessment
+- **Manual Correction**: Fix low-confidence stickers with intuitive UI
+- **6-Face Scanning**: Complete cube state capture
+
+### 🧩 Solving & Validation
+- **Enhanced Solver**: Two-phase algorithm with async/await support
+- **Physical Validation**: Parity and orientation checks
+- **Move Optimization**: Efficient solution generation
+- **Standard Notation**: R, U', F2, etc.
+- **Step-by-Step Solutions**: Interactive playback with controls
+
+### 🎬 AR Solving Assistant
+- **ARKit Integration**: Virtual 3D cube overlay
+- **Animated Moves**: Visual turn guidance
+- **Dual Modes**: Toggle between Standard and AR views
+- **Session Persistence**: Resume AR from where you left off
+
+### 📱 Multi-Device Support
+- **Modern Navigation**: SwiftUI NavigationStack
+- **Home Dashboard**: Recent solves and statistics
+- **Solve History**: Track all your solves with persistence
+- **Privacy Controls**: Opt-in analytics (disabled by default)
+- **Settings**: Comprehensive privacy and data management
+- **watchOS Ready**: Architecture supports Watch companion (coming soon)
+
+### 🔒 Privacy & Security
+- **Privacy First**: All analytics opt-in only
+- **Local Storage**: UserDefaults-based persistence
+- **Data Control**: Clear history anytime
+- **GDPR Compliant**: Respect for user privacy
+
+### ♿ Accessibility
+- **VoiceOver**: Full screen reader support
+- **Accessibility Labels**: All UI elements properly labeled
+- **Dynamic Type**: Text scaling support
+- **High Contrast**: Glassmorphic design works in all modes
+
+### 🧪 Testing & Quality
+- **58+ Unit Tests**: 100% pass rate
+- **Modular Tests**: Separate test suites for each module
+- **CI/CD**: GitHub Actions integration
+- **Code Quality**: SwiftLint enforcement
 
 ## 🚀 Getting Started
 
@@ -59,36 +97,49 @@ open CubeSolver.xcodeproj
 
 ## 🏗️ Architecture
 
-CubeSolver follows the MVVM (Model-View-ViewModel) architecture pattern:
+CubeSolver follows a modular Swift Package architecture with clean separation of concerns:
 
-### Core Models
-- **RubiksCube**: 3D cube representation with face rotations
-- **CubeState**: 54-sticker representation for validation and solving
-- **CubeFace**: Individual face with 3x3 color grid
-- **Move**: Standard notation move (Turn + Amount)
-- **FaceColor/CubeColor**: Six standard Rubik's Cube colors
+### 📦 Swift Package Modules
 
-### ViewModels
-- **CubeViewModel**: Manages cube state and operations
-
-### Views
-- **ContentView**: Main app interface
-- **CubeView**: 3D cube visualization
-- **ValidatedManualInputView**: Manual input with validation
-- **SolutionPlaybackView**: Step-by-step solution display
-- **ManualInputView**: Original manual input interface
-- **GlassmorphicButton/Card**: Reusable UI components
-
-### Logic Modules
-- **EnhancedCubeSolver**: Two-phase solving algorithm
+#### CubeCore
+Core business logic and models (platform-independent)
+- **RubiksCube**: 3D cube representation
+- **CubeState**: 54-sticker state management
+- **EnhancedCubeSolver**: Two-phase async solving algorithm
 - **CubeValidator**: Physical legality validation
-- **CubeSolver**: Original solving implementation
+- **Move/Turn/Amount**: Standard notation types
+- **Sendable conformance**: Swift 6 concurrency support
 
-### Data Structures
-- **Face**: Enum for cube faces (U, D, L, R, F, B)
-- **Turn**: Move turn type
-- **Amount**: Move amount (clockwise, counter, double)
-- **CubeValidationError**: Validation error types
+#### CubeUI
+SwiftUI views and view models
+- **HomeView**: Modern navigation hub
+- **CubeViewModel**: Main view model with async solving
+- **ScannerCameraView**: Camera scanning interface
+- **ManualInputView**: Manual cube input
+- **SolutionPlaybackView**: Step-by-step playback
+- **SolveHistoryManager**: Persistence layer
+- **PrivacySettings**: Privacy controls
+- **AnalyticsTracker**: Opt-in analytics
+
+#### CubeScanner
+Vision and Core ML integration (iOS only)
+- **CubeScanner**: Camera-based cube detection
+- **Sticker Detection**: Vision framework integration
+- **Color Classification**: Core ML color recognition
+- **Confidence Scoring**: Quality assessment
+
+#### CubeAR
+ARKit and RealityKit integration (iOS only)
+- **CubeARView**: AR cube visualization
+- **Virtual Cube**: 3D animated cube model
+- **AR Session Management**: Scene coordination
+
+### 🎯 Design Patterns
+- **MVVM**: Clear separation of UI and logic
+- **Async/Await**: Modern Swift concurrency
+- **ObservableObject**: Reactive state management
+- **Modular Design**: Clean dependencies
+- **Protocol-Oriented**: Flexible abstractions
 
 ## 🎨 Glassmorphism Design
 

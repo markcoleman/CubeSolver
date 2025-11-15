@@ -43,7 +43,7 @@ public struct HomeView: View {
                     
                     // Main Actions
                     VStack(spacing: 16) {
-                        NavigationLink(destination: ScanView()) {
+                        NavigationLink(destination: ScannerCameraView()) {
                             ActionCard(
                                 icon: "camera.fill",
                                 title: "Scan Cube",
@@ -237,13 +237,7 @@ struct StatCard: View {
 
 // MARK: - Placeholder Views
 
-struct ScanView: View {
-    var body: some View {
-        Text("Camera Scanner")
-            .font(.title)
-            .navigationTitle("Scan Cube")
-    }
-}
+// ScanView is replaced by ScannerCameraView
 
 struct SolveView: View {
     var body: some View {

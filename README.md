@@ -15,6 +15,9 @@ A beautiful, universal iOS/iPadOS/macOS application for solving Rubik's Cubes wi
 - 🎨 **Glassmorphism Design**: Modern Mac-style UI with beautiful glass effects
 - 🧩 **Smart Solver**: Step-by-step solution algorithm for any cube configuration
 - 🔀 **Random Scramble**: Generate random cube states for practice
+- ⌨️ **Manual Input**: Input real-life cube patterns face by face
+- ♿ **Accessibility**: Full VoiceOver support with accessibility labels and hints
+- 🧪 **UI Testing**: Comprehensive UI test suite with screenshot capture
 - ⚡ **High Performance**: Native Swift/SwiftUI for optimal performance
 - 🧪 **Well Tested**: Comprehensive unit test coverage
 - 📱 **iOS 17+**: Built for the latest iOS features
@@ -71,6 +74,8 @@ The app features a modern glassmorphic design inspired by macOS Big Sur and late
 
 ## 🧪 Testing
 
+### Unit Tests
+
 Run the test suite:
 
 ```bash
@@ -85,6 +90,27 @@ The project includes comprehensive unit tests for:
 - ViewModel logic
 - Face color management
 
+### UI Tests
+
+UI tests with screenshot capture are available for:
+- Main interface validation
+- Scramble, solve, and reset workflows
+- Manual cube input interface
+- Accessibility features
+- Comprehensive screenshot gallery
+
+Run UI tests in Xcode: `Cmd + U` (select CubeSolverUITests scheme)
+
+### Code Quality
+
+The project uses SwiftLint for code quality enforcement:
+
+```bash
+swiftlint
+```
+
+Configuration is in `.swiftlint.yml`
+
 ## 📦 Project Structure
 
 ```
@@ -92,18 +118,21 @@ CubeSolver/
 ├── CubeSolver/
 │   ├── Sources/
 │   │   ├── CubeSolverApp.swift      # App entry point
-│   │   ├── ContentView.swift        # Main UI
+│   │   ├── ContentView.swift        # Main UI with accessibility
+│   │   ├── ManualInputView.swift    # Manual cube input interface
 │   │   ├── CubeView.swift          # Cube visualization
 │   │   ├── RubiksCube.swift        # Cube model
 │   │   ├── CubeSolver.swift        # Solving algorithm
 │   │   └── CubeViewModel.swift     # ViewModel
 │   ├── Tests/
 │   │   └── CubeSolverTests.swift   # Unit tests
-│   └── Resources/
+│   └── UITests/
+│       └── CubeSolverUITests.swift # UI tests with screenshots
 ├── docs/                            # GitHub Pages documentation
 ├── .github/
 │   ├── workflows/                   # GitHub Actions CI/CD
 │   └── copilot-instructions.md     # GitHub Copilot config
+├── .swiftlint.yml                  # SwiftLint configuration
 └── Package.swift                    # Swift Package Manager
 ```
 
@@ -132,9 +161,12 @@ Full documentation is available at [https://markcoleman.github.io/CubeSolver](ht
 
 ## 🎯 Roadmap
 
+- [x] Manual cube input for real-life cubes
+- [x] Comprehensive accessibility support
+- [x] UI testing with screenshot capture
+- [x] SwiftLint code quality enforcement
 - [ ] Advanced solving algorithms (Kociemba, CFOP)
 - [ ] 3D cube visualization with SceneKit/RealityKit
-- [ ] Custom cube patterns and configurations
 - [ ] Solution animation playback
 - [ ] Statistics and solve time tracking
 - [ ] Camera-based cube scanning (AR)

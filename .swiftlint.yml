@@ -1,0 +1,107 @@
+# SwiftLint Configuration for CubeSolver
+# This configuration follows Swift best practices and coding standards
+
+# Enabled Rules
+opt_in_rules:
+  - attributes
+  - closure_end_indentation
+  - closure_spacing
+  - contains_over_first_not_nil
+  - empty_count
+  - explicit_init
+  - fatal_error_message
+  - first_where
+  - force_unwrapping
+  - implicit_return
+  - join_instead_of_reduce
+  - last_where
+  - literal_expression_end_indentation
+  - multiline_function_chains
+  - multiline_parameters
+  - operator_usage_whitespace
+  - overridden_super_call
+  - pattern_matching_keywords
+  - private_outlet
+  - prohibited_super_call
+  - redundant_nil_coalescing
+  - single_test_class
+  - sorted_first_last
+  - unneeded_parentheses_in_closure_argument
+  - vertical_parameter_alignment_on_call
+  - yoda_condition
+
+# Disabled Rules
+disabled_rules:
+  - trailing_whitespace # Allow some flexibility with whitespace
+  - todo # Allow TODO comments during development
+
+# Rule Configurations
+line_length:
+  warning: 120
+  error: 150
+  ignores_comments: true
+  ignores_urls: true
+
+file_length:
+  warning: 400
+  error: 500
+
+type_body_length:
+  warning: 300
+  error: 400
+
+function_body_length:
+  warning: 60
+  error: 100
+
+cyclomatic_complexity:
+  warning: 10
+  error: 15
+
+identifier_name:
+  min_length:
+    warning: 2
+    error: 1
+  max_length:
+    warning: 40
+    error: 50
+  excluded:
+    - id
+    - x
+    - y
+    - z
+    - i
+    - j
+    - k
+
+type_name:
+  min_length: 3
+  max_length:
+    warning: 40
+    error: 50
+
+# Paths to exclude from linting
+excluded:
+  - .build
+  - .swiftpm
+  - CubeSolver.xcodeproj
+  - docs
+  - .github
+
+# Paths to include in linting
+included:
+  - CubeSolver/Sources
+  - CubeSolver/Tests
+  - CubeSolver/UITests
+
+# Reporter type
+reporter: "xcode"
+
+# Custom Rules
+custom_rules:
+  # Ensure comments end with proper punctuation
+  comments_capitalized:
+    name: "Comments Capitalized"
+    regex: '(//\s+)[a-z]'
+    message: "Comments should start with a capital letter"
+    severity: warning

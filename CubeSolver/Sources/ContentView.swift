@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var cubeViewModel = CubeViewModel()
+    @State private var showingManualInput = false
     
     var body: some View {
         ZStack {
@@ -22,6 +23,7 @@ struct ContentView: View {
                 endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
+            .accessibilityHidden(true)
             
             VStack(spacing: 30) {
                 Text("Rubik's Cube Solver")
@@ -29,25 +31,45 @@ struct ContentView: View {
                     .fontWeight(.bold)
                     .foregroundColor(.white)
                     .padding(.top, 50)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier("mainTitle")
                 
                 // Cube visualization
                 CubeView(cube: cubeViewModel.cube)
                     .frame(maxWidth: 400, maxHeight: 400)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Rubik's Cube")
+                    .accessibilityValue(cubeViewModel.cube.isSolved ? "Solved" : "Scrambled")
+                    .accessibilityIdentifier("cubeView")
                 
                 // Control buttons with glassmorphism
                 VStack(spacing: 20) {
                     HStack(spacing: 15) {
+                        GlassmorphicButton(title: "Manual Input", icon: "keyboard") {
+                            showingManualInput = true
+                        }
+                        .accessibilityIdentifier("manualInputButton")
+                        .accessibilityHint("Opens the manual cube input interface")
+                    }
+                    
+                    HStack(spacing: 15) {
                         GlassmorphicButton(title: "Scramble", icon: "shuffle") {
                             cubeViewModel.scramble()
                         }
+                        .accessibilityIdentifier("scrambleButton")
+                        .accessibilityHint("Scrambles the cube with random moves")
                         
                         GlassmorphicButton(title: "Solve", icon: "checkmark.circle") {
                             cubeViewModel.solve()
                         }
+                        .accessibilityIdentifier("solveButton")
+                        .accessibilityHint("Solves the current cube configuration")
                         
                         GlassmorphicButton(title: "Reset", icon: "arrow.counterclockwise") {
                             cubeViewModel.reset()
                         }
+                        .accessibilityIdentifier("resetButton")
+                        .accessibilityHint("Resets the cube to solved state")
                     }
                     
                     // Solution steps
@@ -58,6 +80,7 @@ struct ContentView: View {
                                     Text("Solution Steps")
                                         .font(.headline)
                                         .foregroundColor(.white)
+                                        .accessibilityAddTraits(.isHeader)
                                     
                                     ForEach(Array(cubeViewModel.solutionSteps.enumerated()), id: \.offset) { index, step in
                                         HStack {
@@ -67,18 +90,26 @@ struct ContentView: View {
                                                 .foregroundColor(.white)
                                         }
                                         .font(.body)
+                                        .accessibilityElement(children: .combine)
+                                        .accessibilityLabel("Step \(index + 1): \(step)")
                                     }
                                 }
                                 .padding()
                             }
                             .frame(maxHeight: 200)
+                            .accessibilityIdentifier("solutionStepsView")
                         }
+                        .accessibilityLabel("Solution steps")
+                        .accessibilityValue("\(cubeViewModel.solutionSteps.count) steps")
                     }
                 }
                 .padding(.horizontal)
                 
                 Spacer()
             }
+        }
+        .sheet(isPresented: $showingManualInput) {
+            ManualInputView(cubeViewModel: cubeViewModel)
         }
     }
 }

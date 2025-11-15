@@ -17,6 +17,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Interactive cube visualization
 - Support for iOS 17.0+, iPadOS 17.0+, and macOS 14.0+
 - Comprehensive unit test suite (13 tests)
+- **Manual cube input interface for real-life cubes**
+  - Face-by-face color entry
+  - Interactive 3×3 grid for each face
+  - Color picker with all six cube colors
+  - Reset face functionality
+- **Full accessibility support**
+  - VoiceOver labels for all interactive elements
+  - Accessibility hints for complex interactions
+  - Accessibility identifiers for UI testing
+  - Dynamic Type support
+  - Proper accessibility traits (header, button, selected)
+  - Hidden decorative elements from accessibility tree
+- **Comprehensive UI test suite**
+  - Main interface validation tests
+  - User workflow tests (scramble, solve, reset)
+  - Manual input interface tests
+  - Accessibility compliance tests
+  - Screenshot capture for all tests
+  - Screenshot gallery test for documentation
+- **Code quality improvements**
+  - SwiftLint configuration for code standards
+  - Comprehensive documentation comments (/// style)
+  - MARK comments for code organization
+- **Enhanced documentation**
+  - Manual Input Guide
+  - Accessibility Guide
+  - UI Testing Guide
+  - Updated README with new features
 - GitHub Actions CI/CD workflows
 - GitHub Copilot instructions and optimizations
 - GitHub Pages documentation site
@@ -28,6 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 🎨 Beautiful glassmorphic UI components
 - 🧩 Step-by-step cube solving
 - 🔀 Random cube scrambling
+- ⌨️ Manual cube input from real-life cubes
+- ♿ Full accessibility with VoiceOver support
+- 🧪 UI tests with screenshot capture
+- 📏 SwiftLint code quality enforcement
 - ⚡ High performance with native Swift
 - ✅ Full test coverage
 - 📚 Comprehensive documentation
@@ -40,11 +72,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Solution animation playback
 - Camera-based cube scanning (AR)
 - Statistics and solve time tracking
-- Custom cube patterns
+- Custom cube patterns and persistence
 - Multi-language support
 - Dark mode optimization
-- Accessibility enhancements
 - Performance optimizations
+- Cube validation for manual input
 
 ---
 

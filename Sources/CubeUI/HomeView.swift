@@ -156,7 +156,7 @@ struct ActionCard: View {
     let subtitle: String
     let color: Color
     
-    var body: some View {
+    public var body: some View {
         HStack(spacing: 16) {
             Image(systemName: icon)
                 .font(.system(size: 32))
@@ -189,7 +189,7 @@ struct ActionCard: View {
 struct RecentSolveRow: View {
     let solve: SavedSolve
     
-    var body: some View {
+    public var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(solve.moveCount) moves")
@@ -217,7 +217,7 @@ struct StatCard: View {
     let title: String
     let value: String
     
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 8) {
             Text(value)
                 .font(.title2)
@@ -240,7 +240,7 @@ struct StatCard: View {
 // ScanView is replaced by ScannerCameraView
 
 struct SolveView: View {
-    var body: some View {
+    public var body: some View {
         Text("Quick Solve")
             .font(.title)
             .navigationTitle("Solve")
@@ -248,7 +248,7 @@ struct SolveView: View {
 }
 
 struct PracticeView: View {
-    var body: some View {
+    public var body: some View {
         Text("Practice Mode")
             .font(.title)
             .navigationTitle("Practice")
@@ -258,7 +258,7 @@ struct PracticeView: View {
 struct HistoryView: View {
     @ObservedObject var historyManager: SolveHistoryManager
     
-    var body: some View {
+    public var body: some View {
         List(historyManager.savedSolves) { solve in
             NavigationLink(destination: SolveDetailView(solve: solve)) {
                 VStack(alignment: .leading) {
@@ -277,7 +277,7 @@ struct HistoryView: View {
 struct SolveDetailView: View {
     let solve: SavedSolve
     
-    var body: some View {
+    public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Solution")
@@ -303,7 +303,7 @@ struct SolveDetailView: View {
 struct SettingsView: View {
     @StateObject private var privacySettings = PrivacySettings()
     
-    var body: some View {
+    public var body: some View {
         Form {
             Section("Privacy") {
                 Toggle("Analytics", isOn: $privacySettings.analyticsEnabled)

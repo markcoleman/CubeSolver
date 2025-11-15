@@ -20,7 +20,7 @@ public struct ValidatedManualInputView: View {
     @State private var showValidationAlert = false
     @State private var isValid = true
     
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             ZStack {
                 // Background gradient matching main view
@@ -246,7 +246,7 @@ public struct ValidationStatusCard: View {
     let isValid: Bool
     let errorMessage: String?
     
-    var body: some View {
+    public var body: some View {
         if let error = errorMessage {
             GlassmorphicCard {
                 HStack(spacing: 15) {

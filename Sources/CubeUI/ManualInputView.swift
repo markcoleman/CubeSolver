@@ -17,7 +17,7 @@ public struct ManualInputView: View {
     @State private var selectedFace: CubeFaceType = .front
     @State private var selectedColor: FaceColor = .red
     
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             ZStack {
                 // Background gradient matching main view
@@ -210,7 +210,7 @@ public struct FaceSelectorButton: View {
     let isSelected: Bool
     let action: () -> Void
     
-    var body: some View {
+    public var body: some View {
         Button(action: action) {
             VStack(spacing: 5) {
                 Image(systemName: faceType.icon)
@@ -243,7 +243,7 @@ public struct ColorSelectorButton: View {
     let isSelected: Bool
     let action: () -> Void
     
-    var body: some View {
+    public var body: some View {
         Button(action: action) {
             Circle()
                 .fill(colorForFaceColor(color))
@@ -277,7 +277,7 @@ public struct EditableCubeFaceView: View {
     @Binding var face: CubeFace
     @Binding var selectedColor: FaceColor
     
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 4) {
             ForEach(0..<3, id: \.self) { row in
                 HStack(spacing: 4) {

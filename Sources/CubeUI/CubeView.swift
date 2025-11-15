@@ -12,7 +12,7 @@ import CubeCore
 public struct CubeView: View {
     let cube: RubiksCube
     
-    var body: some View {
+    public var body: some View {
         GeometryReader { geometry in
             let size = min(geometry.size.width, geometry.size.height)
             let cellSize = size / 12
@@ -43,7 +43,7 @@ public struct CubeFaceView: View {
     let face: CubeFace
     let cellSize: CGFloat
     
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 2) {
             ForEach(0..<3) { row in
                 HStack(spacing: 2) {

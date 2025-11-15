@@ -196,7 +196,7 @@ struct FaceIndicator: View {
     let isActive: Bool
     let isScanned: Bool
     
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 4) {
             Circle()
                 .fill(isScanned ? Color.green : (isActive ? Color.blue : Color.gray))
@@ -220,7 +220,7 @@ struct ManualCorrectionView: View {
     
     @State private var corrections: [Int: CubeColor] = [:]
     
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             VStack {
                 Text("Low Confidence Stickers")
@@ -281,7 +281,7 @@ struct CorrectionCell: View {
     
     @State private var showingPicker = false
     
-    var body: some View {
+    public var body: some View {
         Button {
             showingPicker = true
         } label: {

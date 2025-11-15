@@ -22,7 +22,7 @@ public struct SolutionPlaybackView: View {
     
     let initialState: CubeState
     
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             ZStack {
                 // Background gradient
@@ -168,7 +168,7 @@ public struct SolutionOverviewCard: View {
     let totalMoves: Int
     let currentStep: Int
     
-    var body: some View {
+    public var body: some View {
         GlassmorphicCard {
             VStack(spacing: 10) {
                 HStack {
@@ -223,7 +223,7 @@ public struct SolutionOverviewCard: View {
 public struct CurrentMoveCard: View {
     let move: Move
     
-    var body: some View {
+    public var body: some View {
         GlassmorphicCard {
             VStack(spacing: 10) {
                 Text("Current Move")
@@ -258,7 +258,7 @@ public struct PlaybackControls: View {
     let onPlayPause: () -> Void
     let onReset: () -> Void
     
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 15) {
             HStack(spacing: 20) {
                 // Reset button
@@ -302,7 +302,7 @@ public struct PlaybackButton: View {
     let action: () -> Void
     var isLarge: Bool = false
     
-    var body: some View {
+    public var body: some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: isLarge ? 32 : 24))

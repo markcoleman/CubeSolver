@@ -37,7 +37,7 @@ public class CubeScanner: ObservableObject {
     
     // MARK: - Scanner State
     
-    public enum ScannerState {
+    public enum ScannerState: Equatable {
         case idle
         case scanning
         case processing

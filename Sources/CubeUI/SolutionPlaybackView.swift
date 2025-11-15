@@ -80,7 +80,7 @@ public struct SolutionPlaybackView: View {
                     Spacer()
                 }
             }
-            .navigationBarTitleDisplayMode(.inline)
+            .crossPlatformNavigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .automatic) {
                     Button("Done") {

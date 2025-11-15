@@ -83,6 +83,16 @@ extension View {
         return self.background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
         #endif
     }
+    
+    /// Cross-platform navigation bar title display mode
+    /// Only applies on iOS where it's available
+    func crossPlatformNavigationBarTitleDisplayMode(_ mode: NavigationBarItem.TitleDisplayMode) -> some View {
+        #if os(iOS)
+        return self.navigationBarTitleDisplayMode(mode)
+        #else
+        return self
+        #endif
+    }
 }
 
 #endif

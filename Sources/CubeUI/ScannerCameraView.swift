@@ -9,6 +9,7 @@
 import SwiftUI
 import AVFoundation
 import CubeCore
+import CubeScanner
 
 /// Camera view for scanning Rubik's Cube faces
 @MainActor
@@ -126,7 +127,7 @@ public struct ScannerCameraView: View {
             }
         }
         .navigationTitle("Scan Cube")
-        .navigationBarTitleDisplayMode(.inline)
+        .crossPlatformNavigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showManualCorrection) {
             ManualCorrectionView(
                 scanner: scanner,
@@ -262,7 +263,7 @@ struct ManualCorrectionView: View {
                 .padding()
             }
             .navigationTitle("Correct Colors")
-            .navigationBarTitleDisplayMode(.inline)
+            .crossPlatformNavigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {

@@ -162,7 +162,7 @@ public struct ValidatedManualInputView: View {
                     .padding(.vertical)
                 }
             }
-            .navigationBarTitleDisplayMode(.inline)
+            .crossPlatformNavigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .automatic) {
                     Button("Close") {

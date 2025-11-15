@@ -8,23 +8,35 @@
 import Foundation
 
 /// Represents a face color on the Rubik's Cube
+/// Each color corresponds to one of the six faces in a standard Rubik's Cube
 enum FaceColor: String, CaseIterable {
+    /// White face color
     case white = "W"
+    /// Yellow face color
     case yellow = "Y"
+    /// Red face color
     case red = "R"
+    /// Orange face color
     case orange = "O"
+    /// Blue face color
     case blue = "B"
+    /// Green face color
     case green = "G"
 }
 
-/// Represents a face of the Rubik's Cube (3x3 grid)
+/// Represents a single face of the Rubik's Cube as a 3x3 grid of colors
 struct CubeFace {
+    /// 2D array representing the 3x3 grid of colors on this face
     var colors: [[FaceColor]]
     
+    /// Initializes a cube face with all cells set to the specified color
+    /// - Parameter color: The color to fill all cells with
     init(color: FaceColor) {
         self.colors = Array(repeating: Array(repeating: color, count: 3), count: 3)
     }
     
+    /// Rotates the face 90 degrees clockwise
+    /// This operation transposes and reverses the color matrix
     mutating func rotateClockwise() {
         let n = 3
         var rotated = colors
@@ -36,6 +48,8 @@ struct CubeFace {
         colors = rotated
     }
     
+    /// Rotates the face 90 degrees counter-clockwise
+    /// Implemented as three consecutive clockwise rotations
     mutating func rotateCounterClockwise() {
         rotateClockwise()
         rotateClockwise()
@@ -43,15 +57,22 @@ struct CubeFace {
     }
 }
 
-/// Represents a complete Rubik's Cube
+/// Represents a complete 3x3x3 Rubik's Cube with six faces
 struct RubiksCube {
+    /// The front face (typically red in standard orientation)
     var front: CubeFace
+    /// The back face (typically orange in standard orientation)
     var back: CubeFace
+    /// The left face (typically green in standard orientation)
     var left: CubeFace
+    /// The right face (typically blue in standard orientation)
     var right: CubeFace
+    /// The top face (typically white in standard orientation)
     var top: CubeFace
+    /// The bottom face (typically yellow in standard orientation)
     var bottom: CubeFace
     
+    /// Initializes a solved Rubik's Cube with standard color configuration
     init() {
         front = CubeFace(color: .red)
         back = CubeFace(color: .orange)
@@ -61,7 +82,8 @@ struct RubiksCube {
         bottom = CubeFace(color: .yellow)
     }
     
-    /// Check if the cube is solved
+    /// Indicates whether the cube is in a solved state
+    /// Returns true if all faces have uniform colors
     var isSolved: Bool {
         return isFaceSolved(front) && isFaceSolved(back) &&
                isFaceSolved(left) && isFaceSolved(right) &&
@@ -82,7 +104,8 @@ struct RubiksCube {
     
     // MARK: - Cube Rotations
     
-    /// Rotate the front face clockwise
+    /// Rotates the front face 90 degrees clockwise
+    /// This also affects the adjacent edges of top, bottom, left, and right faces
     mutating func rotateFront() {
         front.rotateClockwise()
         

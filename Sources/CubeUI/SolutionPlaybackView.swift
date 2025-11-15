@@ -1,3 +1,4 @@
+#if canImport(SwiftUI)
 //
 //  SolutionPlaybackView.swift
 //  CubeSolver
@@ -6,9 +7,10 @@
 //
 
 import SwiftUI
+import CubeCore
 
 /// View for displaying and playing back cube solution steps
-struct SolutionPlaybackView: View {
+public struct SolutionPlaybackView: View {
     @ObservedObject var cubeViewModel: CubeViewModel
     @Environment(\.dismiss) private var dismiss
     
@@ -162,7 +164,7 @@ struct SolutionPlaybackView: View {
 }
 
 /// Card showing solution overview
-struct SolutionOverviewCard: View {
+public struct SolutionOverviewCard: View {
     let totalMoves: Int
     let currentStep: Int
     
@@ -218,7 +220,7 @@ struct SolutionOverviewCard: View {
 }
 
 /// Card showing current move
-struct CurrentMoveCard: View {
+public struct CurrentMoveCard: View {
     let move: Move
     
     var body: some View {
@@ -247,7 +249,7 @@ struct CurrentMoveCard: View {
 }
 
 /// Playback control buttons
-struct PlaybackControls: View {
+public struct PlaybackControls: View {
     @Binding var currentStep: Int
     @Binding var isPlaying: Bool
     let totalSteps: Int
@@ -295,7 +297,7 @@ struct PlaybackControls: View {
 }
 
 /// Individual playback button
-struct PlaybackButton: View {
+public struct PlaybackButton: View {
     let icon: String
     let action: () -> Void
     var isLarge: Bool = false
@@ -326,3 +328,4 @@ struct PlaybackButton: View {
         initialState: CubeState()
     )
 }
+#endif

@@ -10,7 +10,7 @@ import Foundation
 // MARK: - Validation Errors
 
 /// Errors that can occur during cube validation
-enum CubeValidationError: Error, LocalizedError, Equatable {
+public enum CubeValidationError: Error, LocalizedError, Equatable {
     case invalidStickerCount(color: CubeColor, count: Int)
     case nonUniqueCenters
     case invalidCornerOrientation
@@ -18,7 +18,7 @@ enum CubeValidationError: Error, LocalizedError, Equatable {
     case invalidPermutationParity
     case invalidFaceConfiguration
     
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .invalidStickerCount(let color, let count):
             if count > 9 {
@@ -43,22 +43,22 @@ enum CubeValidationError: Error, LocalizedError, Equatable {
 // MARK: - Cube Pieces
 
 /// Represents a corner piece with its three colors
-struct CornerPiece: Equatable {
-    let colors: [CubeColor]
-    let position: Int
+public struct CornerPiece: Equatable {
+    public let colors: [CubeColor]
+    public let position: Int
     
-    init(colors: [CubeColor], position: Int) {
+    public init(colors: [CubeColor], position: Int) {
         self.colors = colors
         self.position = position
     }
 }
 
 /// Represents an edge piece with its two colors
-struct EdgePiece: Equatable {
-    let colors: [CubeColor]
-    let position: Int
+public struct EdgePiece: Equatable {
+    public let colors: [CubeColor]
+    public let position: Int
     
-    init(colors: [CubeColor], position: Int) {
+    public init(colors: [CubeColor], position: Int) {
         self.colors = colors
         self.position = position
     }
@@ -67,12 +67,12 @@ struct EdgePiece: Equatable {
 // MARK: - Cube Validator
 
 /// Validates Rubik's Cube configurations for basic correctness and physical legality
-class CubeValidator {
+public class CubeValidator {
     
     /// Validate a cube state for all constraints
     /// - Parameter state: The cube state to validate
     /// - Throws: CubeValidationError if validation fails
-    static func validate(_ state: CubeState) throws {
+    public static func validate(_ state: CubeState) throws {
         try validateBasic(state)
         try validatePhysicalLegality(state)
     }
@@ -82,7 +82,7 @@ class CubeValidator {
     /// Validate basic cube constraints
     /// - Parameter state: The cube state to validate
     /// - Throws: CubeValidationError if basic validation fails
-    static func validateBasic(_ state: CubeState) throws {
+    public static func validateBasic(_ state: CubeState) throws {
         // Ensure each face has exactly 9 stickers
         for face in Face.allCases {
             guard let stickers = state.faces[face], stickers.count == 9 else {
@@ -133,7 +133,7 @@ class CubeValidator {
     /// Validate physical legality of cube configuration
     /// - Parameter state: The cube state to validate
     /// - Throws: CubeValidationError if physical validation fails
-    static func validatePhysicalLegality(_ state: CubeState) throws {
+    public static func validatePhysicalLegality(_ state: CubeState) throws {
         let corners = extractCorners(from: state)
         let edges = extractEdges(from: state)
         

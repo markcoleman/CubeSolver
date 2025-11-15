@@ -11,7 +11,7 @@ import Foundation
 
 /// Represents the six standard colors on a Rubik's Cube
 /// Aligned with existing FaceColor enum for backward compatibility
-enum CubeColor: String, CaseIterable, Codable, Equatable {
+public enum CubeColor: String, CaseIterable, Codable, Equatable, Sendable {
     case white = "W"
     case yellow = "Y"
     case red = "R"
@@ -23,7 +23,7 @@ enum CubeColor: String, CaseIterable, Codable, Equatable {
 // MARK: - Face Definitions
 
 /// Represents the six faces of a Rubik's Cube
-enum Face: String, CaseIterable, Codable, Equatable {
+public enum Face: String, CaseIterable, Codable, Equatable, Sendable {
     case up = "U"
     case down = "D"
     case left = "L"
@@ -32,7 +32,7 @@ enum Face: String, CaseIterable, Codable, Equatable {
     case back = "B"
     
     /// Returns the opposite face
-    var opposite: Face {
+    public var opposite: Face {
         switch self {
         case .up: return .down
         case .down: return .up
@@ -48,13 +48,13 @@ enum Face: String, CaseIterable, Codable, Equatable {
 
 /// Represents the complete state of a Rubik's Cube as 54 individual stickers
 /// Each face has 9 stickers arranged in a 3x3 grid
-struct CubeState: Equatable, Codable {
+public struct CubeState: Equatable, Codable, Sendable {
     /// Dictionary mapping each face to its 9 sticker colors
     /// Stickers are ordered from top-left to bottom-right (row by row)
-    var faces: [Face: [CubeColor]]
+    public var faces: [Face: [CubeColor]]
     
     /// Initializes a solved cube state with standard color configuration
-    init() {
+    public init() {
         faces = [
             .up: Array(repeating: .white, count: 9),
             .down: Array(repeating: .yellow, count: 9),
@@ -66,7 +66,7 @@ struct CubeState: Equatable, Codable {
     }
     
     /// Initializes a cube state with custom face colors
-    init(faces: [Face: [CubeColor]]) {
+    public init(faces: [Face: [CubeColor]]) {
         self.faces = faces
     }
     
@@ -75,7 +75,7 @@ struct CubeState: Equatable, Codable {
     ///   - face: The face of the sticker
     ///   - index: The index of the sticker (0-8, top-left to bottom-right)
     /// - Returns: The color of the sticker
-    func getSticker(face: Face, index: Int) -> CubeColor? {
+    public func getSticker(face: Face, index: Int) -> CubeColor? {
         guard index >= 0 && index < 9 else { return nil }
         return faces[face]?[index]
     }
@@ -91,7 +91,7 @@ struct CubeState: Equatable, Codable {
     }
     
     /// Get the center color of a face
-    func centerColor(of face: Face) -> CubeColor? {
+    public func centerColor(of face: Face) -> CubeColor? {
         return faces[face]?[4] // Center is always at index 4
     }
 }
@@ -99,7 +99,7 @@ struct CubeState: Equatable, Codable {
 // MARK: - Move Definitions
 
 /// Represents the turn type (which face to rotate)
-enum Turn: String, CaseIterable, Codable, Equatable {
+public enum Turn: String, CaseIterable, Codable, Equatable, Sendable {
     case U = "U" // Up/Top face
     case D = "D" // Down/Bottom face
     case L = "L" // Left face
@@ -108,7 +108,7 @@ enum Turn: String, CaseIterable, Codable, Equatable {
     case B = "B" // Back face
     
     /// Convert to Face enum
-    var face: Face {
+    public var face: Face {
         switch self {
         case .U: return .up
         case .D: return .down
@@ -120,7 +120,7 @@ enum Turn: String, CaseIterable, Codable, Equatable {
     }
     
     /// Create from Face enum
-    init(from face: Face) {
+    public init(from face: Face) {
         switch face {
         case .up: self = .U
         case .down: self = .D
@@ -133,13 +133,13 @@ enum Turn: String, CaseIterable, Codable, Equatable {
 }
 
 /// Represents the amount of rotation
-enum Amount: String, CaseIterable, Codable, Equatable {
+public enum Amount: String, CaseIterable, Codable, Equatable, Sendable {
     case clockwise = ""      // 90° clockwise (no suffix)
     case counter = "'"       // 90° counter-clockwise (prime)
     case double = "2"        // 180° (double turn)
     
     /// Number of 90° clockwise turns this amount represents
-    var quarters: Int {
+    public var quarters: Int {
         switch self {
         case .clockwise: return 1
         case .counter: return 3
@@ -149,20 +149,20 @@ enum Amount: String, CaseIterable, Codable, Equatable {
 }
 
 /// Represents a single move in a cube solution
-struct Move: Equatable, Codable {
+public struct Move: Equatable, Codable, Sendable {
     /// The face to turn
-    let turn: Turn
+    public let turn: Turn
     
     /// The amount to turn (clockwise, counter-clockwise, or double)
-    let amount: Amount
+    public let amount: Amount
     
     /// Standard notation string (e.g., "R", "U'", "F2")
-    var notation: String {
+    public var notation: String {
         return turn.rawValue + amount.rawValue
     }
     
     /// Human-readable description
-    var description: String {
+    public var description: String {
         let faceName: String
         switch turn {
         case .U: faceName = "top"
@@ -184,7 +184,7 @@ struct Move: Equatable, Codable {
     }
     
     /// Initialize from notation string (e.g., "R", "U'", "F2")
-    init?(notation: String) {
+    public init?(notation: String) {
         guard !notation.isEmpty else { return nil }
         
         let turnChar = String(notation.prefix(1))
@@ -201,7 +201,7 @@ struct Move: Equatable, Codable {
     }
     
     /// Initialize with turn and amount
-    init(turn: Turn, amount: Amount = .clockwise) {
+    public init(turn: Turn, amount: Amount = .clockwise) {
         self.turn = turn
         self.amount = amount
     }
@@ -209,9 +209,9 @@ struct Move: Equatable, Codable {
 
 // MARK: - Conversion Utilities
 
-extension CubeState {
+public extension CubeState {
     /// Convert from existing RubiksCube structure
-    init(from cube: RubiksCube) {
+    public init(from cube: RubiksCube) {
         self.init()
         
         // Convert each face
@@ -224,7 +224,7 @@ extension CubeState {
     }
     
     /// Convert to existing RubiksCube structure
-    func toRubiksCube() -> RubiksCube {
+    public func toRubiksCube() -> RubiksCube {
         var cube = RubiksCube()
         
         // Convert each face

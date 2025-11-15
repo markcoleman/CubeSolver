@@ -9,7 +9,7 @@ import Foundation
 
 /// Represents a face color on the Rubik's Cube
 /// Each color corresponds to one of the six faces in a standard Rubik's Cube
-enum FaceColor: String, CaseIterable {
+public enum FaceColor: String, CaseIterable {
     /// White face color
     case white = "W"
     /// Yellow face color
@@ -25,13 +25,13 @@ enum FaceColor: String, CaseIterable {
 }
 
 /// Represents a single face of the Rubik's Cube as a 3x3 grid of colors
-struct CubeFace {
+public struct CubeFace {
     /// 2D array representing the 3x3 grid of colors on this face
-    var colors: [[FaceColor]]
+    public var colors: [[FaceColor]]
     
     /// Initializes a cube face with all cells set to the specified color
     /// - Parameter color: The color to fill all cells with
-    init(color: FaceColor) {
+    public init(color: FaceColor) {
         self.colors = Array(repeating: Array(repeating: color, count: 3), count: 3)
     }
     
@@ -58,22 +58,22 @@ struct CubeFace {
 }
 
 /// Represents a complete 3x3x3 Rubik's Cube with six faces
-struct RubiksCube {
+public struct RubiksCube {
     /// The front face (typically red in standard orientation)
-    var front: CubeFace
+    public var front: CubeFace
     /// The back face (typically orange in standard orientation)
-    var back: CubeFace
+    public var back: CubeFace
     /// The left face (typically green in standard orientation)
-    var left: CubeFace
+    public var left: CubeFace
     /// The right face (typically blue in standard orientation)
-    var right: CubeFace
+    public var right: CubeFace
     /// The top face (typically white in standard orientation)
-    var top: CubeFace
+    public var top: CubeFace
     /// The bottom face (typically yellow in standard orientation)
-    var bottom: CubeFace
+    public var bottom: CubeFace
     
     /// Initializes a solved Rubik's Cube with standard color configuration
-    init() {
+    public init() {
         front = CubeFace(color: .red)
         back = CubeFace(color: .orange)
         left = CubeFace(color: .green)
@@ -84,7 +84,7 @@ struct RubiksCube {
     
     /// Indicates whether the cube is in a solved state
     /// Returns true if all faces have uniform colors
-    var isSolved: Bool {
+    public var isSolved: Bool {
         return isFaceSolved(front) && isFaceSolved(back) &&
                isFaceSolved(left) && isFaceSolved(right) &&
                isFaceSolved(top) && isFaceSolved(bottom)

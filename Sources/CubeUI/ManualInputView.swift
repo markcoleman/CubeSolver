@@ -1,3 +1,4 @@
+#if canImport(SwiftUI)
 //
 //  ManualInputView.swift
 //  CubeSolver
@@ -6,9 +7,10 @@
 //
 
 import SwiftUI
+import CubeCore
 
 /// View for manually inputting a cube configuration from a real-life cube
-struct ManualInputView: View {
+public struct ManualInputView: View {
     @ObservedObject var cubeViewModel: CubeViewModel
     @Environment(\.dismiss) private var dismiss
     
@@ -182,7 +184,7 @@ struct ManualInputView: View {
 }
 
 /// Enumeration for cube face types
-enum CubeFaceType: String, CaseIterable {
+public enum CubeFaceType: String, CaseIterable {
     case front = "Front"
     case back = "Back"
     case left = "Left"
@@ -203,7 +205,7 @@ enum CubeFaceType: String, CaseIterable {
 }
 
 /// Button for selecting a cube face
-struct FaceSelectorButton: View {
+public struct FaceSelectorButton: View {
     let faceType: CubeFaceType
     let isSelected: Bool
     let action: () -> Void
@@ -236,7 +238,7 @@ struct FaceSelectorButton: View {
 }
 
 /// Button for selecting a color
-struct ColorSelectorButton: View {
+public struct ColorSelectorButton: View {
     let color: FaceColor
     let isSelected: Bool
     let action: () -> Void
@@ -271,7 +273,7 @@ struct ColorSelectorButton: View {
 }
 
 /// Editable cube face view
-struct EditableCubeFaceView: View {
+public struct EditableCubeFaceView: View {
     @Binding var face: CubeFace
     @Binding var selectedColor: FaceColor
     
@@ -324,3 +326,4 @@ struct EditableCubeFaceView: View {
 #Preview {
     ManualInputView(cubeViewModel: CubeViewModel())
 }
+#endif

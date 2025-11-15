@@ -8,11 +8,11 @@
 import Foundation
 
 /// Rubik's Cube solver using a simplified algorithm
-class CubeSolver {
+public class CubeSolver {
     
     /// Solve the Rubik's Cube and return the solution steps
     /// This is a simplified solver that demonstrates the solving process
-    static func solve(cube: inout RubiksCube) -> [String] {
+    public static func solve(cube: inout RubiksCube) -> [String] {
         var steps: [String] = []
         
         // If already solved, return empty steps
@@ -124,7 +124,7 @@ class CubeSolver {
     }
     
     /// Generate a random scramble sequence
-    static func scramble(moves: Int = 20) -> [String] {
+    public static func scramble(moves: Int = 20) -> [String] {
         let possibleMoves = ["F", "B", "L", "R", "U", "D"]
         var scrambleSequence: [String] = []
         
@@ -137,7 +137,7 @@ class CubeSolver {
     }
     
     /// Apply a scramble sequence to a cube
-    static func applyScramble(cube: inout RubiksCube, scramble: [String]) {
+    public static func applyScramble(cube: inout RubiksCube, scramble: [String]) {
         for move in scramble {
             // Extract the move letter from the description
             let moveChar = move.prefix(1)

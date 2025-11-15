@@ -1,3 +1,4 @@
+#if canImport(SwiftUI)
 //
 //  CubeViewModel.swift
 //  CubeSolver
@@ -7,10 +8,11 @@
 
 import Foundation
 import SwiftUI
+import CubeCore
 
 /// ViewModel managing the state and operations of the Rubik's Cube
 /// Conforms to ObservableObject to enable SwiftUI data binding
-class CubeViewModel: ObservableObject {
+public class CubeViewModel: ObservableObject {
     /// The current state of the Rubik's Cube
     @Published var cube: RubiksCube
     
@@ -18,7 +20,7 @@ class CubeViewModel: ObservableObject {
     @Published var solutionSteps: [String] = []
     
     /// Initializes the view model with a solved cube
-    init() {
+    public init() {
         self.cube = RubiksCube()
     }
     
@@ -45,3 +47,4 @@ class CubeViewModel: ObservableObject {
         objectWillChange.send()
     }
 }
+#endif

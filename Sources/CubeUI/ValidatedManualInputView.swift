@@ -1,3 +1,4 @@
+#if canImport(SwiftUI)
 //
 //  ValidatedManualInputView.swift
 //  CubeSolver
@@ -6,9 +7,10 @@
 //
 
 import SwiftUI
+import CubeCore
 
 /// View for manually inputting a cube configuration with validation
-struct ValidatedManualInputView: View {
+public struct ValidatedManualInputView: View {
     @ObservedObject var cubeViewModel: CubeViewModel
     @Environment(\.dismiss) private var dismiss
     
@@ -240,7 +242,7 @@ struct ValidatedManualInputView: View {
 }
 
 /// Card displaying validation status
-struct ValidationStatusCard: View {
+public struct ValidationStatusCard: View {
     let isValid: Bool
     let errorMessage: String?
     
@@ -292,3 +294,4 @@ struct ValidationStatusCard: View {
 #Preview {
     ValidatedManualInputView(cubeViewModel: CubeViewModel())
 }
+#endif

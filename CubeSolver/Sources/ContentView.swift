@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import CubeCore
+import CubeUI
 
 struct ContentView: View {
     @StateObject private var cubeViewModel = CubeViewModel()

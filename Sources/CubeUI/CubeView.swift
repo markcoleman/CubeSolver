@@ -1,3 +1,4 @@
+#if canImport(SwiftUI)
 //
 //  CubeView.swift
 //  CubeSolver
@@ -6,8 +7,9 @@
 //
 
 import SwiftUI
+import CubeCore
 
-struct CubeView: View {
+public struct CubeView: View {
     let cube: RubiksCube
     
     var body: some View {
@@ -37,7 +39,7 @@ struct CubeView: View {
     }
 }
 
-struct CubeFaceView: View {
+public struct CubeFaceView: View {
     let face: CubeFace
     let cellSize: CGFloat
     
@@ -89,3 +91,4 @@ struct CubeFaceView: View {
         .padding()
         .background(Color.gray)
 }
+#endif

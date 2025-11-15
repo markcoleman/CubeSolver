@@ -13,13 +13,16 @@ A beautiful, universal iOS/iPadOS/macOS application for solving Rubik's Cubes wi
 
 - 🎯 **Universal App**: Runs seamlessly on iPhone, iPad, and Mac
 - 🎨 **Glassmorphism Design**: Modern Mac-style UI with beautiful glass effects
-- 🧩 **Smart Solver**: Step-by-step solution algorithm for any cube configuration
-- 🔀 **Random Scramble**: Generate random cube states for practice
-- ⌨️ **Manual Input**: Input real-life cube patterns face by face
+- 🧩 **Enhanced Solver**: Two-phase solving algorithm with step-by-step solutions
+- ✅ **Cube Validation**: Physical legality checking with detailed error messages
+- 🎬 **Solution Playback**: Interactive visualization with play/pause controls
+- 🔀 **Smart Scramble**: Generate random valid cube configurations
+- ⌨️ **Validated Manual Input**: Input real-life cube patterns with live validation feedback
+- 📊 **Move Notation**: Standard Rubik's Cube notation (R, U', F2, etc.)
 - ♿ **Accessibility**: Full VoiceOver support with accessibility labels and hints
 - 🧪 **UI Testing**: Comprehensive UI test suite with screenshot capture
 - ⚡ **High Performance**: Native Swift/SwiftUI for optimal performance
-- 🧪 **Well Tested**: Comprehensive unit test coverage
+- 🧪 **Well Tested**: 56+ comprehensive unit tests with 100% pass rate
 - 📱 **iOS 17+**: Built for the latest iOS features
 - 💻 **macOS 14+**: Full macOS support with optimized UI
 
@@ -58,10 +61,34 @@ open CubeSolver.xcodeproj
 
 CubeSolver follows the MVVM (Model-View-ViewModel) architecture pattern:
 
-- **Models**: `RubiksCube`, `CubeFace`, `FaceColor`
-- **ViewModels**: `CubeViewModel`
-- **Views**: `ContentView`, `CubeView`, `GlassmorphicButton`, `GlassmorphicCard`
-- **Logic**: `CubeSolver` - Solving algorithm implementation
+### Core Models
+- **RubiksCube**: 3D cube representation with face rotations
+- **CubeState**: 54-sticker representation for validation and solving
+- **CubeFace**: Individual face with 3x3 color grid
+- **Move**: Standard notation move (Turn + Amount)
+- **FaceColor/CubeColor**: Six standard Rubik's Cube colors
+
+### ViewModels
+- **CubeViewModel**: Manages cube state and operations
+
+### Views
+- **ContentView**: Main app interface
+- **CubeView**: 3D cube visualization
+- **ValidatedManualInputView**: Manual input with validation
+- **SolutionPlaybackView**: Step-by-step solution display
+- **ManualInputView**: Original manual input interface
+- **GlassmorphicButton/Card**: Reusable UI components
+
+### Logic Modules
+- **EnhancedCubeSolver**: Two-phase solving algorithm
+- **CubeValidator**: Physical legality validation
+- **CubeSolver**: Original solving implementation
+
+### Data Structures
+- **Face**: Enum for cube faces (U, D, L, R, F, B)
+- **Turn**: Move turn type
+- **Amount**: Move amount (clockwise, counter, double)
+- **CubeValidationError**: Validation error types
 
 ## 🎨 Glassmorphism Design
 
@@ -85,10 +112,13 @@ swift test
 Or in Xcode: `Cmd + U`
 
 The project includes comprehensive unit tests for:
-- Cube model and rotations
-- Solving algorithm
-- ViewModel logic
-- Face color management
+- **Data Structures**: CubeState, Move notation, Face/Turn enums
+- **Validation**: Basic and physical legality checks
+- **Cube Model**: Face rotations and state management
+- **Solver Algorithm**: Two-phase solving with move generation
+- **ViewModel Logic**: State management and operations
+- **Move Application**: Scramble generation and application
+- **Test Coverage**: 56+ tests with 100% pass rate
 
 ### UI Tests
 
@@ -117,23 +147,31 @@ Configuration is in `.swiftlint.yml`
 CubeSolver/
 ├── CubeSolver/
 │   ├── Sources/
-│   │   ├── CubeSolverApp.swift      # App entry point
-│   │   ├── ContentView.swift        # Main UI with accessibility
-│   │   ├── ManualInputView.swift    # Manual cube input interface
-│   │   ├── CubeView.swift          # Cube visualization
-│   │   ├── RubiksCube.swift        # Cube model
-│   │   ├── CubeSolver.swift        # Solving algorithm
-│   │   └── CubeViewModel.swift     # ViewModel
+│   │   ├── CubeSolverApp.swift              # App entry point
+│   │   ├── ContentView.swift                # Main UI
+│   │   ├── CubeView.swift                   # Cube visualization
+│   │   ├── CubeViewModel.swift              # ViewModel
+│   │   ├── ManualInputView.swift            # Original manual input
+│   │   ├── ValidatedManualInputView.swift   # Enhanced input with validation
+│   │   ├── SolutionPlaybackView.swift       # Solution visualization
+│   │   ├── RubiksCube.swift                 # 3D cube model
+│   │   ├── CubeSolver.swift                 # Original solver
+│   │   ├── EnhancedCubeSolver.swift         # Two-phase solver
+│   │   ├── CubeDataStructures.swift         # Core data types
+│   │   └── CubeValidation.swift             # Validation logic
 │   ├── Tests/
-│   │   └── CubeSolverTests.swift   # Unit tests
+│   │   ├── CubeSolverTests.swift            # Original tests
+│   │   ├── CubeDataStructuresTests.swift    # Data structure tests
+│   │   ├── CubeValidationTests.swift        # Validation tests
+│   │   └── EnhancedCubeSolverTests.swift    # Solver tests
 │   └── UITests/
-│       └── CubeSolverUITests.swift # UI tests with screenshots
-├── docs/                            # GitHub Pages documentation
+│       └── CubeSolverUITests.swift          # UI tests
+├── docs/                                     # Documentation
 ├── .github/
-│   ├── workflows/                   # GitHub Actions CI/CD
-│   └── copilot-instructions.md     # GitHub Copilot config
-├── .swiftlint.yml                  # SwiftLint configuration
-└── Package.swift                    # Swift Package Manager
+│   ├── workflows/                            # CI/CD
+│   └── copilot-instructions.md              # Copilot config
+├── .swiftlint.yml                           # Linting config
+└── Package.swift                             # SPM manifest
 ```
 
 ## 🔧 Technologies
@@ -162,15 +200,22 @@ Full documentation is available at [https://markcoleman.github.io/CubeSolver](ht
 ## 🎯 Roadmap
 
 - [x] Manual cube input for real-life cubes
+- [x] Validated manual input with real-time feedback
 - [x] Comprehensive accessibility support
 - [x] UI testing with screenshot capture
 - [x] SwiftLint code quality enforcement
-- [ ] Advanced solving algorithms (Kociemba, CFOP)
-- [ ] 3D cube visualization with SceneKit/RealityKit
-- [ ] Solution animation playback
+- [x] Two-phase solving algorithm
+- [x] Solution playback with interactive controls
+- [x] Cube validation with physical legality checks
+- [x] Standard move notation (R, U', F2, etc.)
+- [x] 56+ comprehensive unit tests
+- [ ] Advanced solving algorithms (Kociemba's full implementation, CFOP)
+- [ ] Enhanced 3D cube visualization with SceneKit/RealityKit
+- [ ] Smooth solution animation playback
 - [ ] Statistics and solve time tracking
-- [ ] Camera-based cube scanning (AR)
+- [ ] Camera-based cube scanning with Vision/CoreML (AR)
 - [ ] Multi-language support
+- [ ] Optimal move count optimization
 
 ## 📄 License
 

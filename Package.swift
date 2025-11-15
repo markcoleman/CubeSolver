@@ -26,7 +26,10 @@ let package = Package(
             ],
             sources: [
                 "RubiksCube.swift",
-                "CubeSolver.swift"
+                "CubeSolver.swift",
+                "CubeDataStructures.swift",
+                "CubeValidation.swift",
+                "EnhancedCubeSolver.swift"
             ]
         ),
         .testTarget(

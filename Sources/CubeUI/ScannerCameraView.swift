@@ -1,4 +1,4 @@
-#if canImport(SwiftUI) && canImport(AVFoundation)
+#if canImport(SwiftUI) && canImport(AVFoundation) && canImport(CubeScanner)
 //
 //  ScannerCameraView.swift
 //  CubeSolver - Camera Scanner View
@@ -323,4 +323,25 @@ extension CubeColor {
     }
 }
 
+#else
+import SwiftUI
+
+@MainActor
+public struct ScannerCameraView: View {
+    public init() {}
+    public var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.largeTitle)
+                .foregroundStyle(.yellow)
+            Text("Scanner Unavailable")
+                .font(.headline)
+            Text("The CubeScanner module isn't available in this build configuration.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.ignoresSafeArea())
+    }
+}
 #endif

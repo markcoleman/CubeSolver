@@ -10,7 +10,9 @@
 import Foundation
 import SwiftUI
 import CubeCore
+#if canImport(ARKit)
 import ARKit
+#endif
 import RealityKit
 
 /// AR view for displaying solving instructions with a virtual cube
@@ -70,13 +72,24 @@ public struct CubeARView: View {
 @MainActor
 class ARState: ObservableObject {
     @Published var isSessionActive = false
-    @Published var trackingState: ARCamera.TrackingState?
-    
+
+    #if canImport(ARKit)
+    typealias TrackingState = ARCamera.TrackingState
+    #else
+    enum TrackingState {
+        case notAvailable
+        case limited
+        case normal
+    }
+    #endif
+
+    @Published var trackingState: TrackingState? = nil
+
     func startSession() {
         isSessionActive = true
         // TODO: Initialize AR session
     }
-    
+
     func pauseSession() {
         isSessionActive = false
         // TODO: Pause AR session
@@ -113,3 +126,4 @@ struct ARViewContainer: UIViewRepresentable {
 */
 
 #endif
+

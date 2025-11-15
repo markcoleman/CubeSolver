@@ -22,6 +22,17 @@ public class EnhancedCubeSolver {
         return try solveCubeInternal(state)
     }
     
+    /// Asynchronously solve a cube state and return the solution
+    /// This method runs the solving algorithm on a background task
+    /// - Parameter state: The cube state to solve
+    /// - Returns: Array of moves that solve the cube
+    /// - Throws: CubeValidationError if the cube state is invalid
+    public static func solveCubeAsync(from state: CubeState) async throws -> [Move] {
+        return try await Task.detached(priority: .userInitiated) {
+            return try solveCube(from: state)
+        }.value
+    }
+    
     // MARK: - Internal Solving Logic
     
     /// Internal solving implementation

@@ -445,7 +445,10 @@ struct PracticeView: View {
                     .padding()
                     .background(.ultraThinMaterial)
                     .cornerRadius(16)
-                    .padding(.horizontal)
+                            .foregroundColor(.white)
+                            .accessibilityLabel("Time elapsed")
+                            .accessibilityValue(timeString(from: timeElapsed))
+                            .accessibilityLiveRegion(.polite)
                     
                     // Cube visualization
                     CubeView(cube: cubeViewModel.cube)

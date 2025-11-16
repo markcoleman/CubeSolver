@@ -25,7 +25,7 @@ This document summarizes all DevOps improvements made to the CubeSolver reposito
 │   ├── config.yml                      # NEW - Issue template config
 │   ├── documentation.md                # NEW - Docs issue template
 │   └── feature_request.md              # NEW - Feature request template
-├── commitlint.config.js                # NEW - Commit linting rules
+├── commitlint.config.mjs               # NEW - Commit linting rules
 ├── dependabot.yml                      # EXISTING - Dependency automation
 ├── labeler.yml                         # NEW - Auto-labeling rules
 ├── pull_request_template.md            # NEW - PR template

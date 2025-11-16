@@ -8,7 +8,6 @@
 
 import SwiftUI
 import CubeCore
-import CubeUI
 
 /// View for displaying and playing back cube solution steps with 3D animations
 public struct SolutionPlaybackView: View {

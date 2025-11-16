@@ -212,7 +212,11 @@ private func createAnimatedCubeNode() -> SCNNode {
                 let xPos = CGFloat(x - 1) * totalSize
                 let yPos = CGFloat(y - 1) * totalSize
                 let zPos = CGFloat(z - 1) * totalSize
+#if os(macOS)
                 cubie.position = SCNVector3(x: xPos, y: yPos, z: zPos)
+#else
+                cubie.position = SCNVector3(x: Float(xPos), y: Float(yPos), z: Float(zPos))
+#endif
                 cubie.name = "cubie_\(x)_\(y)_\(z)"
                 
                 containerNode.addChildNode(cubie)
@@ -447,26 +451,34 @@ private typealias platformColor = NSColor
 private typealias platformColor = UIColor
 #endif
 
-#Preview {
-    @Previewable @State var move: Move? = nil  // Initialize without relying on specific enum cases
-    
-    AnimatedCube3DView(
-        cube: RubiksCube(),
-        currentMove: $move
-    )
-    .frame(width: 400, height: 400)
-    .background(
-        LinearGradient(
-            colors: [
-                Color(red: 0.1, green: 0.1, blue: 0.2),
-                Color(red: 0.2, green: 0.15, blue: 0.3)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-    )
+struct AnimatedCube3DView_Previews: PreviewProvider {
+    struct PreviewWrapper: View {
+        @State var move: Move? = nil
+        var body: some View {
+            AnimatedCube3DView(
+                cube: RubiksCube(),
+                currentMove: $move
+            )
+            .frame(width: 400, height: 400)
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.1, green: 0.1, blue: 0.2),
+                        Color(red: 0.2, green: 0.15, blue: 0.3)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+        }
+    }
+
+    static var previews: some View {
+        PreviewWrapper()
+    }
 }
 
 #endif // canImport(SceneKit)
 #endif // canImport(SwiftUI)
+
 

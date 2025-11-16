@@ -67,7 +67,10 @@ struct Cube3DSceneView: NSViewRepresentable {
     let allowInteraction: Bool
     
     func makeNSView(context: Context) -> SCNView {
-        createSceneView()
+        let scnView = createSceneView()
+        // Initialize colors on first creation
+        updateCubeColors(in: scnView.scene!, with: cube)
+        return scnView
     }
     
     func updateNSView(_ nsView: SCNView, context: Context) {
@@ -95,7 +98,10 @@ struct Cube3DSceneView: UIViewRepresentable {
     let allowInteraction: Bool
     
     func makeUIView(context: Context) -> SCNView {
-        createSceneView()
+        let scnView = createSceneView()
+        // Initialize colors on first creation
+        updateCubeColors(in: scnView.scene!, with: cube)
+        return scnView
     }
     
     func updateUIView(_ uiView: SCNView, context: Context) {

@@ -1,0 +1,72 @@
+name: Build Performance
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  build-time:
+    name: Measure Build Time
+    runs-on: macos-14
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+      
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '15.2'
+    
+    - name: Clean build directory
+      run: rm -rf .build
+    
+    - name: Measure build time
+      id: build_time
+      run: |
+        START_TIME=$(date +%s)
+        swift build --build-tests
+        END_TIME=$(date +%s)
+        BUILD_TIME=$((END_TIME - START_TIME))
+        echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
+        echo "Build completed in $BUILD_TIME seconds"
+    
+    - name: Measure test time
+      id: test_time
+      run: |
+        START_TIME=$(date +%s)
+        swift test --parallel
+        END_TIME=$(date +%s)
+        TEST_TIME=$((END_TIME - START_TIME))
+        echo "test_time=$TEST_TIME" >> $GITHUB_OUTPUT
+        echo "Tests completed in $TEST_TIME seconds"
+    
+    - name: Comment on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const buildTime = '${{ steps.build_time.outputs.build_time }}';
+          const testTime = '${{ steps.test_time.outputs.test_time }}';
+          const totalTime = parseInt(buildTime) + parseInt(testTime);
+          
+          const body = `## ⏱️ Build Performance Report
+          
+          - **Build Time**: ${buildTime}s
+          - **Test Time**: ${testTime}s
+          - **Total Time**: ${totalTime}s
+          
+          *This is a clean build without caching.*`;
+          
+          github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: body
+          });

@@ -655,9 +655,11 @@ struct PracticeView: View {
         }
     }
     
-    private func stopTimer() {
-        timerActive = false
-        timer?.invalidate()
+        let newTimer = Timer(timeInterval: 0.1, repeats: true) { _ in
+            timeElapsed += 0.1
+        }
+        RunLoop.current.add(newTimer, forMode: .common)
+        timer = newTimer
         timer = nil
     }
     

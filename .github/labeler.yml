@@ -1,0 +1,74 @@
+# Labeler configuration
+# Automatically label PRs based on changed files
+
+# CI/CD
+'ci':
+  - changed-files:
+    - any-glob-to-any-file: '.github/workflows/**'
+    - any-glob-to-any-file: '.github/dependabot.yml'
+
+# Documentation
+'documentation':
+  - changed-files:
+    - any-glob-to-any-file: 
+      - '**/*.md'
+      - 'docs/**'
+    - all-globs-to-all-files: '!CHANGELOG.md'
+
+# Security
+'security':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'SECURITY.md'
+      - '.github/workflows/codeql.yml'
+      - '.github/workflows/dependency-review.yml'
+
+# Core module
+'core':
+  - changed-files:
+    - any-glob-to-any-file: 
+      - 'Sources/CubeCore/**'
+      - 'Tests/CubeCoreTests/**'
+
+# UI module
+'ui':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'Sources/CubeUI/**'
+      - 'CubeSolver/Sources/**/*View.swift'
+
+# Scanner module
+'scanner':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'Sources/CubeScanner/**'
+      - 'Tests/CubeScannerTests/**'
+
+# AR module
+'ar':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'Sources/CubeAR/**'
+      - 'Tests/CubeARTests/**'
+
+# Tests
+'test':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'Tests/**'
+      - '**/*Tests.swift'
+
+# Dependencies
+'dependencies':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'Package.swift'
+      - 'Package.resolved'
+
+# Configuration
+'configuration':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.swiftlint.yml'
+      - '*.xcconfig'
+      - 'CubeSolver.xcodeproj/**'

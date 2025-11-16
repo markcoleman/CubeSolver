@@ -1,0 +1,31 @@
+# Code Owners for CubeSolver
+# These owners will be automatically requested for review when someone opens a pull request.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+* @markcoleman
+
+# CI/CD and DevOps
+/.github/ @markcoleman
+/.github/workflows/ @markcoleman
+.swiftlint.yml @markcoleman
+Package.swift @markcoleman
+
+# Security
+SECURITY.md @markcoleman
+/.github/dependabot.yml @markcoleman
+
+# Documentation
+*.md @markcoleman
+/docs/ @markcoleman
+
+# Core modules - require careful review
+/Sources/CubeCore/ @markcoleman
+/Tests/CubeCoreTests/ @markcoleman
+
+# UI modules
+/Sources/CubeUI/ @markcoleman
+
+# Platform-specific modules
+/Sources/CubeScanner/ @markcoleman
+/Sources/CubeAR/ @markcoleman

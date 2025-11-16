@@ -5,7 +5,7 @@
 # For format details, see: https://gh.io/customagents/config
 
 name: devops-expert
-description:
+description: Focuses on devops, builds, and automations best practices without modifying production code
 ---
 
 # DevOps Expert

@@ -19,6 +19,8 @@ public struct ValidatedManualInputView: View {
     @State private var validationError: String?
     @State private var showValidationAlert = false
     @State private var isValid = true
+    @State private var showingSolutionPlayback = false
+    @State private var isSolving = false
     
     public var body: some View {
         NavigationStack {
@@ -147,15 +149,30 @@ public struct ValidatedManualInputView: View {
                                 .accessibilityHint("Resets the selected face to its original state")
                             }
                             
-                            GlassmorphicButton(title: "Done", icon: "checkmark") {
-                                if validateCube() {
-                                    dismiss()
-                                } else {
-                                    showValidationAlert = true
+                            HStack(spacing: 15) {
+                                GlassmorphicButton(title: "Done", icon: "checkmark") {
+                                    if validateCube() {
+                                        dismiss()
+                                    } else {
+                                        showValidationAlert = true
+                                    }
                                 }
+                                .accessibilityIdentifier("doneButton")
+                                .accessibilityHint("Validates and closes the manual input view")
+                                
+                                // Solve button
+                                GlassmorphicButton(
+                                    title: isSolving ? "Solving..." : "Solve Cube",
+                                    icon: "wand.and.stars"
+                                ) {
+                                    Task {
+                                        await solveCube()
+                                    }
+                                }
+                                .disabled(isSolving || !isValid)
+                                .accessibilityIdentifier("solveCubeButton")
+                                .accessibilityHint("Solves the current cube configuration if valid")
                             }
-                            .accessibilityIdentifier("doneButton")
-                            .accessibilityHint("Validates and closes the manual input view")
                         }
                         .padding(.horizontal)
                     }
@@ -179,9 +196,36 @@ public struct ValidatedManualInputView: View {
             } message: {
                 Text(isValid ? "Cube configuration is valid!" : (validationError ?? "Unknown error"))
             }
+            .sheet(isPresented: $showingSolutionPlayback) {
+                SolutionPlaybackView(
+                    cubeViewModel: cubeViewModel,
+                    initialState: CubeState(from: cubeViewModel.cube)
+                )
+            }
         }
         .onAppear {
             validateCube()
+        }
+    }
+    
+    private func solveCube() async {
+        // Validate first
+        guard validateCube() else {
+            await MainActor.run {
+                showValidationAlert = true
+            }
+            return
+        }
+        
+        isSolving = true
+        
+        // Solve the cube
+        await cubeViewModel.solveAsync()
+        
+        // Show solution playback
+        await MainActor.run {
+            isSolving = false
+            showingSolutionPlayback = true
         }
     }
     

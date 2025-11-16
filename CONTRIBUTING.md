@@ -48,6 +48,19 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 3. Add the upstream remote: `git remote add upstream https://github.com/markcoleman/CubeSolver.git`
 4. Create a new branch: `git checkout -b feature/my-new-feature`
 
+### Using GitHub Copilot Agents
+
+This repository includes specialized GitHub Copilot agents to assist with development. When working on contributions, consider using these agents for expert guidance:
+
+* **SwiftUI Expert** (`swiftui-ios-expert`) - For UI components, glassmorphic design, platform-specific features
+* **Algorithm Expert** (`algorithm-expert`) - For cube solving algorithms, data structures, performance optimization
+* **Accessibility Expert** (`accessibility-expert`) - For VoiceOver, Dynamic Type, WCAG compliance
+* **Testing Specialist** (`test-specialist`) - For writing tests, improving coverage, test quality
+* **Documentation Expert** (`documentation-expert`) - For API docs, README updates, technical writing
+* **DevOps Expert** (`devops-expert`) - For CI/CD workflows, GitHub Actions, deployment
+
+See [.github/agents/README.md](.github/agents/README.md) for detailed information on each agent and when to use them.
+
 ### Making Changes
 
 1. Make your changes

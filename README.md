@@ -244,6 +244,21 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines.
+
+### 🤖 GitHub Copilot Agents
+
+This repository includes specialized GitHub Copilot agents to assist with development:
+
+- **SwiftUI Expert** - UI components, platform-specific features, glassmorphic design
+- **Algorithm Expert** - Cube solving algorithms, data structures, performance
+- **Accessibility Expert** - VoiceOver, Dynamic Type, WCAG compliance
+- **Testing Specialist** - XCTest, code coverage, test quality
+- **Documentation Expert** - API docs, guides, technical writing
+- **DevOps Expert** - CI/CD, GitHub Actions, deployment
+
+See [.github/agents/README.md](.github/agents/README.md) for details on using these agents.
+
 ## 📖 Documentation
 
 Full documentation is available at [https://markcoleman.github.io/CubeSolver](https://markcoleman.github.io/CubeSolver)

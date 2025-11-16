@@ -462,15 +462,10 @@ struct PracticeView: View {
                             .foregroundColor(.white)
                             .accessibilityLabel("Time elapsed")
                             .accessibilityValue(timeString(from: timeElapsed))
-                            .accessibilityLiveRegion(.polite)
                     }
                     .padding()
                     .background(.ultraThinMaterial)
                     .cornerRadius(16)
-                            .foregroundColor(.white)
-                            .accessibilityLabel("Time elapsed")
-                            .accessibilityValue(timeString(from: timeElapsed))
-                            .accessibilityLiveRegion(.polite)
                     
                     // Cube visualization
                     CubeView(cube: cubeViewModel.cube)
@@ -573,9 +568,7 @@ struct PracticeView: View {
                             }) {
                                 HStack {
                                     Image(systemName: "book.fill")
-                                    if !cubeViewModel.solution.isEmpty {
-                                        showSolution = true
-                                    }
+                                    Text(cubeViewModel.solution.isEmpty ? "Get Solution" : "Show Solution")
                                 }
                                 .font(.headline)
                                 .foregroundColor(.white)
@@ -784,3 +777,4 @@ struct SettingsView: View {
 }
 
 #endif
+

@@ -55,7 +55,6 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
-          .build
           ~/Library/Caches/org.swift.swiftpm
         key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
         restore-keys: |
@@ -65,7 +64,7 @@ jobs:
       run: swift package resolve
       
     - name: Build Swift package
-      run: swift build --build-tests
+      run: swift build
       
     - name: Run tests
       run: swift test --enable-code-coverage --parallel

@@ -243,7 +243,6 @@ struct StatCard: View {
 
 struct SolveView: View {
     @StateObject private var cubeViewModel = CubeViewModel()
-    @State private var showingSolution = false
     
     public var body: some View {
         ZStack {
@@ -300,9 +299,6 @@ struct SolveView: View {
                         Button(action: {
                             Task {
                                 await cubeViewModel.solveAsync()
-                                if !cubeViewModel.solution.isEmpty {
-                                    showingSolution = true
-                                }
                             }
                         }) {
                             HStack {
@@ -352,13 +348,12 @@ struct SolveView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.white.opacity(0.8))
                             
-                            NavigationLink(
-                                destination: SolutionPlaybackView(
+                            NavigationLink {
+                                SolutionPlaybackView(
                                     cubeViewModel: cubeViewModel,
                                     initialState: CubeState(from: cubeViewModel.cube)
-                                ),
-                                isActive: $showingSolution
-                            ) {
+                                )
+                            } label: {
                                 HStack {
                                     Image(systemName: "play.fill")
                                     Text("View Solution")
@@ -637,7 +632,7 @@ struct PracticeView: View {
         
         // Apply scramble to cube
         var state = CubeState(from: cubeViewModel.cube)
-        state = EnhancedCubeSolver.applyMoves(to: state, moves: scrambleMoves)
+        EnhancedCubeSolver.applyMoves(to: &state, moves: scrambleMoves)
         cubeViewModel.cube = state.toRubiksCube()
         
         timeElapsed = 0

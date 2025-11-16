@@ -61,7 +61,7 @@ public struct HomeView: View {
                             )
                         }
                         
-                        NavigationLink(destination: SolveView()) {
+                        NavigationLink(destination: SolveView(cubeViewModel: cubeViewModel)) {
                             ActionCard(
                                 icon: "wand.and.stars",
                                 title: "Quick Solve",
@@ -70,7 +70,7 @@ public struct HomeView: View {
                             )
                         }
                         
-                        NavigationLink(destination: PracticeView()) {
+                        NavigationLink(destination: PracticeView(cubeViewModel: cubeViewModel)) {
                             ActionCard(
                                 icon: "figure.run",
                                 title: "Practice",
@@ -248,7 +248,8 @@ struct StatCard: View {
 /// - Solve the scrambled cube asynchronously
 /// - Navigate to solution playback
 struct SolveView: View {
-    @StateObject private var cubeViewModel = CubeViewModel()
+    @ObservedObject var cubeViewModel: CubeViewModel
+    @State private var showingSolution = false
     
     public var body: some View {
         ZStack {
@@ -354,12 +355,9 @@ struct SolveView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.white.opacity(0.8))
                             
-                            NavigationLink {
-                                SolutionPlaybackView(
-                                    cubeViewModel: cubeViewModel,
-                                    initialState: CubeState(from: cubeViewModel.cube)
-                                )
-                            } label: {
+                            Button(action: {
+                                showingSolution = true
+                            }) {
                                 HStack {
                                     Image(systemName: "play.fill")
                                     Text("View Solution")
@@ -396,6 +394,12 @@ struct SolveView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        .navigationDestination(isPresented: $showingSolution) {
+            SolutionPlaybackView(
+                cubeViewModel: cubeViewModel,
+                initialState: CubeState(from: cubeViewModel.cube)
+            )
+        }
     }
 }
 
@@ -407,14 +411,16 @@ struct SolveView: View {
 /// - Show hints for next move
 /// - Display full solution with playback
 struct PracticeView: View {
-    @StateObject private var cubeViewModel = CubeViewModel()
+    @ObservedObject var cubeViewModel: CubeViewModel
     @State private var scrambleMoves: [Move] = []
     @State private var scrambleNotation: String = ""
     @State private var timeElapsed: TimeInterval = 0
     @State private var timerActive = false
     @State private var timer: Timer?
+    @State private var timerStartTime: Date?
     @State private var showHint = false
     @State private var showSolution = false
+    @State private var showingSolutionPlayback = false
     
     public var body: some View {
         ZStack {
@@ -611,12 +617,9 @@ struct PracticeView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.white.opacity(0.8))
                             
-                            NavigationLink(
-                                destination: SolutionPlaybackView(
-                                    cubeViewModel: cubeViewModel,
-                                    initialState: CubeState(from: cubeViewModel.cube)
-                                )
-                            ) {
+                            Button(action: {
+                                showingSolutionPlayback = true
+                            }) {
                                 HStack {
                                     Image(systemName: "play.fill")
                                     Text("View Playback")
@@ -642,6 +645,12 @@ struct PracticeView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        .navigationDestination(isPresented: $showingSolutionPlayback) {
+            SolutionPlaybackView(
+                cubeViewModel: cubeViewModel,
+                initialState: CubeState(from: cubeViewModel.cube)
+            )
+        }
         .onDisappear {
             stopTimer()
         }
@@ -674,8 +683,11 @@ struct PracticeView: View {
     
     private func startTimer() {
         timerActive = true
-        let newTimer = Timer(timeInterval: 0.1, repeats: true) { _ in
-            timeElapsed += 0.1
+        timerStartTime = Date()
+        let newTimer = Timer(timeInterval: 0.1, repeats: true) { [self] _ in
+            if let startTime = timerStartTime {
+                timeElapsed = Date().timeIntervalSince(startTime)
+            }
         }
         RunLoop.current.add(newTimer, forMode: .common)
         timer = newTimer

@@ -241,6 +241,12 @@ struct StatCard: View {
 
 // ScanView is replaced by ScannerCameraView
 
+/// Quick solve view that generates random scrambles and demonstrates automatic solving
+///
+/// Provides functionality to:
+/// - Generate random 20-move scrambles
+/// - Solve the scrambled cube asynchronously
+/// - Navigate to solution playback
 struct SolveView: View {
     @StateObject private var cubeViewModel = CubeViewModel()
     
@@ -393,6 +399,13 @@ struct SolveView: View {
     }
 }
 
+/// Practice mode view with timer and scramble generation
+///
+/// Provides functionality to:
+/// - Generate random scrambles for practice
+/// - Track solving time with a precision timer
+/// - Show hints for next move
+/// - Display full solution with playback
 struct PracticeView: View {
     @StateObject private var cubeViewModel = CubeViewModel()
     @State private var scrambleMoves: [Move] = []
@@ -441,6 +454,9 @@ struct PracticeView: View {
                         Text(timeString(from: timeElapsed))
                             .font(.system(size: 48, weight: .bold, design: .monospaced))
                             .foregroundColor(.white)
+                            .accessibilityLabel("Time elapsed")
+                            .accessibilityValue(timeString(from: timeElapsed))
+                            .accessibilityLiveRegion(.polite)
                     }
                     .padding()
                     .background(.ultraThinMaterial)
@@ -544,7 +560,9 @@ struct PracticeView: View {
                             Button(action: {
                                 Task {
                                     await cubeViewModel.solveAsync()
-                                    showSolution = true
+                                    if !cubeViewModel.solution.isEmpty {
+                                        showSolution = true
+                                    }
                                 }
                             }) {
                                 HStack {
@@ -642,7 +660,8 @@ struct PracticeView: View {
         
         timeElapsed = 0
         showHint = false
-        EnhancedCubeSolver.applyMoves(to: &state, moves: scrambleMoves)
+        showSolution = false
+        cubeViewModel.solution = []  // Clear stale solution
     }
     
     private func toggleTimer() {
@@ -656,16 +675,16 @@ struct PracticeView: View {
     
     private func startTimer() {
         timerActive = true
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-            timeElapsed += 0.1
-        }
-    }
-    
         let newTimer = Timer(timeInterval: 0.1, repeats: true) { _ in
             timeElapsed += 0.1
         }
         RunLoop.current.add(newTimer, forMode: .common)
         timer = newTimer
+    }
+    
+    private func stopTimer() {
+        timerActive = false
+        timer?.invalidate()
         timer = nil
     }
     

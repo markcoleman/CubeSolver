@@ -115,6 +115,7 @@
 			);
 			mainGroup = 2A00000100000000000000003;
 			packageReferences = (
+				2A00000100000000000000C0 /* XCLocalSwiftPackageReference ".." */,
 			);
 			productRefGroup = 2A00000100000000000000005 /* Products */;
 			projectDirPath = "";
@@ -373,21 +374,32 @@
 /* Begin XCSwiftPackageProductDependency section */
 		2A00000100000000000000AB /* CubeCore */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 2A00000100000000000000C0 /* XCLocalSwiftPackageReference ".." */;
 			productName = CubeCore;
 		};
 		2A00000100000000000000AD /* CubeUI */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 2A00000100000000000000C0 /* XCLocalSwiftPackageReference ".." */;
 			productName = CubeUI;
 		};
 		2A00000100000000000000AF /* CubeScanner */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 2A00000100000000000000C0 /* XCLocalSwiftPackageReference ".." */;
 			productName = CubeScanner;
 		};
 		2A00000100000000000000B1 /* CubeAR */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 2A00000100000000000000C0 /* XCLocalSwiftPackageReference ".." */;
 			productName = CubeAR;
 		};
 /* End XCSwiftPackageProductDependency section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		2A00000100000000000000C0 /* XCLocalSwiftPackageReference ".." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ..;
+		};
+/* End XCLocalSwiftPackageReference section */
 	};
 	rootObject = 2A0000010000000000000000A /* Project object */;
 }

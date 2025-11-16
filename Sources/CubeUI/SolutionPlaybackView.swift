@@ -3,13 +3,13 @@
 //  SolutionPlaybackView.swift
 //  CubeSolver
 //
-//  Step-by-step solution playback view
+//  Step-by-step solution playback view with 3D animations
 //
 
 import SwiftUI
 import CubeCore
 
-/// View for displaying and playing back cube solution steps
+/// View for displaying and playing back cube solution steps with 3D animations
 public struct SolutionPlaybackView: View {
     @ObservedObject var cubeViewModel: CubeViewModel
     @Environment(\.dismiss) private var dismiss
@@ -19,6 +19,8 @@ public struct SolutionPlaybackView: View {
     @State private var playbackTimer: Timer?
     @State private var cubeStates: [CubeState] = []
     @State private var moves: [Move] = []
+    @State private var currentAnimatingMove: Move?
+    @State private var isAnimating = false
     
     let initialState: CubeState
     
@@ -52,17 +54,17 @@ public struct SolutionPlaybackView: View {
                     )
                     .padding(.horizontal)
                     
-                    // Cube visualization - Use 3D view for better UX
+                    // Cube visualization - Use 3D view for better UX with animations
                     if currentStep < cubeStates.count {
                         #if canImport(SceneKit)
-                        Cube3DView(
+                        AnimatedCube3DView(
                             cube: cubeStates[currentStep].toRubiksCube(),
-                            autoRotate: false,
-                            allowInteraction: true
+                            currentMove: $currentAnimatingMove,
+                            onMoveComplete: handleAnimationComplete
                         )
                         .frame(height: 450)
                         .padding(.horizontal)
-                        .accessibilityLabel("3D Cube state at step \(currentStep)")
+                        .accessibilityLabel("3D animated cube at step \(currentStep)")
                         .transition(.asymmetric(
                             insertion: .scale.combined(with: .opacity),
                             removal: .scale.combined(with: .opacity)
@@ -102,7 +104,8 @@ public struct SolutionPlaybackView: View {
                         onPrevious: previousStep,
                         onNext: nextStep,
                         onPlayPause: togglePlayback,
-                        onReset: resetPlayback
+                        onReset: resetPlayback,
+                        isAnimating: isAnimating
                     )
                     .padding(.horizontal)
                     
@@ -151,15 +154,32 @@ public struct SolutionPlaybackView: View {
     }
     
     private func previousStep() {
+        guard !isAnimating else { return }
         if currentStep > 0 {
             currentStep -= 1
         }
     }
     
     private func nextStep() {
+        guard !isAnimating else { return }
         if currentStep < moves.count {
+            triggerAnimation(for: currentStep)
             currentStep += 1
         }
+    }
+    
+    private func triggerAnimation(for step: Int) {
+        #if canImport(SceneKit)
+        if step < moves.count {
+            isAnimating = true
+            currentAnimatingMove = moves[step]
+        }
+        #endif
+    }
+    
+    private func handleAnimationComplete() {
+        isAnimating = false
+        currentAnimatingMove = nil
     }
     
     private func togglePlayback() {
@@ -173,10 +193,11 @@ public struct SolutionPlaybackView: View {
     }
     
     private func startPlayback() {
-        playbackTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            if currentStep < moves.count {
+        playbackTimer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { _ in
+            if currentStep < moves.count && !isAnimating {
+                triggerAnimation(for: currentStep)
                 currentStep += 1
-            } else {
+            } else if currentStep >= moves.count {
                 stopPlayback()
             }
         }
@@ -191,6 +212,8 @@ public struct SolutionPlaybackView: View {
     private func resetPlayback() {
         stopPlayback()
         currentStep = 0
+        currentAnimatingMove = nil
+        isAnimating = false
     }
 }
 
@@ -288,18 +311,19 @@ public struct PlaybackControls: View {
     let onNext: () -> Void
     let onPlayPause: () -> Void
     let onReset: () -> Void
+    var isAnimating: Bool = false
     
     public var body: some View {
         VStack(spacing: 15) {
             HStack(spacing: 20) {
                 // Reset button
                 PlaybackButton(icon: "backward.end.fill", action: onReset)
-                    .disabled(currentStep == 0)
+                    .disabled(currentStep == 0 || isAnimating)
                     .accessibilityLabel("Reset to beginning")
                 
                 // Previous button
                 PlaybackButton(icon: "backward.fill", action: onPrevious)
-                    .disabled(currentStep == 0)
+                    .disabled(currentStep == 0 || isAnimating)
                     .accessibilityLabel("Previous step")
                 
                 // Play/Pause button
@@ -308,19 +332,19 @@ public struct PlaybackControls: View {
                     action: onPlayPause,
                     isLarge: true
                 )
-                .disabled(currentStep >= totalSteps)
+                .disabled(currentStep >= totalSteps || isAnimating)
                 .accessibilityLabel(isPlaying ? "Pause" : "Play")
                 
                 // Next button
                 PlaybackButton(icon: "forward.fill", action: onNext)
-                    .disabled(currentStep >= totalSteps)
+                    .disabled(currentStep >= totalSteps || isAnimating)
                     .accessibilityLabel("Next step")
                 
                 // Fast forward (to end)
                 PlaybackButton(icon: "forward.end.fill") {
                     currentStep = totalSteps
                 }
-                .disabled(currentStep >= totalSteps)
+                .disabled(currentStep >= totalSteps || isAnimating)
                 .accessibilityLabel("Skip to end")
             }
         }

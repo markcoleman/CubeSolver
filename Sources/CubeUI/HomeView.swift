@@ -280,10 +280,21 @@ struct SolveView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                     
-                    // Cube visualization
+                    // Cube visualization - Use 3D view for better UX
+                    #if canImport(SceneKit)
+                    Cube3DView(
+                        cube: cubeViewModel.cube,
+                        autoRotate: true,
+                        allowInteraction: true
+                    )
+                    .frame(height: 400)
+                    .padding(.horizontal)
+                    #else
+                    // Fallback to 2D view
                     CubeView(cube: cubeViewModel.cube)
-                        .frame(maxWidth: 350, maxHeight: 350)
+                        .frame(maxWidth: 400, maxHeight: 400)
                         .padding()
+                    #endif
                     
                     // Action buttons
                     VStack(spacing: 16) {
@@ -467,10 +478,21 @@ struct PracticeView: View {
                     .background(.ultraThinMaterial)
                     .cornerRadius(16)
                     
-                    // Cube visualization
+                    // Cube visualization - Use 3D view for better UX
+                    #if canImport(SceneKit)
+                    Cube3DView(
+                        cube: cubeViewModel.cube,
+                        autoRotate: false,
+                        allowInteraction: true
+                    )
+                    .frame(height: 400)
+                    .padding(.horizontal)
+                    #else
+                    // Fallback to 2D view
                     CubeView(cube: cubeViewModel.cube)
-                        .frame(maxWidth: 350, maxHeight: 350)
+                        .frame(maxWidth: 400, maxHeight: 400)
                         .padding()
+                    #endif
                     
                     // Scramble display
                     if !scrambleNotation.isEmpty {

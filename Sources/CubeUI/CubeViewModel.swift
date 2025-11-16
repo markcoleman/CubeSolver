@@ -46,8 +46,10 @@ public class CubeViewModel: ObservableObject {
     /// Scrambles the cube with a random sequence of moves
     /// - Note: Clears any existing solution steps
     public func scramble() {
-        let scrambleSequence = CubeSolver.scramble(moves: 20)
-        CubeSolver.applyScramble(cube: &cube, scramble: scrambleSequence)
+        let scrambleMoves = EnhancedCubeSolver.generateScramble(moveCount: 20)
+        var state = CubeState(from: cube)
+        EnhancedCubeSolver.applyMoves(to: &state, moves: scrambleMoves)
+        cube = state.toRubiksCube()
         solutionSteps = []
         solution = []
         errorMessage = nil
@@ -90,10 +92,19 @@ public class CubeViewModel: ObservableObject {
         }
     }
     
-    /// Solves the current cube configuration (synchronous version for backward compatibility)
-    /// - Note: Updates the solutionSteps array with the solving algorithm's moves
+    /// Solves the current cube configuration (synchronous version)
+    /// - Note: Uses EnhancedCubeSolver for consistent algorithm
     public func solve() {
-        solutionSteps = CubeSolver.solve(cube: &cube)
+        do {
+            let cubeState = CubeState(from: cube)
+            let moves = try EnhancedCubeSolver.solveCube(from: cubeState)
+            solution = moves
+            solutionSteps = moves.map { $0.notation }
+        } catch {
+            errorMessage = error.localizedDescription
+            solutionSteps = []
+            solution = []
+        }
     }
     
     /// Resets the cube to its solved state and clears solution steps

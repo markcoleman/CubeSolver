@@ -52,17 +52,35 @@ public struct SolutionPlaybackView: View {
                     )
                     .padding(.horizontal)
                     
-                    // Cube visualization
+                    // Cube visualization - Use 3D view for better UX
                     if currentStep < cubeStates.count {
+                        #if canImport(SceneKit)
+                        Cube3DView(
+                            cube: cubeStates[currentStep].toRubiksCube(),
+                            autoRotate: false,
+                            allowInteraction: true
+                        )
+                        .frame(height: 450)
+                        .padding(.horizontal)
+                        .accessibilityLabel("3D Cube state at step \(currentStep)")
+                        .transition(.asymmetric(
+                            insertion: .scale.combined(with: .opacity),
+                            removal: .scale.combined(with: .opacity)
+                        ))
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentStep)
+                        .id(currentStep) // Force SwiftUI to recognize state changes
+                        #else
+                        // Fallback to 2D view on platforms without SceneKit
                         CubeView(cube: cubeStates[currentStep].toRubiksCube())
-                            .frame(maxWidth: 350, maxHeight: 350)
+                            .frame(maxWidth: 450, maxHeight: 450)
                             .accessibilityLabel("Cube state at step \(currentStep)")
                             .transition(.asymmetric(
                                 insertion: .scale.combined(with: .opacity),
                                 removal: .scale.combined(with: .opacity)
                             ))
                             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentStep)
-                            .id(currentStep) // Force SwiftUI to recognize state changes
+                            .id(currentStep)
+                        #endif
                     }
                     
                     // Current move display

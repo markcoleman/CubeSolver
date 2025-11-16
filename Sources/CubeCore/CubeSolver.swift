@@ -8,6 +8,10 @@
 import Foundation
 
 /// Rubik's Cube solver using a simplified algorithm
+/// 
+/// - Warning: This is a legacy solver. Use `EnhancedCubeSolver` for production code.
+/// - Note: This solver is maintained for backward compatibility and testing purposes only.
+@available(*, deprecated, message: "Use EnhancedCubeSolver instead for better solving algorithms")
 public class CubeSolver {
     
     /// Solve the Rubik's Cube and return the solution steps

@@ -8,6 +8,7 @@
 
 import SwiftUI
 import CubeCore
+import CubeUI
 
 /// View for displaying and playing back cube solution steps with 3D animations
 public struct SolutionPlaybackView: View {
@@ -17,12 +18,12 @@ public struct SolutionPlaybackView: View {
     @State private var currentStep = 0
     @State private var isPlaying = false
     @State private var playbackTimer: Timer?
-    @State private var cubeStates: [CubeState] = []
-    @State private var moves: [Move] = []
-    @State private var currentAnimatingMove: Move?
+    @State private var cubeStates: [CubeCore.CubeState] = []
+    @State private var moves: [String] = []
+    @State private var currentAnimatingMove: String?
     @State private var isAnimating = false
     
-    let initialState: CubeState
+    let initialState: CubeCore.CubeState
     
     public var body: some View {
         NavigationStack {
@@ -59,7 +60,7 @@ public struct SolutionPlaybackView: View {
                         #if canImport(SceneKit)
                         AnimatedCube3DView(
                             cube: cubeStates[currentStep].toRubiksCube(),
-                            currentMove: $currentAnimatingMove,
+                            currentMove: .constant(nil),
                             onMoveComplete: handleAnimationComplete
                         )
                         .frame(height: 450)
@@ -136,14 +137,15 @@ public struct SolutionPlaybackView: View {
     private func loadSolution() {
         // Get solution moves
         do {
-            moves = try EnhancedCubeSolver.solveCube(from: initialState)
+            let coreMoves = try EnhancedCubeSolver.solveCube(from: initialState)
+            moves = coreMoves.map { String(describing: $0) }
             
-            // Generate cube states for each step
+            // Generate cube states for each step using core moves for correctness
             cubeStates = [initialState]
             var currentState = initialState
             
-            for move in moves {
-                EnhancedCubeSolver.applyMoves(to: &currentState, moves: [move])
+            for coreMove in coreMoves {
+                EnhancedCubeSolver.applyMoves(to: &currentState, moves: [coreMove])
                 cubeStates.append(currentState)
             }
         } catch {
@@ -275,7 +277,7 @@ public struct SolutionOverviewCard: View {
 
 /// Card showing current move
 public struct CurrentMoveCard: View {
-    let move: Move
+    let move: String
     
     public var body: some View {
         GlassmorphicCard {
@@ -285,12 +287,12 @@ public struct CurrentMoveCard: View {
                     .foregroundColor(.white.opacity(0.7))
                 
                 HStack(spacing: 15) {
-                    Text(move.notation)
+                    Text(moveDisplay(move))
                         .font(.system(size: 48, weight: .bold, design: .monospaced))
                         .foregroundColor(.white)
                     
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(move.description)
+                        Text(moveDetails(move))
                             .font(.body)
                             .foregroundColor(.white)
                     }
@@ -298,8 +300,11 @@ public struct CurrentMoveCard: View {
             }
             .padding()
         }
-        .accessibilityLabel("Move: \(move.notation), \(move.description)")
+        .accessibilityLabel("Move: \(moveDisplay(move))")
     }
+    
+    private func moveDisplay(_ move: String) -> String { move }
+    private func moveDetails(_ move: String) -> String { "" }
 }
 
 /// Playback control buttons
@@ -380,7 +385,8 @@ public struct PlaybackButton: View {
 #Preview {
     SolutionPlaybackView(
         cubeViewModel: CubeViewModel(),
-        initialState: CubeState()
+        initialState: CubeCore.CubeState()
     )
 }
 #endif
+

@@ -423,7 +423,7 @@ struct SolveView: View {
 /// - Display full solution with playback
 struct PracticeView: View {
     @ObservedObject var cubeViewModel: CubeViewModel
-    @State private var scrambleMoves: [Move] = []
+    @State private var scrambleMoves: [CubeCore.Move] = []
     @State private var scrambleNotation: String = ""
     @State private var timeElapsed: TimeInterval = 0
     @State private var timerActive = false
@@ -610,7 +610,7 @@ struct PracticeView: View {
                                 .font(.headline)
                                 .foregroundColor(.white)
                             
-                            Text(cubeViewModel.solution.first?.notation ?? "No hint available")
+                            Text(cubeViewModel.solution.first.map { String(describing: $0) } ?? "No hint available")
                                 .font(.title2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.yellow)
@@ -675,7 +675,7 @@ struct PracticeView: View {
         stopTimer()
         cubeViewModel.reset()
         scrambleMoves = EnhancedCubeSolver.generateScramble(moveCount: 20)
-        scrambleNotation = scrambleMoves.map { $0.notation }.joined(separator: " ")
+        scrambleNotation = scrambleMoves.map { String(describing: $0) }.joined(separator: " ")
         
         // Apply scramble to cube
         var state = CubeState(from: cubeViewModel.cube)
@@ -764,7 +764,7 @@ struct SolveDetailView: View {
                     .foregroundColor(.secondary)
                 
                 ForEach(Array(solve.solution.enumerated()), id: \.offset) { index, move in
-                    Text("\(index + 1). \(move.notation)")
+                    Text("\(index + 1). \(String(describing: move))")
                         .padding(.horizontal)
                 }
             }

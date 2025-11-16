@@ -20,7 +20,7 @@ public struct AnimatedCube3DView: View {
     
     @State private var isAnimating = false
     
-    public init(cube: RubiksCube, currentMove: Binding<Move?>, onMoveComplete: (() -> Void)? = nil) {
+    init(cube: RubiksCube, currentMove: Binding<Move?>, onMoveComplete: (() -> Void)? = nil) {
         self.cube = cube
         self._currentMove = currentMove
         self.onMoveComplete = onMoveComplete
@@ -365,70 +365,69 @@ private func animateMove(in scene: SCNScene, move: Move, coordinator: AnimationC
 }
 
 private func getMoveAnimation(for move: Move) -> (SCNVector3, CGFloat, CGFloat) {
-    // Determine angle and direction without relying on specific enum cases
-    // Default to quarter turn
-    var angle: CGFloat = .pi / 2
-    var sign: CGFloat = 1
+    // Parse from textual description to avoid relying on specific API
+    let text = String(describing: move).uppercased()
 
-    // Try to infer from common properties if available
-    // 1) If `amount` supports rawValue or common names, detect half-turns
-    if let amount = (move as AnyObject).value(forKey: "amount") {
-        // Try rawValue == "2"
-        if let raw = amount as? (any CustomStringConvertible), raw.description == "2" {
-            angle = .pi
-        }
-    }
+    // Determine face letter
+    let faceChar: Character? = ["R","L","U","D","F","B"].first { text.contains(String($0)) }
 
-    // 2) Infer counterclockwise/prime from move's textual description
-    let moveText = String(describing: move)
-    if moveText.contains("'") || moveText.localizedCaseInsensitiveContains("ccw") || moveText.localizedCaseInsensitiveContains("counter") || moveText.localizedCaseInsensitiveContains("prime") {
-        sign = -1
-    }
+    // Determine amount (single or double)
+    let isDouble = text.contains("2")
+    let baseAngle: CGFloat = isDouble ? .pi : (.pi / 2)
 
-    // Axis by turn letter
-    switch move.turn {
-    case .R:
-        return (SCNVector3(1, 0, 0), sign, sign * angle)
-    case .L:
-        return (SCNVector3(1, 0, 0), -sign, -sign * angle)
-    case .U:
-        return (SCNVector3(0, 1, 0), sign, sign * angle)
-    case .D:
-        return (SCNVector3(0, 1, 0), -sign, -sign * angle)
-    case .F:
-        return (SCNVector3(0, 0, 1), sign, sign * angle)
-    case .B:
-        return (SCNVector3(0, 0, 1), -sign, -sign * angle)
+    // Determine direction (prime/counterclockwise)
+    let isPrime = text.contains("'") || text.contains("CCW") || text.contains("COUNTER") || text.contains("PRIME")
+    let sign: CGFloat = isPrime ? -1 : 1
+
+    // Map face to axis; L/D/B invert direction relative to R/U/F
+    switch faceChar {
+    case "R":
+        return (SCNVector3(1, 0, 0), sign, sign * baseAngle)
+    case "L":
+        return (SCNVector3(1, 0, 0), -sign, -sign * baseAngle)
+    case "U":
+        return (SCNVector3(0, 1, 0), sign, sign * baseAngle)
+    case "D":
+        return (SCNVector3(0, 1, 0), -sign, -sign * baseAngle)
+    case "F":
+        return (SCNVector3(0, 0, 1), sign, sign * baseAngle)
+    case "B":
+        return (SCNVector3(0, 0, 1), -sign, -sign * baseAngle)
+    default:
+        // Fallback: rotate front layer CW quarter-turn
+        return (SCNVector3(0, 0, 1), 1, .pi / 2)
     }
 }
 
 private func getCubiesForMove(_ containerNode: SCNNode, move: Move) -> [SCNNode] {
     var cubies: [SCNNode] = []
-    
+
+    let text = String(describing: move).uppercased()
+    let faceChar: Character? = ["R","L","U","D","F","B"].first { text.contains(String($0)) }
+
     for x in 0..<3 {
         for y in 0..<3 {
             for z in 0..<3 {
-                // Skip center
-                if x == 1 && y == 1 && z == 1 {
-                    continue
-                }
-                
+                if x == 1 && y == 1 && z == 1 { continue }
+
                 let shouldInclude: Bool
-                switch move.turn {
-                case .R:
+                switch faceChar {
+                case "R":
                     shouldInclude = x == 2
-                case .L:
+                case "L":
                     shouldInclude = x == 0
-                case .U:
+                case "U":
                     shouldInclude = y == 2
-                case .D:
+                case "D":
                     shouldInclude = y == 0
-                case .F:
+                case "F":
                     shouldInclude = z == 2
-                case .B:
+                case "B":
                     shouldInclude = z == 0
+                default:
+                    shouldInclude = false
                 }
-                
+
                 if shouldInclude,
                    let cubie = containerNode.childNode(withName: "cubie_\(x)_\(y)_\(z)", recursively: false) {
                     cubies.append(cubie)
@@ -436,7 +435,7 @@ private func getCubiesForMove(_ containerNode: SCNNode, move: Move) -> [SCNNode]
             }
         }
     }
-    
+
     return cubies
 }
 
@@ -470,4 +469,3 @@ private typealias platformColor = UIColor
 
 #endif // canImport(SceneKit)
 #endif // canImport(SwiftUI)
-

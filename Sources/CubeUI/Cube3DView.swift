@@ -12,6 +12,9 @@ import CubeCore
 #if canImport(SceneKit)
 import SceneKit
 
+// SceneKit scalar conversion helper (Float on iOS, CGFloat on macOS)
+private func scnScalar(_ value: CGFloat) -> SCNFloat { SCNFloat(value) }
+
 /// A 3D interactive view of a Rubik's Cube with rotation animations
 public struct Cube3DView: View {
     let cube: RubiksCube
@@ -127,8 +130,8 @@ private func createScene() -> SCNScene {
     // Add camera
     let cameraNode = SCNNode()
     cameraNode.camera = SCNCamera()
-    cameraNode.position = SCNVector3(x: 5, y: 5, z: 8)
-    cameraNode.look(at: SCNVector3(x: 0, y: 0, z: 0))
+    cameraNode.position = SCNVector3(x: scnScalar(5), y: scnScalar(5), z: scnScalar(8))
+    cameraNode.look(at: SCNVector3(x: scnScalar(0), y: scnScalar(0), z: scnScalar(0)))
     scene.rootNode.addChildNode(cameraNode)
     
     // Add ambient light
@@ -143,8 +146,8 @@ private func createScene() -> SCNScene {
     directionalLight.light = SCNLight()
     directionalLight.light!.type = .directional
     directionalLight.light!.color = platformColor(white: 0.8, alpha: 1.0)
-    directionalLight.position = SCNVector3(x: 5, y: 10, z: 5)
-    directionalLight.look(at: SCNVector3(x: 0, y: 0, z: 0))
+    directionalLight.position = SCNVector3(x: scnScalar(5), y: scnScalar(10), z: scnScalar(5))
+    directionalLight.look(at: SCNVector3(x: scnScalar(0), y: scnScalar(0), z: scnScalar(0)))
     scene.rootNode.addChildNode(directionalLight)
     
     return scene
@@ -171,7 +174,7 @@ private func createCubeNode() -> SCNNode {
                 let xPos = CGFloat(x - 1) * totalSize
                 let yPos = CGFloat(y - 1) * totalSize
                 let zPos = CGFloat(z - 1) * totalSize
-                cubie.position = SCNVector3(x: Float(xPos), y: Float(yPos), z: Float(zPos))
+                cubie.position = SCNVector3(x: scnScalar(xPos), y: scnScalar(yPos), z: scnScalar(zPos))
                 cubie.name = "cubie_\(x)_\(y)_\(z)"
                 
                 containerNode.addChildNode(cubie)
@@ -278,7 +281,7 @@ private func startAutoRotation(for sceneView: SCNView) {
     
     // Create rotation animation
     let rotation = CABasicAnimation(keyPath: "rotation")
-    rotation.toValue = NSValue(scnVector4: SCNVector4(x: 0, y: 1, z: 0, w: Float.pi * 2))
+    rotation.toValue = NSValue(scnVector4: SCNVector4(x: scnScalar(0), y: scnScalar(1), z: scnScalar(0), w: scnScalar(CGFloat.pi * 2)))
     rotation.duration = 10.0
     rotation.repeatCount = .infinity
     cubeContainer.addAnimation(rotation, forKey: "rotation")

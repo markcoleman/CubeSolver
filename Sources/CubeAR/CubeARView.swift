@@ -5,12 +5,12 @@
 //  Created by GitHub Copilot
 //
 
-#if canImport(SwiftUI) && canImport(ARKit)
+#if canImport(SwiftUI)
 
 import Foundation
 import SwiftUI
 import CubeCore
-#if canImport(ARKit)
+#if canImport(ARKit) && os(iOS)
 import ARKit
 #endif
 import RealityKit
@@ -73,7 +73,7 @@ public struct CubeARView: View {
 class ARState: ObservableObject {
     @Published var isSessionActive = false
 
-    #if canImport(ARKit)
+    #if canImport(ARKit) && os(iOS)
     typealias TrackingState = ARCamera.TrackingState
     #else
     enum TrackingState {

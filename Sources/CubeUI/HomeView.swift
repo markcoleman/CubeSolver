@@ -549,7 +549,9 @@ struct PracticeView: View {
                             }) {
                                 HStack {
                                     Image(systemName: "book.fill")
-                                    Text("Solution")
+                                    if !cubeViewModel.solution.isEmpty {
+                                        showSolution = true
+                                    }
                                 }
                                 .font(.headline)
                                 .foregroundColor(.white)

@@ -80,6 +80,19 @@ CubeSolver is a universal iOS/iPadOS/macOS application built with SwiftUI that p
 - Follow secure coding practices
 - Use App Transport Security (ATS)
 
+## Specialized Agents
+
+This repository includes specialized GitHub Copilot agents for specific development tasks:
+
+- **SwiftUI Expert** - UI components, platform-specific features, glassmorphic design
+- **Algorithm Expert** - Cube solving algorithms, data structures, performance
+- **Accessibility Expert** - VoiceOver, Dynamic Type, WCAG compliance
+- **Testing Specialist** - XCTest, code coverage, test quality
+- **Documentation Expert** - API docs, guides, technical writing
+- **DevOps Expert** - CI/CD, GitHub Actions, deployment
+
+See `.github/agents/README.md` for details on when to use each agent.
+
 ## Code Review Checklist
 - [ ] Code follows Swift style guidelines
 - [ ] All tests pass

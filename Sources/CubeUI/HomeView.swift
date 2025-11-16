@@ -642,7 +642,8 @@ struct PracticeView: View {
     
     private func toggleTimer() {
         if timerActive {
-            stopTimer()
+        showSolution = false
+        cubeViewModel.solution = []  // Clear stale solution
         } else {
             startTimer()
         }

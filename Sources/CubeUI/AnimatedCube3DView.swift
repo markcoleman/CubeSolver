@@ -94,7 +94,12 @@ struct AnimatedCube3DSceneView: NSViewRepresentable {
     var onMoveComplete: (() -> Void)?
     
     func makeNSView(context: Context) -> SCNView {
-        createAnimatedSceneView()
+        let scnView = createAnimatedSceneView()
+        // Initialize colors on first creation
+        if let scene = scnView.scene {
+            updateCubeColors(in: scene, with: cube)
+        }
+        return scnView
     }
     
     func updateNSView(_ nsView: SCNView, context: Context) {
@@ -128,7 +133,12 @@ struct AnimatedCube3DSceneView: UIViewRepresentable {
     var onMoveComplete: (() -> Void)?
     
     func makeUIView(context: Context) -> SCNView {
-        createAnimatedSceneView()
+        let scnView = createAnimatedSceneView()
+        // Initialize colors on first creation
+        if let scene = scnView.scene {
+            updateCubeColors(in: scene, with: cube)
+        }
+        return scnView
     }
     
     func updateUIView(_ uiView: SCNView, context: Context) {

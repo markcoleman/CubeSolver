@@ -51,7 +51,7 @@ swiftlint lint --path Sources/CubeCore
 # Create feature branch
 git checkout -b feature/my-feature
 
-# Conventional commit
+# Commit changes
 git commit -m "feat(core): add new solver algorithm"
 
 # Create tag for release

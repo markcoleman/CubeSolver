@@ -10,7 +10,7 @@ This document summarizes all DevOps improvements made to the CubeSolver reposito
 
 - **21 new files** created
 - **4 files** updated
-- **11 workflows** added/enhanced
+- **10 workflows** added/enhanced
 - **3 documentation guides** created
 - **4 issue templates** added
 - **1 PR template** added
@@ -25,7 +25,6 @@ This document summarizes all DevOps improvements made to the CubeSolver reposito
 │   ├── config.yml                      # NEW - Issue template config
 │   ├── documentation.md                # NEW - Docs issue template
 │   └── feature_request.md              # NEW - Feature request template
-├── commitlint.config.mjs               # NEW - Commit linting rules
 ├── dependabot.yml                      # EXISTING - Dependency automation
 ├── labeler.yml                         # NEW - Auto-labeling rules
 ├── pull_request_template.md            # NEW - PR template
@@ -34,7 +33,6 @@ This document summarizes all DevOps improvements made to the CubeSolver reposito
     ├── auto-label.yml                  # NEW - Auto PR labeling
     ├── build-performance.yml           # NEW - Build time tracking
     ├── codeql.yml                      # NEW - Security scanning
-    ├── commitlint.yml                  # NEW - Commit validation
     ├── dependency-review.yml           # NEW - Dependency scanning
     ├── deploy-docs.yml                 # UPDATED - Enhanced docs
     ├── ios-ci.yml                      # UPDATED - Enhanced CI
@@ -67,7 +65,6 @@ docs/
 
 **New Workflows:**
 - Build performance measurement
-- Commit message linting (Conventional Commits)
 
 ### 2. Security
 
@@ -152,7 +149,6 @@ docs/
 | **Auto Label** | PR | Label management | Labeler action |
 | **PR Size Check** | PR | Size validation | GitHub Script |
 | **Stale** | Schedule (daily) | Cleanup | Stale action |
-| **Commitlint** | PR | Commit validation | commitlint |
 | **Build Performance** | PR (manual) | Performance tracking | GitHub Script |
 
 ## 📈 Metrics & Targets
@@ -336,7 +332,6 @@ This DevOps setup implements industry best practices from:
 - GitHub's recommended workflows
 - Apple's Swift development guidelines
 - OWASP security standards
-- Conventional Commits specification
 - Semantic Versioning specification
 
 ---

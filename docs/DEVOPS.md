@@ -16,7 +16,6 @@ This document provides an overview of the DevOps practices, CI/CD pipelines, and
 | Auto Label | PR | Automatic PR labeling | - |
 | PR Size Check | PR | Check PR size and add labels | - |
 | Stale | Schedule | Clean up stale issues/PRs | - |
-| Conventional Commits | PR | Validate commit messages | - |
 | Build Performance | PR (manual) | Measure build performance | - |
 
 ### CI Pipeline Details
@@ -135,9 +134,9 @@ PRs are automatically labeled based on:
 | `good first issue` | Good for newcomers |
 | `help wanted` | Community help needed |
 
-## 📝 Commit Message Convention
+## 📝 Commit Message Convention (Recommended)
 
-We use [Conventional Commits](https://www.conventionalcommits.org/):
+We recommend using [Conventional Commits](https://www.conventionalcommits.org/) for consistency:
 
 ```
 <type>(<scope>): <subject>

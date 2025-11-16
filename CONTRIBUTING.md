@@ -57,9 +57,9 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 5. Build the project: `swift build`
 6. Commit your changes with a descriptive commit message
 
-### Commit Message Guidelines
+### Commit Message Guidelines (Recommended)
 
-We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+We recommend following the [Conventional Commits](https://www.conventionalcommits.org/) specification for consistency:
 
 * `feat:` A new feature
 * `fix:` A bug fix

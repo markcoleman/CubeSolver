@@ -57,12 +57,23 @@ public struct SolutionPlaybackView: View {
                         CubeView(cube: cubeStates[currentStep].toRubiksCube())
                             .frame(maxWidth: 350, maxHeight: 350)
                             .accessibilityLabel("Cube state at step \(currentStep)")
+                            .transition(.asymmetric(
+                                insertion: .scale.combined(with: .opacity),
+                                removal: .scale.combined(with: .opacity)
+                            ))
+                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentStep)
+                            .id(currentStep) // Force SwiftUI to recognize state changes
                     }
                     
                     // Current move display
                     if currentStep > 0 && currentStep <= moves.count {
                         CurrentMoveCard(move: moves[currentStep - 1])
                             .padding(.horizontal)
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .trailing).combined(with: .opacity),
+                                removal: .move(edge: .leading).combined(with: .opacity)
+                            ))
+                            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: currentStep)
                     }
                     
                     // Playback controls

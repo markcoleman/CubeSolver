@@ -171,7 +171,7 @@ private func createCubeNode() -> SCNNode {
                 let xPos = CGFloat(x - 1) * totalSize
                 let yPos = CGFloat(y - 1) * totalSize
                 let zPos = CGFloat(z - 1) * totalSize
-                cubie.position = SCNVector3(x: xPos, y: yPos, z: zPos)
+                cubie.position = SCNVector3(x: Float(xPos), y: Float(yPos), z: Float(zPos))
                 cubie.name = "cubie_\(x)_\(y)_\(z)"
                 
                 containerNode.addChildNode(cubie)
@@ -309,3 +309,4 @@ private typealias platformColor = UIColor
 
 #endif // canImport(SceneKit)
 #endif // canImport(SwiftUI)
+

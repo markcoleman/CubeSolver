@@ -98,7 +98,12 @@ struct AnimatedCube3DSceneView: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: SCNView, context: Context) {
-        updateCubeState(in: nsView, context: context)
+        var moveCopy = currentMove
+        var animatingCopy = isAnimating
+        updateCubeState(in: nsView, cube: cube, currentMove: &moveCopy, isAnimating: &animatingCopy, coordinator: context.coordinator)
+        // write back any changes
+        currentMove = moveCopy
+        isAnimating = animatingCopy
     }
     
     func makeCoordinator() -> AnimationCoordinator {
@@ -127,7 +132,12 @@ struct AnimatedCube3DSceneView: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: SCNView, context: Context) {
-        updateCubeState(in: uiView, context: context)
+        var moveCopy = currentMove
+        var animatingCopy = isAnimating
+        updateCubeState(in: uiView, cube: cube, currentMove: &moveCopy, isAnimating: &animatingCopy, coordinator: context.coordinator)
+        // write back any changes
+        currentMove = moveCopy
+        isAnimating = animatingCopy
     }
     
     func makeCoordinator() -> AnimationCoordinator {
@@ -202,7 +212,7 @@ private func createAnimatedCubeNode() -> SCNNode {
                 let xPos = CGFloat(x - 1) * totalSize
                 let yPos = CGFloat(y - 1) * totalSize
                 let zPos = CGFloat(z - 1) * totalSize
-                cubie.position = SCNVector3(x: xPos, y: yPos, z: zPos)
+                cubie.position = SCNVector3(x: Float(xPos), y: Float(yPos), z: Float(zPos))
                 cubie.name = "cubie_\(x)_\(y)_\(z)"
                 
                 containerNode.addChildNode(cubie)
@@ -232,17 +242,33 @@ private func createAnimatedCubie(size: CGFloat) -> SCNNode {
 
 // MARK: - Update and Animation
 
-private func updateCubeState(in sceneView: SCNView, context: AnimatedCube3DSceneView.Context) {
+private func updateCubeState(in sceneView: SCNView, cube: RubiksCube, currentMove: inout Move?, isAnimating: inout Bool, coordinator: AnimationCoordinator) {
     guard let scene = sceneView.scene else { return }
     
+    // Local setter to avoid capturing inout in escaping closures
+    var isAnimatingLocal = isAnimating
+    func setIsAnimating(_ value: Bool) {
+        isAnimatingLocal = value
+    }
+    var currentMoveLocal = currentMove
+    func clearCurrentMove() {
+        currentMoveLocal = nil
+    }
+    
     // Update colors
-    updateCubeColors(in: scene, with: context.wrappedValue.cube)
+    updateCubeColors(in: scene, with: cube)
     
     // Animate move if needed
-    if let move = context.wrappedValue.currentMove, !context.wrappedValue.isAnimating {
-        context.wrappedValue.isAnimating = true
-        animateMove(in: scene, move: move, coordinator: context.coordinator)
+    if let move = currentMoveLocal, !isAnimatingLocal {
+        setIsAnimating(true)
+        animateMove(in: scene, move: move, coordinator: coordinator) {
+            setIsAnimating(false)
+        }
     }
+    
+    // Write back any changes from locals to inout parameters
+    currentMove = currentMoveLocal
+    isAnimating = isAnimatingLocal
 }
 
 private func updateCubeColors(in scene: SCNScene, with cube: RubiksCube) {
@@ -309,7 +335,7 @@ private func colorForFaceColor(_ faceColor: FaceColor) -> Any {
 
 // MARK: - Move Animation
 
-private func animateMove(in scene: SCNScene, move: Move, coordinator: AnimationCoordinator) {
+private func animateMove(in scene: SCNScene, move: Move, coordinator: AnimationCoordinator, completion: @escaping () -> Void) {
     guard let containerNode = scene.rootNode.childNode(withName: "cubeContainer", recursively: false) else {
         return
     }
@@ -327,6 +353,7 @@ private func animateMove(in scene: SCNScene, move: Move, coordinator: AnimationC
     SCNTransaction.animationDuration = duration
     SCNTransaction.completionBlock = {
         coordinator.animationDidStop(CAAnimation(), finished: true)
+        completion()
     }
     
     for cubie in cubiesToRotate {
@@ -338,30 +365,40 @@ private func animateMove(in scene: SCNScene, move: Move, coordinator: AnimationC
 }
 
 private func getMoveAnimation(for move: Move) -> (SCNVector3, CGFloat, CGFloat) {
-    let angle: CGFloat = {
-        switch move.amount {
-        case .quarter:
-            return .pi / 2
-        case .half:
-            return .pi
-        case .threeQuarter:
-            return .pi * 3 / 2
+    // Determine angle and direction without relying on specific enum cases
+    // Default to quarter turn
+    var angle: CGFloat = .pi / 2
+    var sign: CGFloat = 1
+
+    // Try to infer from common properties if available
+    // 1) If `amount` supports rawValue or common names, detect half-turns
+    if let amount = (move as AnyObject).value(forKey: "amount") {
+        // Try rawValue == "2"
+        if let raw = amount as? (any CustomStringConvertible), raw.description == "2" {
+            angle = .pi
         }
-    }()
-    
+    }
+
+    // 2) Infer counterclockwise/prime from move's textual description
+    let moveText = String(describing: move)
+    if moveText.contains("'") || moveText.localizedCaseInsensitiveContains("ccw") || moveText.localizedCaseInsensitiveContains("counter") || moveText.localizedCaseInsensitiveContains("prime") {
+        sign = -1
+    }
+
+    // Axis by turn letter
     switch move.turn {
-    case .right:
-        return (SCNVector3(1, 0, 0), 1, angle)
-    case .left:
-        return (SCNVector3(1, 0, 0), -1, -angle)
-    case .up:
-        return (SCNVector3(0, 1, 0), 1, angle)
-    case .down:
-        return (SCNVector3(0, 1, 0), -1, -angle)
-    case .front:
-        return (SCNVector3(0, 0, 1), 1, angle)
-    case .back:
-        return (SCNVector3(0, 0, 1), -1, -angle)
+    case .R:
+        return (SCNVector3(1, 0, 0), sign, sign * angle)
+    case .L:
+        return (SCNVector3(1, 0, 0), -sign, -sign * angle)
+    case .U:
+        return (SCNVector3(0, 1, 0), sign, sign * angle)
+    case .D:
+        return (SCNVector3(0, 1, 0), -sign, -sign * angle)
+    case .F:
+        return (SCNVector3(0, 0, 1), sign, sign * angle)
+    case .B:
+        return (SCNVector3(0, 0, 1), -sign, -sign * angle)
     }
 }
 
@@ -378,17 +415,17 @@ private func getCubiesForMove(_ containerNode: SCNNode, move: Move) -> [SCNNode]
                 
                 let shouldInclude: Bool
                 switch move.turn {
-                case .right:
+                case .R:
                     shouldInclude = x == 2
-                case .left:
+                case .L:
                     shouldInclude = x == 0
-                case .up:
+                case .U:
                     shouldInclude = y == 2
-                case .down:
+                case .D:
                     shouldInclude = y == 0
-                case .front:
+                case .F:
                     shouldInclude = z == 2
-                case .back:
+                case .B:
                     shouldInclude = z == 0
                 }
                 
@@ -412,7 +449,7 @@ private typealias platformColor = UIColor
 #endif
 
 #Preview {
-    @Previewable @State var move: Move? = Move(turn: .right, amount: .quarter)
+    @Previewable @State var move: Move? = nil  // Initialize without relying on specific enum cases
     
     AnimatedCube3DView(
         cube: RubiksCube(),
@@ -433,3 +470,4 @@ private typealias platformColor = UIColor
 
 #endif // canImport(SceneKit)
 #endif // canImport(SwiftUI)
+

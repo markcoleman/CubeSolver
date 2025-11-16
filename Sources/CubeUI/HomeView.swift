@@ -637,7 +637,7 @@ struct PracticeView: View {
         
         timeElapsed = 0
         showHint = false
-        showSolution = false
+        EnhancedCubeSolver.applyMoves(to: &state, moves: scrambleMoves)
     }
     
     private func toggleTimer() {

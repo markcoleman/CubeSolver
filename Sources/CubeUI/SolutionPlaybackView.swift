@@ -1,3 +1,4 @@
+#if canImport(SwiftUI)
 //
 //  SolutionPlaybackView.swift
 //  CubeSolver
@@ -6,9 +7,10 @@
 //
 
 import SwiftUI
+import CubeCore
 
 /// View for displaying and playing back cube solution steps
-struct SolutionPlaybackView: View {
+public struct SolutionPlaybackView: View {
     @ObservedObject var cubeViewModel: CubeViewModel
     @Environment(\.dismiss) private var dismiss
     
@@ -20,7 +22,7 @@ struct SolutionPlaybackView: View {
     
     let initialState: CubeState
     
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             ZStack {
                 // Background gradient
@@ -78,9 +80,11 @@ struct SolutionPlaybackView: View {
                     Spacer()
                 }
             }
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .automatic) {
                     Button("Done") {
                         stopPlayback()
                         dismiss()
@@ -162,11 +166,11 @@ struct SolutionPlaybackView: View {
 }
 
 /// Card showing solution overview
-struct SolutionOverviewCard: View {
+public struct SolutionOverviewCard: View {
     let totalMoves: Int
     let currentStep: Int
     
-    var body: some View {
+    public var body: some View {
         GlassmorphicCard {
             VStack(spacing: 10) {
                 HStack {
@@ -218,10 +222,10 @@ struct SolutionOverviewCard: View {
 }
 
 /// Card showing current move
-struct CurrentMoveCard: View {
+public struct CurrentMoveCard: View {
     let move: Move
     
-    var body: some View {
+    public var body: some View {
         GlassmorphicCard {
             VStack(spacing: 10) {
                 Text("Current Move")
@@ -247,7 +251,7 @@ struct CurrentMoveCard: View {
 }
 
 /// Playback control buttons
-struct PlaybackControls: View {
+public struct PlaybackControls: View {
     @Binding var currentStep: Int
     @Binding var isPlaying: Bool
     let totalSteps: Int
@@ -256,7 +260,7 @@ struct PlaybackControls: View {
     let onPlayPause: () -> Void
     let onReset: () -> Void
     
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 15) {
             HStack(spacing: 20) {
                 // Reset button
@@ -295,12 +299,12 @@ struct PlaybackControls: View {
 }
 
 /// Individual playback button
-struct PlaybackButton: View {
+public struct PlaybackButton: View {
     let icon: String
     let action: () -> Void
     var isLarge: Bool = false
     
-    var body: some View {
+    public var body: some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: isLarge ? 32 : 24))
@@ -326,3 +330,4 @@ struct PlaybackButton: View {
         initialState: CubeState()
     )
 }
+#endif

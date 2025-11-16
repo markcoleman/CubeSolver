@@ -8,18 +8,29 @@
 import Foundation
 
 /// Enhanced Rubik's Cube solver with validation and improved algorithm
-class EnhancedCubeSolver {
+public class EnhancedCubeSolver {
     
     /// Solve a cube state and return the solution as a sequence of moves
     /// - Parameter state: The cube state to solve
     /// - Returns: Array of moves that solve the cube
     /// - Throws: CubeValidationError if the cube state is invalid
-    static func solveCube(from state: CubeState) throws -> [Move] {
+    public static func solveCube(from state: CubeState) throws -> [Move] {
         // First validate the cube state
         try CubeValidator.validate(state)
         
         // Convert to internal representation and solve
         return try solveCubeInternal(state)
+    }
+    
+    /// Asynchronously solve a cube state and return the solution
+    /// This method runs the solving algorithm on a background task
+    /// - Parameter state: The cube state to solve
+    /// - Returns: Array of moves that solve the cube
+    /// - Throws: CubeValidationError if the cube state is invalid
+    public static func solveCubeAsync(from state: CubeState) async throws -> [Move] {
+        return try await Task.detached(priority: .userInitiated) {
+            return try solveCube(from: state)
+        }.value
     }
     
     // MARK: - Internal Solving Logic
@@ -232,7 +243,7 @@ class EnhancedCubeSolver {
     /// Generate a random scramble sequence
     /// - Parameter moveCount: Number of moves in the scramble (default 20)
     /// - Returns: Array of random moves
-    static func generateScramble(moveCount: Int = 20) -> [Move] {
+    public static func generateScramble(moveCount: Int = 20) -> [Move] {
         var moves: [Move] = []
         var lastTurn: Turn?
         
@@ -256,7 +267,7 @@ class EnhancedCubeSolver {
     /// - Parameters:
     ///   - state: The cube state to modify
     ///   - moves: The sequence of moves to apply
-    static func applyMoves(to state: inout CubeState, moves: [Move]) {
+    public static func applyMoves(to state: inout CubeState, moves: [Move]) {
         for move in moves {
             applyMove(&state, move)
         }

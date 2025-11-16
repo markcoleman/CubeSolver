@@ -7,34 +7,78 @@ let package = Package(
     name: "CubeSolver",
     platforms: [
         .iOS(.v17),
-        .macOS(.v14)
+        .macOS(.v14),
+        .watchOS(.v10)
     ],
     products: [
+        // Core cube logic - model, validation, solver
         .library(
-            name: "CubeSolverCore",
-            targets: ["CubeSolverCore"]),
+            name: "CubeCore",
+            targets: ["CubeCore"]),
+        
+        // UI components library
+        .library(
+            name: "CubeUI",
+            targets: ["CubeUI"]),
+        
+        // Scanner module (Vision + CoreML)
+        .library(
+            name: "CubeScanner",
+            targets: ["CubeScanner"]),
+        
+        // AR module (ARKit + RealityKit)
+        .library(
+            name: "CubeAR",
+            targets: ["CubeAR"]),
     ],
+    dependencies: [],
     targets: [
+        // MARK: - Core Module
         .target(
-            name: "CubeSolverCore",
-            path: "CubeSolver/Sources",
-            exclude: [
-                "CubeSolverApp.swift",
-                "ContentView.swift",
-                "CubeView.swift",
-                "CubeViewModel.swift"
-            ],
-            sources: [
-                "RubiksCube.swift",
-                "CubeSolver.swift",
-                "CubeDataStructures.swift",
-                "CubeValidation.swift",
-                "EnhancedCubeSolver.swift"
+            name: "CubeCore",
+            dependencies: [],
+            path: "Sources/CubeCore",
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
+        
+        // MARK: - UI Module
+        .target(
+            name: "CubeUI",
+            dependencies: ["CubeCore"],
+            path: "Sources/CubeUI"
+        ),
+        
+        // MARK: - Scanner Module
+        .target(
+            name: "CubeScanner",
+            dependencies: ["CubeCore"],
+            path: "Sources/CubeScanner"
+        ),
+        
+        // MARK: - AR Module
+        .target(
+            name: "CubeAR",
+            dependencies: ["CubeCore"],
+            path: "Sources/CubeAR"
+        ),
+        
+        // MARK: - Tests
         .testTarget(
-            name: "CubeSolverTests",
-            dependencies: ["CubeSolverCore"],
-            path: "CubeSolver/Tests"),
+            name: "CubeCoreTests",
+            dependencies: ["CubeCore"],
+            path: "Tests/CubeCoreTests"
+        ),
+        .testTarget(
+            name: "CubeScannerTests",
+            dependencies: ["CubeScanner", "CubeCore"],
+            path: "Tests/CubeScannerTests"
+        ),
+        .testTarget(
+            name: "CubeARTests",
+            dependencies: ["CubeAR", "CubeCore"],
+            path: "Tests/CubeARTests"
+        ),
     ]
 )

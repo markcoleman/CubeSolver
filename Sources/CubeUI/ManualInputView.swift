@@ -1,24 +1,23 @@
+#if canImport(SwiftUI)
 //
-//  ValidatedManualInputView.swift
+//  ManualInputView.swift
 //  CubeSolver
 //
-//  Enhanced manual input view with validation feedback
+//  Created by GitHub Copilot
 //
 
 import SwiftUI
+import CubeCore
 
-/// View for manually inputting a cube configuration with validation
-struct ValidatedManualInputView: View {
+/// View for manually inputting a cube configuration from a real-life cube
+public struct ManualInputView: View {
     @ObservedObject var cubeViewModel: CubeViewModel
     @Environment(\.dismiss) private var dismiss
     
     @State private var selectedFace: CubeFaceType = .front
     @State private var selectedColor: FaceColor = .red
-    @State private var validationError: String?
-    @State private var showValidationAlert = false
-    @State private var isValid = true
     
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             ZStack {
                 // Background gradient matching main view
@@ -42,10 +41,6 @@ struct ValidatedManualInputView: View {
                             .accessibilityAddTraits(.isHeader)
                             .accessibilityIdentifier("manualInputTitle")
                         
-                        // Validation status
-                        ValidationStatusCard(isValid: isValid, errorMessage: validationError)
-                            .padding(.horizontal)
-                        
                         // Instructions
                         GlassmorphicCard {
                             VStack(alignment: .leading, spacing: 10) {
@@ -62,10 +57,6 @@ struct ValidatedManualInputView: View {
                                     .foregroundColor(.white.opacity(0.9))
                                 
                                 Text("3. Tap cells to set colors")
-                                    .font(.body)
-                                    .foregroundColor(.white.opacity(0.9))
-                                
-                                Text("4. Validate before solving")
                                     .font(.body)
                                     .foregroundColor(.white.opacity(0.9))
                             }
@@ -96,7 +87,7 @@ struct ValidatedManualInputView: View {
                         .accessibilityElement(children: .contain)
                         .accessibilityIdentifier("faceSelector")
                         
-                        // Color picker with eyedropper
+                        // Color picker
                         VStack(spacing: 15) {
                             Text("Select Color")
                                 .font(.headline)
@@ -122,47 +113,33 @@ struct ValidatedManualInputView: View {
                             face: binding(for: selectedFace),
                             selectedColor: $selectedColor
                         )
-                        .onChange(of: cubeViewModel.cube) { _, _ in
-                            validateCube()
-                        }
                         .accessibilityElement(children: .contain)
                         .accessibilityIdentifier("editableFaceView")
                         
                         // Action buttons
-                        VStack(spacing: 15) {
-                            HStack(spacing: 15) {
-                                GlassmorphicButton(title: "Validate", icon: "checkmark.shield") {
-                                    validateCube()
-                                    showValidationAlert = true
-                                }
-                                .accessibilityIdentifier("validateButton")
-                                .accessibilityHint("Validates the current cube configuration")
-                                
-                                GlassmorphicButton(title: "Reset Face", icon: "arrow.counterclockwise") {
-                                    resetFace(selectedFace)
-                                }
-                                .accessibilityIdentifier("resetFaceButton")
-                                .accessibilityHint("Resets the selected face to its original state")
+                        HStack(spacing: 15) {
+                            GlassmorphicButton(title: "Reset Face", icon: "arrow.counterclockwise") {
+                                resetFace(selectedFace)
                             }
+                            .accessibilityIdentifier("resetFaceButton")
+                            .accessibilityHint("Resets the selected face to its original state")
                             
                             GlassmorphicButton(title: "Done", icon: "checkmark") {
-                                if validateCube() {
-                                    dismiss()
-                                } else {
-                                    showValidationAlert = true
-                                }
+                                dismiss()
                             }
                             .accessibilityIdentifier("doneButton")
-                            .accessibilityHint("Validates and closes the manual input view")
+                            .accessibilityHint("Closes the manual input view")
                         }
                         .padding(.horizontal)
                     }
                     .padding(.vertical)
                 }
             }
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .automatic) {
                     Button("Close") {
                         dismiss()
                     }
@@ -170,14 +147,6 @@ struct ValidatedManualInputView: View {
                     .accessibilityIdentifier("closeButton")
                 }
             }
-            .alert("Validation Result", isPresented: $showValidationAlert) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text(isValid ? "Cube configuration is valid!" : (validationError ?? "Unknown error"))
-            }
-        }
-        .onAppear {
-            validateCube()
         }
     }
     
@@ -213,82 +182,150 @@ struct ValidatedManualInputView: View {
         case .bottom:
             cubeViewModel.cube.bottom = CubeFace(color: .yellow)
         }
-        validateCube()
     }
+}
+
+/// Enumeration for cube face types
+public enum CubeFaceType: String, CaseIterable {
+    case front = "Front"
+    case back = "Back"
+    case left = "Left"
+    case right = "Right"
+    case top = "Top"
+    case bottom = "Bottom"
     
-    @discardableResult
-    private func validateCube() -> Bool {
-        // Convert current cube to CubeState
-        let cubeState = CubeState(from: cubeViewModel.cube)
-        
-        do {
-            // Validate the cube state
-            try CubeValidator.validate(cubeState)
-            isValid = true
-            validationError = nil
-            return true
-        } catch let error as CubeValidationError {
-            isValid = false
-            validationError = error.errorDescription
-            return false
-        } catch {
-            isValid = false
-            validationError = "Unknown validation error"
-            return false
+    var icon: String {
+        switch self {
+        case .front: return "f.square"
+        case .back: return "b.square"
+        case .left: return "l.square"
+        case .right: return "r.square"
+        case .top: return "u.square"
+        case .bottom: return "d.square"
         }
     }
 }
 
-/// Card displaying validation status
-struct ValidationStatusCard: View {
-    let isValid: Bool
-    let errorMessage: String?
+/// Button for selecting a cube face
+public struct FaceSelectorButton: View {
+    let faceType: CubeFaceType
+    let isSelected: Bool
+    let action: () -> Void
     
-    var body: some View {
-        if let error = errorMessage {
-            GlassmorphicCard {
-                HStack(spacing: 15) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
-                        .font(.title2)
-                    
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("Invalid Configuration")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                        
-                        Text(error)
-                            .font(.body)
-                            .foregroundColor(.white.opacity(0.9))
+    public var body: some View {
+        Button(action: action) {
+            VStack(spacing: 5) {
+                Image(systemName: faceType.icon)
+                    .font(.title2)
+                Text(faceType.rawValue)
+                    .font(.caption)
+            }
+            .foregroundColor(.white)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isSelected ? Color.white.opacity(0.3) : Color.white.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.white.opacity(isSelected ? 0.5 : 0.2), lineWidth: isSelected ? 2 : 1)
+                    )
+            )
+            .backdrop(cornerRadius: 10)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(faceType.rawValue) face")
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+}
+
+/// Button for selecting a color
+public struct ColorSelectorButton: View {
+    let color: FaceColor
+    let isSelected: Bool
+    let action: () -> Void
+    
+    public var body: some View {
+        Button(action: action) {
+            Circle()
+                .fill(colorForFaceColor(color))
+                .frame(width: 40, height: 40)
+                .overlay(
+                    Circle()
+                        .stroke(Color.white, lineWidth: isSelected ? 3 : 0)
+                )
+                .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 2)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(color.rawValue) color")
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityIdentifier("\(color.rawValue)ColorButton")
+    }
+    
+    private func colorForFaceColor(_ faceColor: FaceColor) -> Color {
+        switch faceColor {
+        case .white: return Color.white
+        case .yellow: return Color.yellow
+        case .red: return Color.red
+        case .orange: return Color.orange
+        case .blue: return Color.blue
+        case .green: return Color.green
+        }
+    }
+}
+
+/// Editable cube face view
+public struct EditableCubeFaceView: View {
+    @Binding var face: CubeFace
+    @Binding var selectedColor: FaceColor
+    
+    public var body: some View {
+        VStack(spacing: 4) {
+            ForEach(0..<3, id: \.self) { row in
+                HStack(spacing: 4) {
+                    ForEach(0..<3, id: \.self) { col in
+                        Button(action: {
+                            face.colors[row][col] = selectedColor
+                        }) {
+                            Rectangle()
+                                .fill(colorForFaceColor(face.colors[row][col]))
+                                .frame(width: 60, height: 60)
+                                .cornerRadius(8)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.white.opacity(0.5), lineWidth: 2)
+                                )
+                                .shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 2)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Cell row \(row + 1), column \(col + 1)")
+                        .accessibilityValue("\(face.colors[row][col].rawValue) color")
+                        .accessibilityHint("Tap to set to selected color")
+                        .accessibilityIdentifier("cell_\(row)_\(col)")
                     }
-                    
-                    Spacer()
                 }
-                .padding()
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Validation error: \(error)")
-        } else if isValid {
-            GlassmorphicCard {
-                HStack(spacing: 15) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-                        .font(.title2)
-                    
-                    Text("Valid Configuration")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                }
-                .padding()
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Cube configuration is valid")
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 15)
+                .fill(Color.black.opacity(0.2))
+        )
+    }
+    
+    private func colorForFaceColor(_ faceColor: FaceColor) -> Color {
+        switch faceColor {
+        case .white: return Color.white
+        case .yellow: return Color.yellow
+        case .red: return Color.red
+        case .orange: return Color.orange
+        case .blue: return Color.blue
+        case .green: return Color.green
         }
     }
 }
 
 #Preview {
-    ValidatedManualInputView(cubeViewModel: CubeViewModel())
+    ManualInputView(cubeViewModel: CubeViewModel())
 }
+#endif

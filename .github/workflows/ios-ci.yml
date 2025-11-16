@@ -34,9 +34,14 @@ jobs:
       
     - name: Generate code coverage report
       run: |
-        xcrun llvm-cov export -format="lcov" \
-          .build/debug/CubeSolverPackageTests.xctest/Contents/MacOS/CubeSolverPackageTests \
-          -instr-profile .build/debug/codecov/default.profdata > coverage.lcov || true
+        # Find all test executables and generate coverage for each
+        for test_exec in .build/debug/*.xctest/Contents/MacOS/*; do
+          if [ -f "$test_exec" ]; then
+            xcrun llvm-cov export -format="lcov" \
+              "$test_exec" \
+              -instr-profile .build/debug/codecov/default.profdata >> coverage.lcov 2>/dev/null || true
+          fi
+        done
       
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3

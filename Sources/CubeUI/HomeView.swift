@@ -135,7 +135,9 @@ public struct HomeView: View {
                 )
                 .ignoresSafeArea()
             )
-            .crossPlatformNavigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .automatic) {
                     NavigationLink(destination: SettingsView()) {

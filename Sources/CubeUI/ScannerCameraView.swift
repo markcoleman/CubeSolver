@@ -1,4 +1,7 @@
-#if canImport(SwiftUI) && canImport(AVFoundation) && canImport(CubeScanner)
+#if canImport(SwiftUI)
+import SwiftUI
+
+#if canImport(AVFoundation) && canImport(CubeScanner)
 //
 //  ScannerCameraView.swift
 //  CubeSolver - Camera Scanner View
@@ -6,7 +9,6 @@
 //  Created by GitHub Copilot
 //
 
-import SwiftUI
 import AVFoundation
 import CubeCore
 import CubeScanner
@@ -127,7 +129,9 @@ public struct ScannerCameraView: View {
             }
         }
         .navigationTitle("Scan Cube")
-        .crossPlatformNavigationBarTitleDisplayMode(.inline)
+        #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
         .sheet(isPresented: $showManualCorrection) {
             ManualCorrectionView(
                 scanner: scanner,
@@ -263,7 +267,9 @@ struct ManualCorrectionView: View {
                 .padding()
             }
             .navigationTitle("Correct Colors")
-            .crossPlatformNavigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -324,7 +330,6 @@ extension CubeColor {
 }
 
 #else
-import SwiftUI
 
 @MainActor
 public struct ScannerCameraView: View {
@@ -344,4 +349,6 @@ public struct ScannerCameraView: View {
         .background(Color.black.ignoresSafeArea())
     }
 }
+#endif
+
 #endif

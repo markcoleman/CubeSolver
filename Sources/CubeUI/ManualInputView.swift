@@ -135,7 +135,9 @@ public struct ManualInputView: View {
                     .padding(.vertical)
                 }
             }
-            .crossPlatformNavigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .automatic) {
                     Button("Close") {

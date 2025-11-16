@@ -16,6 +16,9 @@ public struct ManualInputView: View {
     
     @State private var selectedFace: CubeFaceType = .front
     @State private var selectedColor: FaceColor = .red
+    @State private var showingSolutionPlayback = false
+    @State private var validationError: String?
+    @State private var isSolving = false
     
     public var body: some View {
         NavigationStack {
@@ -116,19 +119,49 @@ public struct ManualInputView: View {
                         .accessibilityElement(children: .contain)
                         .accessibilityIdentifier("editableFaceView")
                         
+                        // Validation error message
+                        if let error = validationError {
+                            GlassmorphicCard {
+                                HStack {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundColor(.yellow)
+                                    Text(error)
+                                        .font(.caption)
+                                        .foregroundColor(.white)
+                                }
+                                .padding()
+                            }
+                            .padding(.horizontal)
+                        }
+                        
                         // Action buttons
-                        HStack(spacing: 15) {
-                            GlassmorphicButton(title: "Reset Face", icon: "arrow.counterclockwise") {
-                                resetFace(selectedFace)
+                        VStack(spacing: 15) {
+                            HStack(spacing: 15) {
+                                GlassmorphicButton(title: "Reset Face", icon: "arrow.counterclockwise") {
+                                    resetFace(selectedFace)
+                                }
+                                .accessibilityIdentifier("resetFaceButton")
+                                .accessibilityHint("Resets the selected face to its original state")
+                                
+                                GlassmorphicButton(title: "Done", icon: "checkmark") {
+                                    dismiss()
+                                }
+                                .accessibilityIdentifier("doneButton")
+                                .accessibilityHint("Closes the manual input view")
                             }
-                            .accessibilityIdentifier("resetFaceButton")
-                            .accessibilityHint("Resets the selected face to its original state")
                             
-                            GlassmorphicButton(title: "Done", icon: "checkmark") {
-                                dismiss()
+                            // Solve button
+                            GlassmorphicButton(
+                                title: isSolving ? "Solving..." : "Solve Cube",
+                                icon: "wand.and.stars"
+                            ) {
+                                Task {
+                                    await solveCube()
+                                }
                             }
-                            .accessibilityIdentifier("doneButton")
-                            .accessibilityHint("Closes the manual input view")
+                            .disabled(isSolving)
+                            .accessibilityIdentifier("solveCubeButton")
+                            .accessibilityHint("Validates and solves the current cube configuration")
                         }
                         .padding(.horizontal)
                     }
@@ -146,6 +179,39 @@ public struct ManualInputView: View {
                     .foregroundColor(.white)
                     .accessibilityIdentifier("closeButton")
                 }
+            }
+            .sheet(isPresented: $showingSolutionPlayback) {
+                SolutionPlaybackView(
+                    cubeViewModel: cubeViewModel,
+                    initialState: CubeState(from: cubeViewModel.cube)
+                )
+            }
+        }
+    }
+    
+    private func solveCube() async {
+        isSolving = true
+        validationError = nil
+        
+        // Validate the cube first
+        let cubeState = CubeState(from: cubeViewModel.cube)
+        
+        do {
+            // Basic validation
+            try CubeValidator.validate(cubeState)
+            
+            // Try to solve
+            await cubeViewModel.solveAsync()
+            
+            // If we got here, solving succeeded
+            await MainActor.run {
+                isSolving = false
+                showingSolutionPlayback = true
+            }
+        } catch {
+            await MainActor.run {
+                validationError = error.localizedDescription
+                isSolving = false
             }
         }
     }
@@ -329,3 +395,4 @@ public struct EditableCubeFaceView: View {
     ManualInputView(cubeViewModel: CubeViewModel())
 }
 #endif
+

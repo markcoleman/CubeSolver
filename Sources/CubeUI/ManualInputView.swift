@@ -198,7 +198,7 @@ public struct ManualInputView: View {
         
         do {
             // Basic validation
-            try CubeValidator.validateCube(cubeState)
+            try CubeValidator.validate(cubeState)
             
             // Try to solve
             await cubeViewModel.solveAsync()
@@ -395,3 +395,4 @@ public struct EditableCubeFaceView: View {
     ManualInputView(cubeViewModel: CubeViewModel())
 }
 #endif
+

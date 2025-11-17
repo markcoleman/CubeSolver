@@ -67,14 +67,22 @@ public struct ScannerCameraView: View {
                     } label: {
                         HStack {
                             Image(systemName: scanner.scannerState == .scanning ? "stop.circle.fill" : "camera.fill")
+                                .font(.title3)
                             Text(scanner.scannerState == .scanning ? "Stop" : "Scan")
+                                .fontWeight(.semibold)
                         }
-                        .font(.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(scanner.scannerState == .scanning ? Color.red : Color.blue)
-                        .cornerRadius(12)
+                        .background(
+                            LinearGradient(
+                                colors: scanner.scannerState == .scanning ? [.red, .red.opacity(0.8)] : [.blue, .blue.opacity(0.8)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(16)
+                        .shadow(color: (scanner.scannerState == .scanning ? Color.red : Color.blue).opacity(0.3), radius: 8, x: 0, y: 4)
                     }
                     .disabled(scanner.scannerState == .processing)
                     
@@ -86,14 +94,22 @@ public struct ScannerCameraView: View {
                             } label: {
                                 HStack {
                                     Image(systemName: "hand.point.up.fill")
+                                        .font(.title3)
                                     Text("Correct")
+                                        .fontWeight(.semibold)
                                 }
-                                .font(.subheadline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(.orange)
-                                .cornerRadius(12)
+                                .background(
+                                    LinearGradient(
+                                        colors: [.orange, .orange.opacity(0.8)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(16)
+                                .shadow(color: .orange.opacity(0.3), radius: 8, x: 0, y: 4)
                             }
                             
                             Button {
@@ -103,14 +119,22 @@ public struct ScannerCameraView: View {
                             } label: {
                                 HStack {
                                     Image(systemName: "checkmark.circle.fill")
+                                        .font(.title3)
                                     Text("Accept")
+                                        .fontWeight(.semibold)
                                 }
-                                .font(.subheadline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(.green)
-                                .cornerRadius(12)
+                                .background(
+                                    LinearGradient(
+                                        colors: [.green, .green.opacity(0.8)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(16)
+                                .shadow(color: .green.opacity(0.3), radius: 8, x: 0, y: 4)
                             }
                         }
                     }
@@ -261,12 +285,19 @@ struct ManualCorrectionView: View {
                         onComplete()
                     }
                 }
-                .font(.headline)
+                .fontWeight(.semibold)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(.blue)
-                .cornerRadius(12)
+                .background(
+                    LinearGradient(
+                        colors: [.blue, .blue.opacity(0.8)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .cornerRadius(16)
+                .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
                 .padding()
             }
             .navigationTitle("Correct Colors")

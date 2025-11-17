@@ -23,22 +23,39 @@ public struct HomeView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     // Header
-                    VStack(spacing: 8) {
-                        Image(systemName: "cube.fill")
-                            .font(.system(size: 60))
-                            .foregroundStyle(.linearGradient(
-                                colors: [.purple, .blue],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ))
+                    VStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.purple.opacity(0.3), .blue.opacity(0.3)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 100, height: 100)
+                                .blur(radius: 20)
+                            
+                            Image(systemName: "cube.fill")
+                                .font(.system(size: 60))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [.purple, .blue],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .shadow(color: .blue.opacity(0.3), radius: 10, x: 0, y: 5)
+                        }
                         
                         Text("CubeSolver")
                             .font(.largeTitle)
                             .fontWeight(.bold)
+                            .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                         
                         Text("Next-Gen Rubik's Cube Solver")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
                     }
                     .padding(.top, 40)
                     

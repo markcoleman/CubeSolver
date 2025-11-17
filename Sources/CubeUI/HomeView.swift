@@ -164,7 +164,13 @@ struct ActionCard: View {
                 .font(.system(size: 32))
                 .foregroundColor(color)
                 .frame(width: 60, height: 60)
-                .background(color.opacity(0.2))
+                .background(
+                    LinearGradient(
+                        colors: [color.opacity(0.3), color.opacity(0.2)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 .cornerRadius(12)
             
             VStack(alignment: .leading, spacing: 4) {
@@ -185,6 +191,7 @@ struct ActionCard: View {
         .padding()
         .background(.ultraThinMaterial)
         .cornerRadius(16)
+        .shadow(color: colorScheme == .dark ? Color.black.opacity(0.3) : Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -306,14 +313,22 @@ struct SolveView: View {
                         }) {
                             HStack {
                                 Image(systemName: "shuffle")
+                                    .font(.title3)
                                 Text("Scramble Cube")
+                                    .fontWeight(.semibold)
                             }
-                            .font(.headline)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(.blue.opacity(0.8))
-                            .cornerRadius(12)
+                            .background(
+                                LinearGradient(
+                                    colors: [.blue, .blue.opacity(0.8)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(16)
+                            .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
                         }
                         .disabled(cubeViewModel.isSolving)
                         
@@ -328,15 +343,23 @@ struct SolveView: View {
                                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                 } else {
                                     Image(systemName: "wand.and.stars")
+                                        .font(.title3)
                                 }
                                 Text(cubeViewModel.isSolving ? "Solving..." : "Solve Cube")
+                                    .fontWeight(.semibold)
                             }
-                            .font(.headline)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(.purple.opacity(0.8))
-                            .cornerRadius(12)
+                            .background(
+                                LinearGradient(
+                                    colors: [.purple, .purple.opacity(0.8)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(16)
+                            .shadow(color: .purple.opacity(0.3), radius: 8, x: 0, y: 4)
                         }
                         .disabled(cubeViewModel.isSolving)
                         
@@ -345,14 +368,15 @@ struct SolveView: View {
                         }) {
                             HStack {
                                 Image(systemName: "arrow.clockwise")
+                                    .font(.title3)
                                 Text("Reset")
+                                    .fontWeight(.semibold)
                             }
-                            .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(.gray.opacity(0.6))
-                            .cornerRadius(12)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(16)
                         }
                         .disabled(cubeViewModel.isSolving)
                     }
@@ -374,14 +398,22 @@ struct SolveView: View {
                             }) {
                                 HStack {
                                     Image(systemName: "play.fill")
+                                        .font(.title3)
                                     Text("View Solution")
+                                        .fontWeight(.semibold)
                                 }
-                                .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(.green.opacity(0.8))
-                                .cornerRadius(12)
+                                .background(
+                                    LinearGradient(
+                                        colors: [.green, .green.opacity(0.8)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(16)
+                                .shadow(color: .green.opacity(0.3), radius: 8, x: 0, y: 4)
                             }
                         }
                         .padding()
@@ -523,14 +555,22 @@ struct PracticeView: View {
                         }) {
                             HStack {
                                 Image(systemName: "shuffle")
+                                    .font(.title3)
                                 Text("New Scramble")
+                                    .fontWeight(.semibold)
                             }
-                            .font(.headline)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(.orange.opacity(0.8))
-                            .cornerRadius(12)
+                            .background(
+                                LinearGradient(
+                                    colors: [.orange, .orange.opacity(0.8)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(16)
+                            .shadow(color: .orange.opacity(0.3), radius: 8, x: 0, y: 4)
                         }
                         
                         HStack(spacing: 12) {
@@ -539,14 +579,22 @@ struct PracticeView: View {
                             }) {
                                 HStack {
                                     Image(systemName: timerActive ? "pause.fill" : "play.fill")
+                                        .font(.title3)
                                     Text(timerActive ? "Pause" : "Start")
+                                        .fontWeight(.semibold)
                                 }
-                                .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(.green.opacity(0.8))
-                                .cornerRadius(12)
+                                .background(
+                                    LinearGradient(
+                                        colors: [.green, .green.opacity(0.8)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(16)
+                                .shadow(color: .green.opacity(0.3), radius: 8, x: 0, y: 4)
                             }
                             
                             Button(action: {
@@ -554,14 +602,15 @@ struct PracticeView: View {
                             }) {
                                 HStack {
                                     Image(systemName: "arrow.clockwise")
+                                        .font(.title3)
                                     Text("Reset")
+                                        .fontWeight(.semibold)
                                 }
-                                .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(.gray.opacity(0.6))
-                                .cornerRadius(12)
+                                .background(.ultraThinMaterial)
+                                .cornerRadius(16)
                             }
                         }
                         
@@ -572,14 +621,22 @@ struct PracticeView: View {
                             }) {
                                 HStack {
                                     Image(systemName: "lightbulb.fill")
+                                        .font(.title3)
                                     Text("Hint")
+                                        .fontWeight(.semibold)
                                 }
-                                .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(.blue.opacity(0.8))
-                                .cornerRadius(12)
+                                .background(
+                                    LinearGradient(
+                                        colors: [.blue, .blue.opacity(0.8)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(16)
+                                .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
                             }
                             
                             Button(action: {
@@ -592,14 +649,22 @@ struct PracticeView: View {
                             }) {
                                 HStack {
                                     Image(systemName: "book.fill")
+                                        .font(.title3)
                                     Text(cubeViewModel.solution.isEmpty ? "Get Solution" : "Show Solution")
+                                        .fontWeight(.semibold)
                                 }
-                                .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(.purple.opacity(0.8))
-                                .cornerRadius(12)
+                                .background(
+                                    LinearGradient(
+                                        colors: [.purple, .purple.opacity(0.8)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(16)
+                                .shadow(color: .purple.opacity(0.3), radius: 8, x: 0, y: 4)
                             }
                         }
                     }
@@ -639,14 +704,22 @@ struct PracticeView: View {
                             }) {
                                 HStack {
                                     Image(systemName: "play.fill")
+                                        .font(.title3)
                                     Text("View Playback")
+                                        .fontWeight(.semibold)
                                 }
-                                .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(.green.opacity(0.8))
-                                .cornerRadius(12)
+                                .background(
+                                    LinearGradient(
+                                        colors: [.green, .green.opacity(0.8)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(16)
+                                .shadow(color: .green.opacity(0.3), radius: 8, x: 0, y: 4)
                             }
                         }
                         .padding()

@@ -11,6 +11,7 @@ import CubeCore
 
 /// Home view showing recent solves and main navigation
 public struct HomeView: View {
+    @Environment(\.colorScheme) private var colorScheme
     
     @StateObject private var historyManager = SolveHistoryManager()
     @StateObject private var cubeViewModel = CubeViewModel()
@@ -126,10 +127,7 @@ public struct HomeView: View {
             }
             .background(
                 LinearGradient(
-                    colors: [
-                        Color(red: 0.1, green: 0.1, blue: 0.2),
-                        Color(red: 0.2, green: 0.15, blue: 0.3)
-                    ],
+                    colors: CubeSolverColors.backgroundGradient(for: colorScheme),
                     startPoint: .top,
                     endPoint: .bottom
                 )
@@ -142,7 +140,7 @@ public struct HomeView: View {
                 ToolbarItem(placement: .automatic) {
                     NavigationLink(destination: SettingsView()) {
                         Image(systemName: "gearshape.fill")
-                            .foregroundColor(.white)
+                            .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                     }
                 }
             }
@@ -153,6 +151,8 @@ public struct HomeView: View {
 // MARK: - Supporting Views
 
 struct ActionCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     let icon: String
     let title: String
     let subtitle: String
@@ -170,17 +170,17 @@ struct ActionCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.headline)
-                    .foregroundColor(.primary)
+                    .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                 
                 Text(subtitle)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
             }
             
             Spacer()
             
             Image(systemName: "chevron.right")
-                .foregroundColor(.secondary)
+                .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
         }
         .padding()
         .background(.ultraThinMaterial)
@@ -189,6 +189,8 @@ struct ActionCard: View {
 }
 
 struct RecentSolveRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     let solve: SavedSolve
     
     public var body: some View {
@@ -196,17 +198,17 @@ struct RecentSolveRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(solve.moveCount) moves")
                     .font(.headline)
-                    .foregroundColor(.primary)
+                    .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                 
                 Text(solve.date, style: .relative)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
             }
             
             Spacer()
             
             Image(systemName: "chevron.right")
-                .foregroundColor(.secondary)
+                .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
         }
         .padding()
         .background(.ultraThinMaterial)
@@ -216,6 +218,8 @@ struct RecentSolveRow: View {
 }
 
 struct StatCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     let title: String
     let value: String
     
@@ -224,11 +228,11 @@ struct StatCard: View {
             Text(value)
                 .font(.title2)
                 .fontWeight(.bold)
-                .foregroundColor(.primary)
+                .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
             
             Text(title)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
         }
         .frame(maxWidth: .infinity)
         .padding()
@@ -248,6 +252,8 @@ struct StatCard: View {
 /// - Solve the scrambled cube asynchronously
 /// - Navigate to solution playback
 struct SolveView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     @ObservedObject var cubeViewModel: CubeViewModel
     @State private var showingSolution = false
     
@@ -255,10 +261,7 @@ struct SolveView: View {
         ZStack {
             // Background gradient
             LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.1, green: 0.1, blue: 0.2),
-                    Color(red: 0.2, green: 0.15, blue: 0.3)
-                ]),
+                gradient: Gradient(colors: CubeSolverColors.backgroundGradient(for: colorScheme)),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -270,13 +273,13 @@ struct SolveView: View {
                     Text("Quick Solve")
                         .font(.largeTitle)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                         .padding(.top, 20)
                     
                     // Description
                     Text("Generate a random scramble and watch the cube solve itself")
                         .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                     
@@ -360,11 +363,11 @@ struct SolveView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Solution Found!")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                             
                             Text("\(cubeViewModel.solution.count) moves")
                                 .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
                             
                             Button(action: {
                                 showingSolution = true
@@ -422,6 +425,8 @@ struct SolveView: View {
 /// - Show hints for next move
 /// - Display full solution with playback
 struct PracticeView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     @ObservedObject var cubeViewModel: CubeViewModel
     @State private var scrambleMoves: [CubeCore.Move] = []
     @State private var scrambleNotation: String = ""
@@ -437,10 +442,7 @@ struct PracticeView: View {
         ZStack {
             // Background gradient
             LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.1, green: 0.1, blue: 0.2),
-                    Color(red: 0.2, green: 0.15, blue: 0.3)
-                ]),
+                gradient: Gradient(colors: CubeSolverColors.backgroundGradient(for: colorScheme)),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -452,13 +454,13 @@ struct PracticeView: View {
                     Text("Practice Mode")
                         .font(.largeTitle)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                         .padding(.top, 20)
                     
                     // Description
                     Text("Practice solving with random scrambles")
                         .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                     
@@ -466,11 +468,11 @@ struct PracticeView: View {
                     VStack(spacing: 8) {
                         Text("Time")
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
                         
                         Text(timeString(from: timeElapsed))
                             .font(.system(size: 48, weight: .bold, design: .monospaced))
-                            .foregroundColor(.white)
+                            .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                             .accessibilityLabel("Time elapsed")
                             .accessibilityValue(timeString(from: timeElapsed))
                     }
@@ -499,13 +501,13 @@ struct PracticeView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Scramble")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                             
                             Text(scrambleNotation)
                                 .font(.body)
-                                .foregroundColor(.white.opacity(0.9))
+                                .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                                 .padding()
-                                .background(Color.black.opacity(0.2))
+                                .background(colorScheme == .dark ? Color.black.opacity(0.2) : Color.white.opacity(0.5))
                                 .cornerRadius(8)
                         }
                         .padding()
@@ -608,7 +610,7 @@ struct PracticeView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Next Move Hint")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                             
                             Text(cubeViewModel.solution.first.map { String(describing: $0) } ?? "No hint available")
                                 .font(.title2)
@@ -626,11 +628,11 @@ struct PracticeView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Full Solution")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                             
                             Text("\(cubeViewModel.solution.count) moves")
                                 .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
                             
                             Button(action: {
                                 showingSolutionPlayback = true

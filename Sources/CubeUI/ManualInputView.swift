@@ -11,6 +11,8 @@ import CubeCore
 
 /// View for manually inputting a cube configuration from a real-life cube
 public struct ManualInputView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     @ObservedObject var cubeViewModel: CubeViewModel
     @Environment(\.dismiss) private var dismiss
     
@@ -25,10 +27,7 @@ public struct ManualInputView: View {
             ZStack {
                 // Background gradient matching main view
                 LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.1, green: 0.1, blue: 0.2),
-                        Color(red: 0.2, green: 0.15, blue: 0.3)
-                    ]),
+                    gradient: Gradient(colors: CubeSolverColors.backgroundGradient(for: colorScheme)),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -40,7 +39,7 @@ public struct ManualInputView: View {
                         Text("Input Your Cube")
                             .font(.largeTitle)
                             .fontWeight(.bold)
-                            .foregroundColor(.white)
+                            .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                             .accessibilityAddTraits(.isHeader)
                             .accessibilityIdentifier("manualInputTitle")
                         
@@ -49,19 +48,19 @@ public struct ManualInputView: View {
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("Instructions")
                                     .font(.headline)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                                 
                                 Text("1. Select a face to edit")
                                     .font(.body)
-                                    .foregroundColor(.white.opacity(0.9))
+                                    .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                                 
                                 Text("2. Choose a color")
                                     .font(.body)
-                                    .foregroundColor(.white.opacity(0.9))
+                                    .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                                 
                                 Text("3. Tap cells to set colors")
                                     .font(.body)
-                                    .foregroundColor(.white.opacity(0.9))
+                                    .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                             }
                             .padding()
                         }
@@ -73,7 +72,7 @@ public struct ManualInputView: View {
                         VStack(spacing: 15) {
                             Text("Select Face")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                                 .accessibilityAddTraits(.isHeader)
                             
                             HStack(spacing: 10) {
@@ -94,7 +93,7 @@ public struct ManualInputView: View {
                         VStack(spacing: 15) {
                             Text("Select Color")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                                 .accessibilityAddTraits(.isHeader)
                             
                             HStack(spacing: 10) {
@@ -127,7 +126,7 @@ public struct ManualInputView: View {
                                         .foregroundColor(.yellow)
                                     Text(error)
                                         .font(.caption)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                                 }
                                 .padding()
                             }
@@ -176,7 +175,7 @@ public struct ManualInputView: View {
                     Button("Close") {
                         dismiss()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                     .accessibilityIdentifier("closeButton")
                 }
             }
@@ -274,6 +273,8 @@ public enum CubeFaceType: String, CaseIterable {
 
 /// Button for selecting a cube face
 public struct FaceSelectorButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     let faceType: CubeFaceType
     let isSelected: Bool
     let action: () -> Void
@@ -286,15 +287,15 @@ public struct FaceSelectorButton: View {
                 Text(faceType.rawValue)
                     .font(.caption)
             }
-            .foregroundColor(.white)
+            .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
             .padding(.vertical, 8)
             .padding(.horizontal, 10)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(isSelected ? Color.white.opacity(0.3) : Color.white.opacity(0.1))
+                    .fill(isSelected ? CubeSolverColors.cardBackground(for: colorScheme).opacity(1.5) : CubeSolverColors.cardBackground(for: colorScheme))
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.white.opacity(isSelected ? 0.5 : 0.2), lineWidth: isSelected ? 2 : 1)
+                            .stroke(isSelected ? CubeSolverColors.glassBorder(for: colorScheme).opacity(2) : CubeSolverColors.glassBorder(for: colorScheme), lineWidth: isSelected ? 2 : 1)
                     )
             )
             .backdrop(cornerRadius: 10)
@@ -342,6 +343,8 @@ public struct ColorSelectorButton: View {
 
 /// Editable cube face view
 public struct EditableCubeFaceView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     @Binding var face: CubeFace
     @Binding var selectedColor: FaceColor
     
@@ -359,9 +362,9 @@ public struct EditableCubeFaceView: View {
                                 .cornerRadius(8)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.white.opacity(0.5), lineWidth: 2)
+                                        .stroke(colorScheme == .dark ? Color.white.opacity(0.5) : Color.black.opacity(0.3), lineWidth: 2)
                                 )
-                                .shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 2)
+                                .shadow(color: CubeSolverColors.shadow(for: colorScheme), radius: 5, x: 0, y: 2)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Cell row \(row + 1), column \(col + 1)")
@@ -375,7 +378,7 @@ public struct EditableCubeFaceView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 15)
-                .fill(Color.black.opacity(0.2))
+                .fill(colorScheme == .dark ? Color.black.opacity(0.2) : Color.white.opacity(0.3))
         )
     }
     

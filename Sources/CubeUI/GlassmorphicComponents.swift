@@ -12,6 +12,8 @@ import SwiftUI
 
 /// A glassmorphic button with icon and title
 public struct GlassmorphicButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     let title: String
     let icon: String
     let action: () -> Void
@@ -29,17 +31,17 @@ public struct GlassmorphicButton: View {
                 Text(title)
             }
             .font(.headline)
-            .foregroundColor(.white)
+            .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: 15)
-                    .fill(Color.white.opacity(0.15))
+                    .fill(CubeSolverColors.cardBackground(for: colorScheme))
                     .background(
                         RoundedRectangle(cornerRadius: 15)
-                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                            .stroke(CubeSolverColors.glassBorder(for: colorScheme), lineWidth: 1)
                     )
-                    .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
+                    .shadow(color: CubeSolverColors.shadow(for: colorScheme), radius: 10, x: 0, y: 5)
             )
             .backdrop(cornerRadius: 15)
         }
@@ -51,6 +53,8 @@ public struct GlassmorphicButton: View {
 
 /// A glassmorphic card container for content
 public struct GlassmorphicCard<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     let content: Content
     
     public init(@ViewBuilder content: () -> Content) {
@@ -61,12 +65,12 @@ public struct GlassmorphicCard<Content: View>: View {
         content
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.white.opacity(0.1))
+                    .fill(CubeSolverColors.cardBackground(for: colorScheme))
                     .background(
                         RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                            .stroke(CubeSolverColors.glassBorder(for: colorScheme), lineWidth: 1)
                     )
-                    .shadow(color: Color.black.opacity(0.2), radius: 15, x: 0, y: 10)
+                    .shadow(color: CubeSolverColors.shadow(for: colorScheme), radius: 15, x: 0, y: 10)
             )
             .backdrop(cornerRadius: 20)
     }

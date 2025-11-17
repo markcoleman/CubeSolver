@@ -16,6 +16,7 @@ import CubeScanner
 /// Camera view for scanning Rubik's Cube faces
 @MainActor
 public struct ScannerCameraView: View {
+    @Environment(\.colorScheme) private var colorScheme
     
     @StateObject private var scanner = CubeScanner()
     @State private var showManualCorrection = false
@@ -53,7 +54,7 @@ public struct ScannerCameraView: View {
                     // Instructions
                     Text(instructionText)
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                         .padding()
                         .background(.ultraThinMaterial)
                         .cornerRadius(12)
@@ -120,7 +121,7 @@ public struct ScannerCameraView: View {
                     
                     Text("\(scanner.scannedFaceCount)/6 faces scanned")
                         .font(.caption)
-                        .foregroundColor(.white)
+                        .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
                 }
                 .padding()
                 .background(.ultraThinMaterial)
@@ -197,6 +198,8 @@ struct GridOverlay: Shape {
 }
 
 struct FaceIndicator: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     let face: Face
     let isActive: Bool
     let isScanned: Bool
@@ -214,7 +217,7 @@ struct FaceIndicator: View {
             
             Text(face.rawValue)
                 .font(.caption2)
-                .foregroundColor(isActive ? .white : .gray)
+                .foregroundColor(isActive ? CubeSolverColors.primaryText(for: colorScheme) : CubeSolverColors.secondaryText(for: colorScheme))
         }
     }
 }

@@ -1,9 +1,12 @@
 # 🎲 CubeSolver - Next-Gen
 
 [![iOS CI](https://github.com/markcoleman/CubeSolver/workflows/iOS%20CI/badge.svg)](https://github.com/markcoleman/CubeSolver/actions)
+[![CodeQL](https://github.com/markcoleman/CubeSolver/workflows/CodeQL%20Security%20Scan/badge.svg)](https://github.com/markcoleman/CubeSolver/security/code-scanning)
+[![codecov](https://codecov.io/gh/markcoleman/CubeSolver/branch/main/graph/badge.svg)](https://codecov.io/gh/markcoleman/CubeSolver)
 [![Swift Version](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
 [![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20iPadOS%20%7C%20macOS%20%7C%20watchOS-lightgrey.svg)](https://developer.apple.com)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![GitHub release](https://img.shields.io/github/release/markcoleman/CubeSolver.svg)](https://github.com/markcoleman/CubeSolver/releases)
 
 A next-generation, modular iOS/iPadOS/macOS/watchOS application for solving Rubik's Cubes with camera scanning, AR visualization, and a stunning glassmorphic interface.
 

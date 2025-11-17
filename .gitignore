@@ -69,3 +69,27 @@ fastlane/test_output
 *.profdata
 *.profraw
 coverage.lcov
+*.gcda
+*.gcno
+
+# CI/CD artifacts
+.artifacts/
+_site/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Node modules (if using any JS tooling)
+node_modules/
+package-lock.json
+yarn.lock

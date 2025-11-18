@@ -11,6 +11,8 @@ import CubeCore
 
 /// View for displaying and playing back cube solution steps with 3D animations
 public struct SolutionPlaybackView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     @ObservedObject var cubeViewModel: CubeViewModel
     @Environment(\.dismiss) private var dismiss
     
@@ -29,10 +31,7 @@ public struct SolutionPlaybackView: View {
             ZStack {
                 // Background gradient
                 LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.1, green: 0.1, blue: 0.2),
-                        Color(red: 0.2, green: 0.15, blue: 0.3)
-                    ]),
+                    gradient: Gradient(colors: CubeSolverColors.backgroundGradient(for: colorScheme)),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -43,7 +42,7 @@ public struct SolutionPlaybackView: View {
                     Text("Solution Playback")
                         .font(.largeTitle)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                         .padding(.top, 50)
                         .accessibilityAddTraits(.isHeader)
                     
@@ -121,7 +120,7 @@ public struct SolutionPlaybackView: View {
                         stopPlayback()
                         dismiss()
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                 }
             }
             .onAppear {
@@ -220,6 +219,8 @@ public struct SolutionPlaybackView: View {
 
 /// Card showing solution overview
 public struct SolutionOverviewCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     let totalMoves: Int
     let currentStep: Int
     
@@ -230,11 +231,11 @@ public struct SolutionOverviewCard: View {
                     VStack(alignment: .leading) {
                         Text("Total Moves")
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
                         Text("\(totalMoves)")
                             .font(.title)
                             .fontWeight(.bold)
-                            .foregroundColor(.white)
+                            .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                     }
                     
                     Spacer()
@@ -242,11 +243,11 @@ public struct SolutionOverviewCard: View {
                     VStack(alignment: .trailing) {
                         Text("Current Step")
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
                         Text("\(currentStep)")
                             .font(.title)
                             .fontWeight(.bold)
-                            .foregroundColor(.white)
+                            .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                     }
                 }
                 
@@ -254,7 +255,7 @@ public struct SolutionOverviewCard: View {
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 5)
-                            .fill(Color.white.opacity(0.2))
+                            .fill(colorScheme == .dark ? Color.white.opacity(0.2) : Color.gray.opacity(0.3))
                             .frame(height: 8)
                         
                         RoundedRectangle(cornerRadius: 5)
@@ -276,6 +277,8 @@ public struct SolutionOverviewCard: View {
 
 /// Card showing current move
 public struct CurrentMoveCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     let move: String
     
     public var body: some View {
@@ -283,17 +286,17 @@ public struct CurrentMoveCard: View {
             VStack(spacing: 10) {
                 Text("Current Move")
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
                 
                 HStack(spacing: 15) {
                     Text(moveDisplay(move))
                         .font(.system(size: 48, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white)
+                        .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                     
                     VStack(alignment: .leading, spacing: 5) {
                         Text(moveDetails(move))
                             .font(.body)
-                            .foregroundColor(.white)
+                            .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                     }
                 }
             }
@@ -357,6 +360,8 @@ public struct PlaybackControls: View {
 
 /// Individual playback button
 public struct PlaybackButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     let icon: String
     let action: () -> Void
     var isLarge: Bool = false
@@ -365,16 +370,16 @@ public struct PlaybackButton: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: isLarge ? 32 : 24))
-                .foregroundColor(.white)
+                .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                 .frame(width: isLarge ? 70 : 50, height: isLarge ? 70 : 50)
                 .background(
                     Circle()
-                        .fill(Color.white.opacity(0.15))
+                        .fill(CubeSolverColors.cardBackground(for: colorScheme))
                         .overlay(
                             Circle()
-                                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                .stroke(CubeSolverColors.glassBorder(for: colorScheme), lineWidth: 1)
                         )
-                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                        .shadow(color: CubeSolverColors.shadow(for: colorScheme), radius: 5, x: 0, y: 2)
                 )
         }
         .buttonStyle(.plain)

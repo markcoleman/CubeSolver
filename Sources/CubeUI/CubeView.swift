@@ -40,6 +40,8 @@ public struct CubeView: View {
 }
 
 public struct CubeFaceView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     let face: CubeFace
     let cellSize: CGFloat
     
@@ -54,8 +56,9 @@ public struct CubeFaceView: View {
                             .cornerRadius(4)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 4)
-                                    .stroke(Color.black.opacity(0.3), lineWidth: 1)
+                                    .stroke(colorScheme == .dark ? Color.white.opacity(0.2) : Color.black.opacity(0.3), lineWidth: 1)
                             )
+                            .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
                     }
                 }
             }
@@ -63,7 +66,8 @@ public struct CubeFaceView: View {
         .padding(4)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color.black.opacity(0.2))
+                .fill(colorScheme == .dark ? Color.black.opacity(0.3) : Color.white.opacity(0.5))
+                .shadow(color: CubeSolverColors.shadow(for: colorScheme), radius: 5, x: 0, y: 2)
         )
     }
     

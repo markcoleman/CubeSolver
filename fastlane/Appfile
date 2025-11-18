@@ -1,0 +1,15 @@
+# Appfile for CubeSolver
+# More information about the Appfile can be found at:
+# https://docs.fastlane.tools/advanced/#appfile
+
+# app_identifier("[[APP_IDENTIFIER]]") # The bundle identifier of your app
+# apple_id("[[APPLE_ID]]") # Your Apple Developer Portal email address
+
+# For more information about the Appfile, see:
+#     https://docs.fastlane.tools/advanced/#appfile
+
+# Uncomment and update when ready to deploy to App Store
+# app_identifier("com.example.cubesolver")
+# apple_id("your.email@example.com")
+# itc_team_id("123456789") # App Store Connect Team ID
+# team_id("ABCD1234") # Developer Portal Team ID

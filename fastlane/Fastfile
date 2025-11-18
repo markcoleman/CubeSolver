@@ -1,0 +1,84 @@
+# Fastfile for CubeSolver
+# This file contains the fastlane configuration for automated screenshot capture
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Generate screenshots for App Store"
+  lane :screenshots do
+    capture_screenshots(
+      scheme: "CubeSolver",
+      output_directory: "./fastlane/screenshots",
+      clear_previous_screenshots: true,
+      override_status_bar: true,
+      localize_simulator: true,
+      dark_mode: false,
+      number_of_retries: 3
+    )
+  end
+
+  desc "Generate screenshots for App Store (Dark Mode)"
+  lane :screenshots_dark do
+    capture_screenshots(
+      scheme: "CubeSolver",
+      output_directory: "./fastlane/screenshots_dark",
+      clear_previous_screenshots: true,
+      override_status_bar: true,
+      localize_simulator: true,
+      dark_mode: true,
+      number_of_retries: 3
+    )
+  end
+
+  desc "Generate all screenshots (Light and Dark)"
+  lane :screenshots_all do
+    screenshots
+    screenshots_dark
+    
+    # Copy to docs for GitHub Pages
+    sh("mkdir -p ../docs/images/appstore")
+    sh("cp -r ./screenshots/* ../docs/images/appstore/ 2>/dev/null || true")
+    sh("mkdir -p ../docs/images/appstore_dark")
+    sh("cp -r ./screenshots_dark/* ../docs/images/appstore_dark/ 2>/dev/null || true")
+  end
+
+  desc "Run tests"
+  lane :test do
+    run_tests(
+      scheme: "CubeSolver",
+      devices: ["iPhone 15 Pro"],
+      clean: true
+    )
+  end
+
+  desc "Build the app"
+  lane :build do
+    build_app(
+      scheme: "CubeSolver",
+      configuration: "Release",
+      export_method: "development",
+      skip_archive: true,
+      skip_package_ipa: true
+    )
+  end
+end
+
+platform :mac do
+  desc "Generate screenshots for Mac App Store"
+  lane :screenshots do
+    capture_screenshots(
+      scheme: "CubeSolver",
+      output_directory: "./fastlane/screenshots_mac",
+      clear_previous_screenshots: true
+    )
+  end
+
+  desc "Generate all macOS screenshots"
+  lane :screenshots_all do
+    screenshots
+    
+    # Copy to docs for GitHub Pages
+    sh("mkdir -p ../docs/images/macos")
+    sh("cp -r ./screenshots_mac/* ../docs/images/macos/ 2>/dev/null || true")
+  end
+end

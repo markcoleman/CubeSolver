@@ -1,0 +1,71 @@
+# Snapfile for CubeSolver
+# Configuration for automated screenshot generation
+
+# A list of devices you want to take screenshots from
+devices([
+  "iPhone 15 Pro Max",
+  "iPhone 15 Pro",
+  "iPhone 15",
+  "iPhone SE (3rd generation)",
+  "iPad Pro (12.9-inch) (6th generation)",
+  "iPad Pro (11-inch) (4th generation)"
+])
+
+# A list of supported languages
+languages([
+  "en-US"
+  # Add more languages as needed:
+  # "es-ES",
+  # "fr-FR",
+  # "de-DE",
+  # "ja-JP",
+  # "zh-Hans"
+])
+
+# The name of the scheme to run
+scheme("CubeSolver")
+
+# Where should the resulting screenshots be stored?
+output_directory("./fastlane/screenshots")
+
+# Clear all previously generated screenshots before creating new ones
+clear_previous_screenshots(true)
+
+# Remove the '#' to clear all previously generated screenshots before creating new ones
+# clear_previous_screenshots(true)
+
+# Arguments to pass to the app on launch
+# launch_arguments(["-AppleLanguages (en)"])
+
+# For more information about all available options run
+# fastlane action snapshot
+
+# Override the default status bar with the one from snapshot
+override_status_bar(true)
+
+# Specify the build configuration
+# configuration("Release")
+
+# Stop the test run if a test fails
+# stop_after_first_error(true)
+
+# Number of times a test can fail before it's marked as failed
+number_of_retries(3)
+
+# Run tests concurrently
+# concurrent_simulators(false)
+
+# Reinstall the app before running tests
+reinstall_app(true)
+
+# Erase the simulator before running tests
+erase_simulator(true)
+
+# Localize the simulator before running tests
+localize_simulator(true)
+
+# Dark mode
+# dark_mode(false)
+
+# Add this to skip opening simulator (headless mode)
+# headless(false)

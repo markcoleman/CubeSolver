@@ -33,6 +33,12 @@ jobs:
             cp -r docs/* _site/ 2>/dev/null || true
           fi
           
+          # Ensure screenshots are included
+          if [ -d "docs/images" ]; then
+            mkdir -p _site/images
+            cp -r docs/images/* _site/images/ 2>/dev/null || true
+          fi
+          
           # Generate index.html if it doesn't exist
           if [ ! -f "_site/index.html" ]; then
             cat > _site/index.html << 'EOF'

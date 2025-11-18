@@ -52,15 +52,19 @@ Carthage/Build/
 
 # fastlane
 #
-# It is recommended to not store the screenshots in the git repo.
-# Instead, use fastlane to re-generate the screenshots whenever they are needed.
-# For more information about the recommended setup visit:
-# https://docs.fastlane.tools/best-practices/source-control/#source-control
+# Note: We keep screenshots in git for documentation purposes
+# This differs from standard fastlane recommendations but serves our use case
+# for GitHub Pages and documentation
 
 fastlane/report.xml
 fastlane/Preview.html
-fastlane/screenshots/**/*.png
 fastlane/test_output
+fastlane/README.md
+
+# Temporary fastlane screenshots (these get copied to docs/)
+fastlane/screenshots/
+fastlane/screenshots_dark/
+fastlane/screenshots_mac/
 
 # macOS
 .DS_Store

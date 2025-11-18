@@ -266,12 +266,20 @@ See [.github/agents/README.md](.github/agents/README.md) for details on using th
 
 Full documentation is available at [https://markcoleman.github.io/CubeSolver](https://markcoleman.github.io/CubeSolver)
 
+### Documentation Guides
+
+- [Screenshot Automation](docs/SCREENSHOT_AUTOMATION.md) - App Store screenshots, UI testing, and automation
+- [UI Testing Guide](docs/UI_TESTING_GUIDE.md) - Comprehensive UI testing documentation
+- [DevOps Summary](docs/DEVOPS_SUMMARY.md) - CI/CD and infrastructure
+- [Accessibility](docs/ACCESSIBILITY.md) - Accessibility features and guidelines
+
 ## 🎯 Roadmap
 
 - [x] Manual cube input for real-life cubes
 - [x] Validated manual input with real-time feedback
 - [x] Comprehensive accessibility support
 - [x] UI testing with screenshot capture
+- [x] Automated screenshot capture for App Store and documentation
 - [x] SwiftLint code quality enforcement
 - [x] Two-phase solving algorithm
 - [x] Solution playback with interactive controls

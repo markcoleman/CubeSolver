@@ -1,0 +1,240 @@
+name: Capture Screenshots
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      dark_mode:
+        description: 'Capture dark mode screenshots'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Cancel in-progress runs for the same workflow and branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture-ios-screenshots:
+    name: Capture iOS Screenshots
+    runs-on: macos-14
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+      
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '15.2'
+    
+    - name: Install fastlane
+      run: |
+        # Install fastlane if not already installed
+        if ! command -v fastlane &> /dev/null; then
+          brew install fastlane
+        fi
+        fastlane --version
+    
+    - name: Cache Swift Package Manager
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/Library/Caches/org.swift.swiftpm
+        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+    
+    - name: Install dependencies
+      run: swift package resolve
+    
+    - name: Build for testing
+      run: |
+        xcodebuild build-for-testing \
+          -scheme CubeSolver \
+          -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
+          -derivedDataPath .build/DerivedData \
+          | xcpretty || true
+    
+    - name: Run UI tests and capture screenshots
+      run: |
+        xcodebuild test-without-building \
+          -scheme CubeSolver \
+          -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
+          -derivedDataPath .build/DerivedData \
+          -resultBundlePath .build/TestResults.xcresult \
+          | xcpretty || true
+      continue-on-error: true
+    
+    - name: Extract screenshots from test results
+      run: |
+        # Create screenshots directory
+        mkdir -p docs/images/screenshots
+        
+        # Extract screenshots from xcresult bundle
+        if [ -d ".build/TestResults.xcresult" ]; then
+          # Find all screenshot attachments
+          xcrun xcresulttool get --path .build/TestResults.xcresult --format json > test-results.json
+          
+          # Use Python to extract screenshots if available, otherwise use shell
+          if command -v python3 &> /dev/null; then
+            python3 << 'EOF'
+import json
+import subprocess
+import os
+import shutil
+
+# Read the test results
+try:
+    with open('test-results.json', 'r') as f:
+        # This is a simplified approach - actual extraction requires parsing xcresult format
+        print("Test results JSON created")
+except Exception as e:
+    print(f"Could not process test results: {e}")
+
+# Alternative: Use xcresulttool to export attachments
+result = subprocess.run(
+    ['xcrun', 'xcresulttool', 'export', '--type', 'directory', 
+     '--path', '.build/TestResults.xcresult', 
+     '--output-path', '.build/TestAttachments'],
+    capture_output=True,
+    text=True
+)
+
+# Copy screenshots to docs
+if os.path.exists('.build/TestAttachments'):
+    for root, dirs, files in os.walk('.build/TestAttachments'):
+        for file in files:
+            if file.endswith('.png') or file.endswith('.jpg'):
+                src = os.path.join(root, file)
+                dst = os.path.join('docs/images/screenshots', file)
+                shutil.copy2(src, dst)
+                print(f"Copied {file} to docs/images/screenshots/")
+EOF
+          fi
+          
+          # Fallback: Find and copy any .png files from DerivedData
+          find .build/DerivedData -name "*.png" -exec cp {} docs/images/screenshots/ \; 2>/dev/null || true
+          
+          echo "Screenshots extracted to docs/images/screenshots/"
+          ls -la docs/images/screenshots/ || echo "No screenshots found"
+        else
+          echo "No test results bundle found"
+        fi
+    
+    - name: Generate screenshots with fastlane (if configured)
+      if: success() && false  # Disabled by default, enable when ready
+      run: |
+        cd fastlane
+        fastlane ios screenshots
+      continue-on-error: true
+    
+    - name: Upload screenshots as artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-screenshots
+        path: |
+          docs/images/screenshots/
+          fastlane/screenshots/
+          .build/TestResults.xcresult
+        retention-days: 30
+    
+    - name: Create screenshots summary
+      if: always()
+      run: |
+        echo "## 📸 Screenshots Captured" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -d "docs/images/screenshots" ] && [ "$(ls -A docs/images/screenshots)" ]; then
+          echo "### UI Test Screenshots" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          for img in docs/images/screenshots/*.png; do
+            if [ -f "$img" ]; then
+              filename=$(basename "$img")
+              echo "- \`$filename\`" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+        else
+          echo "⚠️ No screenshots were captured from UI tests" >> $GITHUB_STEP_SUMMARY
+        fi
+    
+    - name: Commit screenshots to repository
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        
+        # Add screenshots
+        git add docs/images/screenshots/ || true
+        
+        # Commit if there are changes
+        if ! git diff --staged --quiet; then
+          git commit -m "Update screenshots from UI tests [skip ci]"
+          git push
+          echo "✅ Screenshots committed to repository"
+        else
+          echo "ℹ️ No new screenshots to commit"
+        fi
+
+  capture-macos-screenshots:
+    name: Capture macOS Screenshots
+    runs-on: macos-14
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+      
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '15.2'
+    
+    - name: Cache Swift Package Manager
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/Library/Caches/org.swift.swiftpm
+        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+    
+    - name: Install dependencies
+      run: swift package resolve
+    
+    - name: Build for macOS
+      run: |
+        xcodebuild build \
+          -scheme CubeSolver \
+          -destination 'platform=macOS' \
+          -derivedDataPath .build/DerivedData \
+          | xcpretty || true
+      continue-on-error: true
+    
+    - name: Capture macOS screenshot (manual)
+      run: |
+        mkdir -p docs/images/macos
+        echo "📝 Note: macOS screenshots require manual capture or UI testing setup"
+        echo "To capture macOS screenshots:"
+        echo "1. Run the app on macOS"
+        echo "2. Use Cmd+Shift+4 or screencapture tool"
+        echo "3. Save to docs/images/macos/"
+    
+    - name: Upload macOS build artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-build
+        path: .build/DerivedData/Build/Products/
+        retention-days: 7

@@ -83,44 +83,19 @@ jobs:
         
         # Extract screenshots from xcresult bundle
         if [ -d ".build/TestResults.xcresult" ]; then
-          # Find all screenshot attachments
-          xcrun xcresulttool get --path .build/TestResults.xcresult --format json > test-results.json
+          echo "Found test results bundle, extracting screenshots..."
           
-          # Use Python to extract screenshots if available, otherwise use shell
-          if command -v python3 &> /dev/null; then
-            python3 << 'EOF'
-import json
-import subprocess
-import os
-import shutil
-
-# Read the test results
-try:
-    with open('test-results.json', 'r') as f:
-        # This is a simplified approach - actual extraction requires parsing xcresult format
-        print("Test results JSON created")
-except Exception as e:
-    print(f"Could not process test results: {e}")
-
-# Alternative: Use xcresulttool to export attachments
-result = subprocess.run(
-    ['xcrun', 'xcresulttool', 'export', '--type', 'directory', 
-     '--path', '.build/TestResults.xcresult', 
-     '--output-path', '.build/TestAttachments'],
-    capture_output=True,
-    text=True
-)
-
-# Copy screenshots to docs
-if os.path.exists('.build/TestAttachments'):
-    for root, dirs, files in os.walk('.build/TestAttachments'):
-        for file in files:
-            if file.endswith('.png') or file.endswith('.jpg'):
-                src = os.path.join(root, file)
-                dst = os.path.join('docs/images/screenshots', file)
-                shutil.copy2(src, dst)
-                print(f"Copied {file} to docs/images/screenshots/")
-EOF
+          # Export attachments using xcresulttool
+          TEMP_DIR=$(mktemp -d)
+          xcrun xcresulttool export \
+            --type directory \
+            --path .build/TestResults.xcresult \
+            --output-path "$TEMP_DIR" 2>/dev/null || true
+          
+          # Find and copy screenshots
+          if [ -d "$TEMP_DIR" ]; then
+            find "$TEMP_DIR" -type f \( -name "*.png" -o -name "*.jpg" \) -exec cp {} docs/images/screenshots/ \; 2>/dev/null || true
+            rm -rf "$TEMP_DIR"
           fi
           
           # Fallback: Find and copy any .png files from DerivedData

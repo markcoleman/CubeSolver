@@ -244,8 +244,10 @@ private func createAnimatedCubie(size: CGFloat) -> SCNNode {
     let materials = (0..<6).map { _ -> SCNMaterial in
         let material = SCNMaterial()
         material.diffuse.contents = platformColor.black
+        material.emission.contents = platformColor.black
         material.specular.contents = platformColor(white: 0.6, alpha: 1.0)
         material.shininess = 0.5
+        material.lightingModel = .constant
         return material
     }
     box.materials = materials
@@ -308,7 +310,7 @@ private func updateFaceColors(_ containerNode: SCNNode, face: CubeFace, x: Int?,
             if let cubieNode = containerNode.childNode(withName: "cubie_\(cubeX)_\(cubeY)_\(cubeZ)", recursively: false),
                let box = cubieNode.geometry as? SCNBox {
                 let color = colorForFaceColor(face.colors[row][col])
-                box.materials[faceIndex].diffuse.contents = color
+                applyStickerColor(color, to: box.materials[faceIndex])
             }
         }
     }
@@ -346,6 +348,11 @@ private func colorForFaceColor(_ faceColor: FaceColor) -> Any {
     case .green:
         return platformColor.green
     }
+}
+
+private func applyStickerColor(_ color: Any, to material: SCNMaterial) {
+    material.diffuse.contents = color
+    material.emission.contents = color
 }
 
 // MARK: - Move Animation

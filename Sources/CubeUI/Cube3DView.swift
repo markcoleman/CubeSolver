@@ -194,11 +194,14 @@ private func createCubeNode() -> SCNNode {
 private func createCubie(size: CGFloat) -> SCNNode {
     let cubie = SCNNode()
     let box = SCNBox(width: size, height: size, length: size, chamferRadius: 0.05)
-    
+
     // Create materials for each face
     let materials = (0..<6).map { _ -> SCNMaterial in
         let material = SCNMaterial()
         material.diffuse.contents = platformColor.black
+        material.emission.contents = platformColor.black
+        material.lightingModel = .constant
+        material.isDoubleSided = true
         material.specular.contents = platformColor(white: 0.6, alpha: 1.0)
         material.shininess = 0.5
         return material
@@ -239,6 +242,7 @@ private func updateFaceColors(_ containerNode: SCNNode, face: CubeFace, x: Int?,
                let box = cubieNode.geometry as? SCNBox {
                 let color = colorForFaceColor(face.colors[row][col])
                 box.materials[faceIndex].diffuse.contents = color
+                box.materials[faceIndex].emission.contents = color
             }
         }
     }

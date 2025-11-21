@@ -58,6 +58,16 @@ final class CubeIntegrationTests: XCTestCase {
             XCTAssertGreaterThanOrEqual(solution.count, 0, "Solution should be valid")
         }
     }
+
+    func testScrambleGenerationProducesValidState() throws {
+        let scramble = EnhancedCubeSolver.generateScramble(moveCount: 25)
+
+        var state = CubeState()
+        EnhancedCubeSolver.applyMoves(to: &state, moves: scramble)
+
+        XCTAssertFalse(scramble.isEmpty, "Scramble should contain moves")
+        XCTAssertNoThrow(try CubeValidator.validate(state), "Generated scramble must be physically valid")
+    }
     
     func testRoundTripConversion() {
         // Test: RubiksCube -> CubeState -> RubiksCube -> CubeState

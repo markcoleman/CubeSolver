@@ -240,27 +240,40 @@ public class EnhancedCubeSolver {
     
     // MARK: - Scramble Generation
     
-    /// Generate a random scramble sequence
+    /// Generate a random scramble sequence that results in a physically valid cube state
     /// - Parameter moveCount: Number of moves in the scramble (default 20)
     /// - Returns: Array of random moves
     public static func generateScramble(moveCount: Int = 20) -> [Move] {
-        var moves: [Move] = []
-        var lastTurn: Turn?
-        
-        for _ in 0..<moveCount {
-            var turn: Turn
-            
-            // Avoid repeating the same turn twice in a row
-            repeat {
-                turn = Turn.allCases.randomElement()!
-            } while turn == lastTurn
-            
-            let amount = Amount.allCases.randomElement()!
-            moves.append(Move(turn: turn, amount: amount))
-            lastTurn = turn
+        let maxAttempts = 25
+
+        for _ in 0..<maxAttempts {
+            var moves: [Move] = []
+            var lastTurn: Turn?
+
+            for _ in 0..<moveCount {
+                var turn: Turn
+
+                // Avoid repeating the same turn twice in a row
+                repeat {
+                    turn = Turn.allCases.randomElement()!
+                } while turn == lastTurn
+
+                let amount = Amount.allCases.randomElement()!
+                moves.append(Move(turn: turn, amount: amount))
+                lastTurn = turn
+            }
+
+            // Validate the resulting state to ensure the scramble is solvable
+            var state = CubeState()
+            applyMoves(to: &state, moves: moves)
+
+            if (try? CubeValidator.validate(state)) != nil {
+                return moves
+            }
         }
-        
-        return moves
+
+        // As a fallback, return an empty scramble (solved state) to avoid invalid configurations
+        return []
     }
     
     /// Apply a sequence of moves to a cube state

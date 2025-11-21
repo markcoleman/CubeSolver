@@ -291,13 +291,13 @@ private func updateCubeColors(in scene: SCNScene, with cube: RubiksCube) {
     }
     
     // Update all face colors (same as Cube3DView)
-    // SCNBox material indices: 0=Right(+X), 1=Left(-X), 2=Top(+Y), 3=Bottom(-Y), 4=Front(+Z), 5=Back(-Z)
-    updateFaceColors(containerNode, face: cube.front, x: nil, y: nil, z: 1, faceIndex: 4)
-    updateFaceColors(containerNode, face: cube.back, x: nil, y: nil, z: -1, faceIndex: 5)
-    updateFaceColors(containerNode, face: cube.left, x: -1, y: nil, z: nil, faceIndex: 1)
-    updateFaceColors(containerNode, face: cube.right, x: 1, y: nil, z: nil, faceIndex: 0)
-    updateFaceColors(containerNode, face: cube.top, x: nil, y: 1, z: nil, faceIndex: 2)
-    updateFaceColors(containerNode, face: cube.bottom, x: nil, y: -1, z: nil, faceIndex: 3)
+    // SCNBox material indices (SceneKit order): 0=Front(+Z), 1=Right(+X), 2=Back(-Z), 3=Left(-X), 4=Top(+Y), 5=Bottom(-Y)
+    updateFaceColors(containerNode, face: cube.front, x: nil, y: nil, z: 1, faceIndex: 0)
+    updateFaceColors(containerNode, face: cube.back, x: nil, y: nil, z: -1, faceIndex: 2)
+    updateFaceColors(containerNode, face: cube.left, x: -1, y: nil, z: nil, faceIndex: 3)
+    updateFaceColors(containerNode, face: cube.right, x: 1, y: nil, z: nil, faceIndex: 1)
+    updateFaceColors(containerNode, face: cube.top, x: nil, y: 1, z: nil, faceIndex: 4)
+    updateFaceColors(containerNode, face: cube.bottom, x: nil, y: -1, z: nil, faceIndex: 5)
 }
 
 private func updateFaceColors(_ containerNode: SCNNode, face: CubeFace, x: Int?, y: Int?, z: Int?, faceIndex: Int) {

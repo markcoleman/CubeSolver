@@ -236,8 +236,10 @@ private func updateFaceColors(_ containerNode: SCNNode, face: CubeFace, x: Int?,
             let (cubeX, cubeY, cubeZ) = getFacePosition(x: x, y: y, z: z, row: row, col: col)
             
             if let cubieNode = containerNode.childNode(withName: "cubie_\(cubeX)_\(cubeY)_\(cubeZ)", recursively: false),
-               let box = cubieNode.geometry as? SCNBox {
+               let box = cubieNode.geometry as? SCNBox,
+               faceIndex < box.materials.count {
                 let color = colorForFaceColor(face.colors[row][col])
+                // Directly modify the material (materials are reference types)
                 box.materials[faceIndex].diffuse.contents = color
             }
         }

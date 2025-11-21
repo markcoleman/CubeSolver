@@ -276,6 +276,37 @@ private func updateCubeColors(in scene: SCNScene, with cube: RubiksCube) {
     }
 }
 
+private func getCubiePosition(axis: Axis, layer: Int, row: Int, col: Int) -> (Int, Int, Int) {
+    // row 0 is top of face, row 2 is bottom
+    // col 0 is left of face, col 2 is right
+    
+    switch axis {
+    case .x: // Left or Right face
+        // When looking at left (x=0) or right (x=2) face from outside:
+        // row maps to y (inverted: row 0 = y 2)
+        // col maps to z (left face inverted: col 0 = z 2 for x=0, col 0 = z 0 for x=2)
+        let yPos = 2 - row
+        let zPos = layer == 0 ? (2 - col) : col
+        return (layer, yPos, zPos)
+        
+    case .y: // Top or Bottom face
+        // When looking at top (y=2) from above or bottom (y=0) from below:
+        // row maps to z (top: row 0 = z 0, bottom: row 0 = z 2)
+        // col maps to x (col 0 = x 0)
+        let xPos = col
+        let zPos = layer == 2 ? row : (2 - row)
+        return (xPos, layer, zPos)
+        
+    case .z: // Front or Back face
+        // When looking at front (z=2) or back (z=0) from outside:
+        // row maps to y (inverted: row 0 = y 2)
+        // col maps to x (back face inverted: col 0 = x 2 for z=0, col 0 = x 0 for z=2)
+        let yPos = 2 - row
+        let xPos = layer == 0 ? (2 - col) : col
+        return (xPos, yPos, layer)
+    }
+}
+
 private func colorForFaceColor(_ faceColor: FaceColor) -> Any {
     switch faceColor {
     case .white:

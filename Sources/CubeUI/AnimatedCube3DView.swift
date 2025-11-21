@@ -1,18 +1,14 @@
-#if canImport(SwiftUI)
-//
-//  AnimatedCube3DView.swift
-//  CubeSolver
-//
-//  3D animated cube view for displaying move-by-move solutions
-//
+// AnimatedCube3DView.swift
+// 3D animated cube view for displaying move-by-move solutions.
 
+#if canImport(SwiftUI)
 import SwiftUI
 import CubeCore
 
 #if canImport(SceneKit)
 import SceneKit
 
-/// A 3D animated cube view that can perform and visualize individual moves
+/// A 3D animated cube view that can perform and visualize individual moves.
 public struct AnimatedCube3DView: View {
     let cube: RubiksCube
     @Binding var currentMove: Move?
@@ -20,7 +16,7 @@ public struct AnimatedCube3DView: View {
     
     @State private var isAnimating = false
     
-    init(cube: RubiksCube, currentMove: Binding<Move?>, onMoveComplete: (() -> Void)? = nil) {
+    public init(cube: RubiksCube, currentMove: Binding<Move?>, onMoveComplete: (() -> Void)? = nil) {
         self.cube = cube
         self._currentMove = currentMove
         self.onMoveComplete = onMoveComplete
@@ -39,7 +35,7 @@ public struct AnimatedCube3DView: View {
     }
 }
 
-/// SceneKit view wrapper for animated cube
+/// SceneKit view wrapper for the animated cube.
 struct AnimatedSceneKitView: View {
     let cube: RubiksCube
     @Binding var currentMove: Move?
@@ -70,7 +66,7 @@ struct AnimatedSceneKitView: View {
     #endif
 }
 
-/// Coordinator for managing animations
+/// Coordinator for managing SceneKit animations.
 class AnimationCoordinator {
     var onMoveComplete: (() -> Void)?
     
@@ -85,7 +81,8 @@ class AnimationCoordinator {
     }
 }
 
-/// Internal SceneKit view for rendering and animating the 3D cube
+// MARK: - SceneKit Representable
+
 #if os(macOS)
 struct AnimatedCube3DSceneView: NSViewRepresentable {
     let cube: RubiksCube
@@ -95,7 +92,6 @@ struct AnimatedCube3DSceneView: NSViewRepresentable {
     
     func makeNSView(context: Context) -> SCNView {
         let scnView = createAnimatedSceneView()
-        // Initialize colors on first creation
         if let scene = scnView.scene {
             updateCubeColors(in: scene, with: cube)
         }
@@ -106,7 +102,6 @@ struct AnimatedCube3DSceneView: NSViewRepresentable {
         var moveCopy = currentMove
         var animatingCopy = isAnimating
         updateCubeState(in: nsView, cube: cube, currentMove: &moveCopy, isAnimating: &animatingCopy, coordinator: context.coordinator)
-        // write back any changes
         currentMove = moveCopy
         isAnimating = animatingCopy
     }
@@ -121,7 +116,6 @@ struct AnimatedCube3DSceneView: NSViewRepresentable {
         scnView.autoenablesDefaultLighting = true
         scnView.allowsCameraControl = true
         scnView.backgroundColor = .clear
-        
         return scnView
     }
 }
@@ -134,7 +128,6 @@ struct AnimatedCube3DSceneView: UIViewRepresentable {
     
     func makeUIView(context: Context) -> SCNView {
         let scnView = createAnimatedSceneView()
-        // Initialize colors on first creation
         if let scene = scnView.scene {
             updateCubeColors(in: scene, with: cube)
         }
@@ -145,7 +138,6 @@ struct AnimatedCube3DSceneView: UIViewRepresentable {
         var moveCopy = currentMove
         var animatingCopy = isAnimating
         updateCubeState(in: uiView, cube: cube, currentMove: &moveCopy, isAnimating: &animatingCopy, coordinator: context.coordinator)
-        // write back any changes
         currentMove = moveCopy
         isAnimating = animatingCopy
     }
@@ -160,7 +152,6 @@ struct AnimatedCube3DSceneView: UIViewRepresentable {
         scnView.autoenablesDefaultLighting = true
         scnView.allowsCameraControl = true
         scnView.backgroundColor = .clear
-        
         return scnView
     }
 }
@@ -171,25 +162,21 @@ struct AnimatedCube3DSceneView: UIViewRepresentable {
 private func createAnimatedScene() -> SCNScene {
     let scene = SCNScene()
     
-    // Create the 3D cube structure
     let cubeNode = createAnimatedCubeNode()
     scene.rootNode.addChildNode(cubeNode)
     
-    // Add camera
     let cameraNode = SCNNode()
     cameraNode.camera = SCNCamera()
     cameraNode.position = SCNVector3(x: 5, y: 5, z: 8)
     cameraNode.look(at: SCNVector3(x: 0, y: 0, z: 0))
     scene.rootNode.addChildNode(cameraNode)
     
-    // Add ambient light
     let ambientLight = SCNNode()
     ambientLight.light = SCNLight()
     ambientLight.light!.type = .ambient
     ambientLight.light!.color = platformColor(white: 0.6, alpha: 1.0)
     scene.rootNode.addChildNode(ambientLight)
     
-    // Add directional light
     let directionalLight = SCNNode()
     directionalLight.light = SCNLight()
     directionalLight.light!.type = .directional
@@ -205,7 +192,6 @@ private func createAnimatedCubeNode() -> SCNNode {
     let containerNode = SCNNode()
     containerNode.name = "cubeContainer"
     
-    // Create 3x3x3 grid of cubies
     let cubieSize: CGFloat = 1.0
     let spacing: CGFloat = 0.05
     let totalSize = cubieSize + spacing
@@ -213,10 +199,7 @@ private func createAnimatedCubeNode() -> SCNNode {
     for x in 0..<3 {
         for y in 0..<3 {
             for z in 0..<3 {
-                // Skip the center cubie
-                if x == 1 && y == 1 && z == 1 {
-                    continue
-                }
+                if x == 1 && y == 1 && z == 1 { continue }
                 
                 let cubie = createAnimatedCubie(size: cubieSize)
                 let xPos = CGFloat(x - 1) * totalSize
@@ -228,7 +211,6 @@ private func createAnimatedCubeNode() -> SCNNode {
                 cubie.position = SCNVector3(x: Float(xPos), y: Float(yPos), z: Float(zPos))
 #endif
                 cubie.name = "cubie_\(x)_\(y)_\(z)"
-                
                 containerNode.addChildNode(cubie)
             }
         }
@@ -259,28 +241,21 @@ private func createAnimatedCubie(size: CGFloat) -> SCNNode {
 private func updateCubeState(in sceneView: SCNView, cube: RubiksCube, currentMove: inout Move?, isAnimating: inout Bool, coordinator: AnimationCoordinator) {
     guard let scene = sceneView.scene else { return }
     
-    // Local setter to avoid capturing inout in escaping closures
     var isAnimatingLocal = isAnimating
-    func setIsAnimating(_ value: Bool) {
-        isAnimatingLocal = value
-    }
+    func setIsAnimating(_ value: Bool) { isAnimatingLocal = value }
     var currentMoveLocal = currentMove
-    func clearCurrentMove() {
-        currentMoveLocal = nil
-    }
+    func clearCurrentMove() { currentMoveLocal = nil }
     
-    // Update colors
     updateCubeColors(in: scene, with: cube)
     
-    // Animate move if needed
     if let move = currentMoveLocal, !isAnimatingLocal {
         setIsAnimating(true)
         animateMove(in: scene, move: move, coordinator: coordinator) {
             setIsAnimating(false)
+            clearCurrentMove()
         }
     }
     
-    // Write back any changes from locals to inout parameters
     currentMove = currentMoveLocal
     isAnimating = isAnimatingLocal
 }
@@ -290,78 +265,72 @@ private func updateCubeColors(in scene: SCNScene, with cube: RubiksCube) {
         return
     }
     
-    // Update all face colors (same as Cube3DView)
-    // SCNBox material indices: 0=Right(+X), 1=Left(-X), 2=Top(+Y), 3=Bottom(-Y), 4=Front(+Z), 5=Back(-Z)
-    updateFaceColors(containerNode, face: cube.front, x: nil, y: nil, z: 1, faceIndex: 4)
-    updateFaceColors(containerNode, face: cube.back, x: nil, y: nil, z: -1, faceIndex: 5)
-    updateFaceColors(containerNode, face: cube.left, x: -1, y: nil, z: nil, faceIndex: 1)
-    updateFaceColors(containerNode, face: cube.right, x: 1, y: nil, z: nil, faceIndex: 0)
-    updateFaceColors(containerNode, face: cube.top, x: nil, y: 1, z: nil, faceIndex: 2)
-    updateFaceColors(containerNode, face: cube.bottom, x: nil, y: -1, z: nil, faceIndex: 3)
-}
-
-private func updateFaceColors(_ containerNode: SCNNode, face: CubeFace, x: Int?, y: Int?, z: Int?, faceIndex: Int) {
-    for row in 0..<3 {
-        for col in 0..<3 {
-            let (cubeX, cubeY, cubeZ) = getFacePosition(x: x, y: y, z: z, row: row, col: col)
-            
-            if let cubieNode = containerNode.childNode(withName: "cubie_\(cubeX)_\(cubeY)_\(cubeZ)", recursively: false),
-               let box = cubieNode.geometry as? SCNBox {
-                let color = colorForFaceColor(face.colors[row][col])
-                box.materials[faceIndex].diffuse.contents = color
+    // SCNBox materials: [0]=Right(+X), [1]=Left(-X), [2]=Top(+Y), [3]=Bottom(-Y), [4]=Front(+Z), [5]=Back(-Z)
+    
+    for x in 0..<3 {
+        for y in 0..<3 {
+            for z in 0..<3 {
+                if x == 1 && y == 1 && z == 1 { continue }
+                
+                guard let cubieNode = containerNode.childNode(withName: "cubie_\(x)_\(y)_\(z)", recursively: false),
+                      let box = cubieNode.geometry as? SCNBox else {
+                    continue
+                }
+                
+                // LEFT face (x=0): materials[1]
+                if x == 0 {
+                    let row = 2 - y
+                    let col = 2 - z
+                    box.materials[1].diffuse.contents = colorForFaceColor(cube.left.colors[row][col])
+                }
+                
+                // RIGHT face (x=2): materials[0]
+                if x == 2 {
+                    let row = 2 - y
+                    let col = z
+                    box.materials[0].diffuse.contents = colorForFaceColor(cube.right.colors[row][col])
+                }
+                
+                // TOP face (y=2): materials[2]
+                if y == 2 {
+                    let row = z
+                    let col = x
+                    box.materials[2].diffuse.contents = colorForFaceColor(cube.top.colors[row][col])
+                }
+                
+                // BOTTOM face (y=0): materials[3]
+                if y == 0 {
+                    let row = 2 - z
+                    let col = x
+                    box.materials[3].diffuse.contents = colorForFaceColor(cube.bottom.colors[row][col])
+                }
+                
+                // FRONT face (z=2): materials[4]
+                if z == 2 {
+                    let row = 2 - y
+                    let col = x
+                    box.materials[4].diffuse.contents = colorForFaceColor(cube.front.colors[row][col])
+                }
+                
+                // BACK face (z=0): materials[5]
+                if z == 0 {
+                    let row = 2 - y
+                    let col = 2 - x
+                    box.materials[5].diffuse.contents = colorForFaceColor(cube.back.colors[row][col])
+                }
             }
         }
     }
 }
 
-private func getFacePosition(x: Int?, y: Int?, z: Int?, row: Int, col: Int) -> (Int, Int, Int) {
-    if let x = x {
-        let yPos = 2 - row
-        let zPos = x == -1 ? 2 - col : col
-        return (x == -1 ? 0 : 2, yPos, zPos)
-    } else if let y = y {
-        let xPos = col
-        let zPos = y == 1 ? row : 2 - row
-        return (xPos, y == -1 ? 0 : 2, zPos)
-    } else if let z = z {
-        let xPos = z == -1 ? 2 - col : col
-        let yPos = 2 - row
-        return (xPos, yPos, z == -1 ? 0 : 2)
-    }
-    return (0, 0, 0)
-}
-
-private func colorForFaceColor(_ faceColor: FaceColor) -> Any {
-    switch faceColor {
-    case .white:
-        return platformColor.white
-    case .yellow:
-        return platformColor.yellow
-    case .red:
-        return platformColor.red
-    case .orange:
-        return platformColor.orange
-    case .blue:
-        return platformColor.blue
-    case .green:
-        return platformColor.green
-    }
-}
-
-// MARK: - Move Animation
-
 private func animateMove(in scene: SCNScene, move: Move, coordinator: AnimationCoordinator, completion: @escaping () -> Void) {
     guard let containerNode = scene.rootNode.childNode(withName: "cubeContainer", recursively: false) else {
+        completion()
         return
     }
     
-    // Determine which layer to rotate based on the move
     let (axis, _, angle) = getMoveAnimation(for: move)
-    
-    // Get cubies to rotate
     let cubiesToRotate = getCubiesForMove(containerNode, move: move)
-    
-    // Create rotation animation
     let duration: TimeInterval = 0.5
     
     SCNTransaction.begin()
@@ -380,21 +349,13 @@ private func animateMove(in scene: SCNScene, move: Move, coordinator: AnimationC
 }
 
 private func getMoveAnimation(for move: Move) -> (SCNVector3, CGFloat, CGFloat) {
-    // Parse from textual description to avoid relying on specific API
     let text = String(describing: move).uppercased()
-
-    // Determine face letter
     let faceChar: Character? = ["R","L","U","D","F","B"].first { text.contains(String($0)) }
-
-    // Determine amount (single or double)
     let isDouble = text.contains("2")
     let baseAngle: CGFloat = isDouble ? .pi : (.pi / 2)
-
-    // Determine direction (prime/counterclockwise)
     let isPrime = text.contains("'") || text.contains("CCW") || text.contains("COUNTER") || text.contains("PRIME")
     let sign: CGFloat = isPrime ? -1 : 1
-
-    // Map face to axis; L/D/B invert direction relative to R/U/F
+    
     switch faceChar {
     case "R":
         return (SCNVector3(1, 0, 0), sign, sign * baseAngle)
@@ -409,22 +370,21 @@ private func getMoveAnimation(for move: Move) -> (SCNVector3, CGFloat, CGFloat) 
     case "B":
         return (SCNVector3(0, 0, 1), -sign, -sign * baseAngle)
     default:
-        // Fallback: rotate front layer CW quarter-turn
         return (SCNVector3(0, 0, 1), 1, .pi / 2)
     }
 }
 
 private func getCubiesForMove(_ containerNode: SCNNode, move: Move) -> [SCNNode] {
     var cubies: [SCNNode] = []
-
+    
     let text = String(describing: move).uppercased()
     let faceChar: Character? = ["R","L","U","D","F","B"].first { text.contains(String($0)) }
-
+    
     for x in 0..<3 {
         for y in 0..<3 {
             for z in 0..<3 {
                 if x == 1 && y == 1 && z == 1 { continue }
-
+                
                 let shouldInclude: Bool
                 switch faceChar {
                 case "R":
@@ -442,7 +402,7 @@ private func getCubiesForMove(_ containerNode: SCNNode, move: Move) -> [SCNNode]
                 default:
                     shouldInclude = false
                 }
-
+                
                 if shouldInclude,
                    let cubie = containerNode.childNode(withName: "cubie_\(x)_\(y)_\(z)", recursively: false) {
                     cubies.append(cubie)
@@ -450,11 +410,28 @@ private func getCubiesForMove(_ containerNode: SCNNode, move: Move) -> [SCNNode]
             }
         }
     }
-
+    
     return cubies
 }
 
-// MARK: - Platform Compatibility
+// MARK: - Shared Helpers
+
+private func colorForFaceColor(_ faceColor: FaceColor) -> Any {
+    switch faceColor {
+    case .white:
+        return platformColor.white
+    case .yellow:
+        return platformColor.yellow
+    case .red:
+        return platformColor.red
+    case .orange:
+        return platformColor.orange
+    case .blue:
+        return platformColor.blue
+    case .green:
+        return platformColor.green
+    }
+}
 
 #if os(macOS)
 private typealias platformColor = NSColor
@@ -462,34 +439,5 @@ private typealias platformColor = NSColor
 private typealias platformColor = UIColor
 #endif
 
-struct AnimatedCube3DView_Previews: PreviewProvider {
-    struct PreviewWrapper: View {
-        @State var move: Move? = nil
-        var body: some View {
-            AnimatedCube3DView(
-                cube: RubiksCube(),
-                currentMove: $move
-            )
-            .frame(width: 400, height: 400)
-            .background(
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.1, green: 0.1, blue: 0.2),
-                        Color(red: 0.2, green: 0.15, blue: 0.3)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
-        }
-    }
-
-    static var previews: some View {
-        PreviewWrapper()
-    }
-}
-
 #endif // canImport(SceneKit)
 #endif // canImport(SwiftUI)
-
-

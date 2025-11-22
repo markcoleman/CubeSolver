@@ -82,7 +82,7 @@ jobs:
             
             const botComment = comments.data.find(comment => 
               comment.user.login === 'github-actions[bot]' && 
-              comment.body.includes('PR Stats:')
+              comment.body.includes('**PR Stats:**')
             );
             
             const commentBody = `${message}\n\n**PR Stats:**\n- Lines added: ${additions}\n- Lines deleted: ${deletions}\n- Files changed: ${changedFiles}\n\n**Tips for large PRs:**\n- Break into smaller, focused PRs\n- Ensure comprehensive test coverage\n- Add detailed descriptions for each change`;

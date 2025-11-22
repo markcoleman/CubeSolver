@@ -64,7 +64,7 @@ public actor CubeFaceDetectionService {
         do {
             try handler.perform([request])
             
-            guard let observations = request.results, !observations.empty else {
+            guard let observations = request.results, !observations.isEmpty else {
                 return nil
             }
             

@@ -4,6 +4,11 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+# Prevent duplicate runs for the same PR
+concurrency:
+  group: pr-size-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 permissions:
   pull-requests: write
 
@@ -42,7 +47,25 @@ jobs:
               message = 'This PR is medium-sized.';
             }
             
-            // Add label
+            // Remove old size labels before adding new one
+            const labels = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+            });
+            
+            for (const label of labels.data) {
+              if (label.name.startsWith('size/')) {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  name: label.name,
+                });
+              }
+            }
+            
+            // Add new size label
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -50,12 +73,44 @@ jobs:
               labels: [`size/${size}`]
             });
             
-            // Add comment for large PRs
+            // Find existing bot comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+            });
+            
+            const botComment = comments.data.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('PR Stats:')
+            );
+            
+            const commentBody = `${message}\n\n**PR Stats:**\n- Lines added: ${additions}\n- Lines deleted: ${deletions}\n- Files changed: ${changedFiles}\n\n**Tips for large PRs:**\n- Break into smaller, focused PRs\n- Ensure comprehensive test coverage\n- Add detailed descriptions for each change`;
+            
+            // Update or create comment only for large PRs
             if (size === 'large' || size === 'extra-large') {
-              await github.rest.issues.createComment({
+              if (botComment) {
+                // Update existing comment
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: commentBody
+                });
+              } else {
+                // Create new comment
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: commentBody
+                });
+              }
+            } else if (botComment) {
+              // Delete comment if PR is no longer large
+              await github.rest.issues.deleteComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: pr.number,
-                body: `${message}\n\n**PR Stats:**\n- Lines added: ${additions}\n- Lines deleted: ${deletions}\n- Files changed: ${changedFiles}\n\n**Tips for large PRs:**\n- Break into smaller, focused PRs\n- Ensure comprehensive test coverage\n- Add detailed descriptions for each change`
+                comment_id: botComment.id,
               });
             }

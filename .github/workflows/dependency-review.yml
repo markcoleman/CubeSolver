@@ -4,6 +4,11 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+# Prevent duplicate runs for the same PR
+concurrency:
+  group: dependency-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pull-requests: write
@@ -24,4 +29,5 @@ jobs:
         fail-on-severity: high
         # Allow GPL licenses but warn on others
         deny-licenses: LGPL-2.0, LGPL-2.1, LGPL-3.0
-        comment-summary-in-pr: always
+        # Only comment on PRs when vulnerabilities are found
+        comment-summary-in-pr: on-failure

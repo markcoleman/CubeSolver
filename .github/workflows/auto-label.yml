@@ -2,7 +2,13 @@ name: Auto Label PR
 
 on:
   pull_request:
-    types: [opened, edited, synchronize]
+    # Only run when PR is opened or when files change, not on edits to description
+    types: [opened, synchronize]
+
+# Prevent duplicate runs for the same PR
+concurrency:
+  group: auto-label-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

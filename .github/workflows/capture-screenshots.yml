@@ -5,6 +5,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+    # Only trigger on manual request or specific label
+    types: [opened, labeled]
   workflow_dispatch:
     inputs:
       dark_mode:
@@ -26,6 +28,11 @@ jobs:
   capture-ios-screenshots:
     name: Capture iOS Screenshots
     runs-on: macos-14
+    # Only run on push to main, manual trigger, or PRs with 'screenshots' label
+    if: |
+      github.event_name == 'push' || 
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'screenshots'))
     
     steps:
     - name: Checkout code
@@ -167,6 +174,11 @@ jobs:
   capture-macos-screenshots:
     name: Capture macOS Screenshots
     runs-on: macos-14
+    # Only run on push to main, manual trigger, or PRs with 'screenshots' label
+    if: |
+      github.event_name == 'push' || 
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'screenshots'))
     
     steps:
     - name: Checkout code

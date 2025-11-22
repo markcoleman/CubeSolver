@@ -10,6 +10,11 @@ on:
     - cron: '0 2 * * 1'
   workflow_dispatch:
 
+# Cancel in-progress runs for the same workflow and branch/PR
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   actions: read
   contents: read

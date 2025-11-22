@@ -5,6 +5,11 @@ on:
     branches: [ main, develop ]
   workflow_dispatch:
 
+# Prevent duplicate runs for the same PR
+concurrency:
+  group: build-performance-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pull-requests: write
@@ -64,9 +69,33 @@ jobs:
           
           *This is a clean build without caching.*`;
           
-          github.rest.issues.createComment({
+          // Find existing performance comment
+          const comments = await github.rest.issues.listComments({
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number: context.issue.number,
-            body: body
+            per_page: 100
           });
+          
+          const botComment = comments.data.find(comment => 
+            comment.user.login === 'github-actions[bot]' && 
+            comment.body.includes('## ⏱️ Build Performance Report')
+          );
+          
+          if (botComment) {
+            // Update existing comment
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: body
+            });
+          } else {
+            // Create new comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+          }

@@ -78,7 +78,7 @@ jobs:
           
           const botComment = comments.data.find(comment => 
             comment.user.login === 'github-actions[bot]' && 
-            comment.body.includes('⏱️ Build Performance Report')
+            comment.body.includes('## ⏱️ Build Performance Report')
           );
           
           if (botComment) {

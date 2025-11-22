@@ -56,8 +56,9 @@ jobs:
       with:
         path: |
           ~/Library/Caches/org.swift.swiftpm
-        key: ${{ runner.os }}-spm-${{ hashFiles('Package.swift') }}
+        key: ${{ runner.os }}-spm-${{ matrix.xcode }}-v1
         restore-keys: |
+          ${{ runner.os }}-spm-${{ matrix.xcode }}-
           ${{ runner.os }}-spm-
     
     - name: Install Swift dependencies

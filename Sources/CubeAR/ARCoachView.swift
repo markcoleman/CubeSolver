@@ -9,7 +9,6 @@
 
 import SwiftUI
 import CubeCore
-import CubeAR
 
 /// Main AR coaching view that guides users through solving a physical cube
 @MainActor
@@ -240,7 +239,7 @@ public struct ARCoachView: View {
                         .font(.title2)
                         .foregroundColor(.white)
                         .frame(width: 60, height: 60)
-                        .background(viewModel.autoStepEnabled ? Color.green : .ultraThinMaterial)
+                        .background(viewModel.autoStepEnabled ? Color.green.opacity(0.8) : Color.white.opacity(0.2))
                         .cornerRadius(30)
                 }
                 

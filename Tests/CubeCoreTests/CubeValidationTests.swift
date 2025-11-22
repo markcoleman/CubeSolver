@@ -54,8 +54,6 @@ final class CubeValidationTests: XCTestCase {
     }
     
     func testNonUniqueCenters() {
-        var state = CubeState()
-        
         // Create a state where two centers have the same color
         // We'll manually create faces where up and down have the same center
         var faces: [Face: [CubeColor]] = [:]

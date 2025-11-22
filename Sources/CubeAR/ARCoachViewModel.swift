@@ -246,8 +246,9 @@ public final class ARCoachViewModel: ObservableObject {
         stopAutoStepping() // Clear any existing timer
         
         autoStepTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
             Task { @MainActor in
-                self?.nextStep()
+                self.nextStep()
             }
         }
     }

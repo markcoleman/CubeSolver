@@ -249,6 +249,17 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines.
 
+### 🔄 CI/CD Workflows
+
+Our GitHub Actions workflows are optimized to prevent duplicate runs and comments:
+
+- **Automated PR checks** with deduplication - no more duplicate comments
+- **Smart workflow triggers** to reduce unnecessary builds
+- **Concurrency control** to cancel outdated runs
+- **Conditional screenshot capture** - add `screenshots` label to trigger
+
+See [.github/WORKFLOWS.md](.github/WORKFLOWS.md) for complete workflow documentation.
+
 ### 🤖 GitHub Copilot Agents
 
 This repository includes specialized GitHub Copilot agents to assist with development:

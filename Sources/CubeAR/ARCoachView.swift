@@ -308,7 +308,9 @@ public struct ARCoachView: View {
                 Spacer()
             }
             .padding(24)
-            .background(Color(UIColor.systemBackground))
+            .background(
+                colorScheme == .dark ? Color.black.opacity(0.9) : Color.white.opacity(0.95)
+            )
             .cornerRadius(20)
             .shadow(radius: 20)
             .padding(.horizontal, 40)

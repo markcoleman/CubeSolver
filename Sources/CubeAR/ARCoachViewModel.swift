@@ -21,6 +21,9 @@ public final class ARCoachViewModel: ObservableObject {
     /// Current cube state being coached
     @Published public var currentCubeState: CubeState
     
+    /// Initial cube state before any moves
+    private var initialCubeState: CubeState
+    
     /// Planned sequence of moves to solve the cube
     @Published public var plannedMoves: [Move] = []
     
@@ -64,6 +67,7 @@ public final class ARCoachViewModel: ObservableObject {
         solver: CubeSolverProtocol = BasicCubeSolver.shared
     ) {
         self.currentCubeState = initialState
+        self.initialCubeState = initialState
         self.detectionService = detectionService
         self.solver = solver
     }
@@ -73,6 +77,7 @@ public final class ARCoachViewModel: ObservableObject {
     /// Start the coaching session
     public func startCoaching(with state: CubeState) {
         currentCubeState = state
+        initialCubeState = state // Store the initial state
         coachingState = .calibrating
         sessionStats = ARSessionStats()
         sessionStats.startTime = Date()
@@ -219,9 +224,8 @@ public final class ARCoachViewModel: ObservableObject {
     
     private func recalculateStateToCurrentStep() {
         // Recalculate state by applying all moves up to current step
-        var state = CubeState() // Start from initial state
+        var state = initialCubeState // Start from the stored initial state
         
-        // We need to store the initial state - for now use current as base
         let movesToApply = Array(plannedMoves[0..<currentStepIndex])
         EnhancedCubeSolver.applyMoves(to: &state, moves: movesToApply)
         currentCubeState = state

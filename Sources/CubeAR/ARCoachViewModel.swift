@@ -85,9 +85,22 @@ public final class ARCoachViewModel: ObservableObject {
         
         // Solve the cube and prepare moves
         do {
-            let basicSolver = solver as? BasicCubeSolver ?? BasicCubeSolver.shared
-            algorithmSteps = try basicSolver.solveWithExplanations(from: state)
-            plannedMoves = algorithmSteps.map { $0.move }
+            // Get moves from solver
+            let moves = try solver.solve(from: state)
+            
+            // If solver is BasicCubeSolver, use explanations, otherwise create simple steps
+            if let basicSolver = solver as? BasicCubeSolver {
+                algorithmSteps = try basicSolver.solveWithExplanations(from: state)
+            } else {
+                // For testing or other solvers, create basic algorithm steps
+                algorithmSteps = moves.enumerated().map { index, move in
+                    let phase: SolvePhase = .other
+                    let description = "Execute \(move.notation)"
+                    return AlgorithmStep(move: move, description: description, phase: phase)
+                }
+            }
+            
+            plannedMoves = moves
             currentStepIndex = 0
             
             // Transition to ready state

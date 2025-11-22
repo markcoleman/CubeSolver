@@ -73,7 +73,7 @@ public class CubeViewModel: ObservableObject {
                 if privacySettings.saveSolveHistory {
                     let savedSolve = SavedSolve(
                         initialState: cubeState,
-                        solution: moves as! [Move],
+                        solution: moves,
                         moveCount: moves.count
                     )
                     historyManager.saveSolve(savedSolve)

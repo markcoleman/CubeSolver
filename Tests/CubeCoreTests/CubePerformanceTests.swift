@@ -44,18 +44,18 @@ final class CubePerformanceTests: XCTestCase {
     func testScrambleGenerationPerformance() {
         measure {
             for _ in 0..<100 {
-                _ = CubeSolver.scramble(moves: 100)
+                _ = EnhancedCubeSolver.generateScramble(moveCount: 100)
             }
         }
     }
     
     func testScrambleApplicationPerformance() {
         measure {
-            var cube = RubiksCube()
-            let scramble = CubeSolver.scramble(moves: 50)
+            var state = CubeState()
+            let scramble = EnhancedCubeSolver.generateScramble(moveCount: 50)
             
             for _ in 0..<20 {
-                CubeSolver.applyScramble(cube: &cube, scramble: scramble)
+                EnhancedCubeSolver.applyMoves(to: &state, moves: scramble)
             }
         }
     }
@@ -72,15 +72,18 @@ final class CubePerformanceTests: XCTestCase {
     
     func testSolverPerformance() {
         measure {
-            var cube = RubiksCube()
+            var state = CubeState()
             
             // Apply scramble
-            cube.rotateFront()
-            cube.rotateRight()
-            cube.rotateTop()
+            let moves = [
+                Move(turn: .F, amount: .clockwise),
+                Move(turn: .R, amount: .clockwise),
+                Move(turn: .U, amount: .clockwise)
+            ]
+            EnhancedCubeSolver.applyMoves(to: &state, moves: moves)
             
             for _ in 0..<10 {
-                _ = CubeSolver.solve(cube: &cube)
+                _ = try? EnhancedCubeSolver.solveCube(from: state)
             }
         }
     }

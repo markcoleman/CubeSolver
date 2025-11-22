@@ -51,8 +51,9 @@ jobs:
       with:
         path: |
           ~/Library/Caches/org.swift.swiftpm
-        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+        key: ${{ runner.os }}-spm-xcode15-v1
         restore-keys: |
+          ${{ runner.os }}-spm-xcode15-
           ${{ runner.os }}-spm-
     
     - name: Install dependencies
@@ -181,8 +182,9 @@ jobs:
       with:
         path: |
           ~/Library/Caches/org.swift.swiftpm
-        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+        key: ${{ runner.os }}-spm-xcode15-v1
         restore-keys: |
+          ${{ runner.os }}-spm-xcode15-
           ${{ runner.os }}-spm-
     
     - name: Install dependencies

@@ -13,13 +13,13 @@ import CubeCore
 @testable import CubeAR
 
 /// Mock cube solver for testing
-final class MockCubeSolver: CubeSolverProtocol {
+final class MockCubeSolver: CubeSolverProtocol, @unchecked Sendable {
     var moves: [Move] = []
     var shouldThrow = false
     
     func solve(from state: CubeState) throws -> [Move] {
         if shouldThrow {
-            throw CubeValidationError.invalidCubeState(reason: "Test error")
+            throw CubeValidationError.invalidCornerOrientation
         }
         return moves
     }

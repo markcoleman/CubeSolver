@@ -16,10 +16,8 @@ final class RubiksCubeRotationTests: XCTestCase {
     func testFrontRotationCorrectness() {
         var cube = RubiksCube()
         
-        // Store original colors
+        // Store original colors that will be used in assertions
         let originalTopBottom = cube.top.colors[2]
-        let originalBottomTop = cube.bottom.colors[0]
-        let originalLeftRight = [cube.left.colors[0][2], cube.left.colors[1][2], cube.left.colors[2][2]]
         let originalRightLeft = [cube.right.colors[0][0], cube.right.colors[1][0], cube.right.colors[2][0]]
         
         cube.rotateFront()
@@ -45,11 +43,9 @@ final class RubiksCubeRotationTests: XCTestCase {
         // First scramble to make changes visible
         cube.rotateFront()
         
-        let originalTopTop = cube.top.colors[0]
-        
         cube.rotateBack()
         
-        // Verify top row moved to right (the rotation happened)
+        // Verify rotation occurred (the rotation happened)
         // On a solved cube, this won't show visible changes, so we just verify no crash
         XCTAssertNotNil(cube.back, "Back face should exist after rotation")
     }

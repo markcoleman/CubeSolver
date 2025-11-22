@@ -37,6 +37,12 @@ public struct CubeCamView: View {
                 DetectionOverlay(detection: detection, stability: viewModel.stability)
             }
             
+            // Face capture flash animation
+            if viewModel.faceCaptured {
+                FaceCaptureFlash()
+                    .transition(.opacity)
+            }
+            
             // UI Overlay
             VStack {
                 // Top instruction text
@@ -380,13 +386,17 @@ struct ErrorOverlay: View {
 struct CompletionOverlay: View {
     let onDone: () -> Void
     
+    @State private var checkmarkScale: CGFloat = 0.5
+    @State private var checkmarkRotation: Double = -90
+    @State private var circleScale: CGFloat = 0.8
+    
     var body: some View {
         ZStack {
             Color.black.opacity(0.7)
                 .ignoresSafeArea()
             
             VStack(spacing: 20) {
-                // Animated checkmark
+                // Animated checkmark with spring animation
                 ZStack {
                     Circle()
                         .fill(
@@ -397,13 +407,24 @@ struct CompletionOverlay: View {
                             )
                         )
                         .frame(width: 100, height: 100)
+                        .scaleEffect(circleScale)
                     
                     Image(systemName: "checkmark")
                         .font(.system(size: 50, weight: .bold))
                         .foregroundColor(.white)
+                        .scaleEffect(checkmarkScale)
+                        .rotationEffect(.degrees(checkmarkRotation))
                 }
-                .scaleEffect(1.0)
-                .animation(.spring(response: 0.5, dampingFraction: 0.6), value: true)
+                .onAppear {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.6, blendDuration: 0)) {
+                        circleScale = 1.0
+                    }
+                    
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.5, blendDuration: 0).delay(0.1)) {
+                        checkmarkScale = 1.0
+                        checkmarkRotation = 0
+                    }
+                }
                 
                 Text("Success!")
                     .font(.title)
@@ -437,6 +458,23 @@ struct CompletionOverlay: View {
             .cornerRadius(20)
             .shadow(color: .black.opacity(0.5), radius: 20)
         }
+    }
+}
+
+// MARK: - Face Capture Flash
+
+struct FaceCaptureFlash: View {
+    @State private var opacity: Double = 0.8
+    
+    var body: some View {
+        Rectangle()
+            .fill(Color.green.opacity(opacity))
+            .ignoresSafeArea()
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.3)) {
+                    opacity = 0
+                }
+            }
     }
 }
 

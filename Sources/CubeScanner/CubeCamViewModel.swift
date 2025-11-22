@@ -11,6 +11,9 @@ import Foundation
 import SwiftUI
 import Combine
 import CubeCore
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// View model for Cube Cam auto-scanning experience
 @MainActor
@@ -45,6 +48,9 @@ public class CubeCamViewModel: ObservableObject {
     /// Completed cube state (when all 6 faces captured)
     @Published public var completedCubeState: CubeState?
     
+    /// Trigger for face capture animation
+    @Published public var faceCaptured: Bool = false
+    
     // MARK: - Private Properties
     
     private let cameraSession = CameraSession()
@@ -52,6 +58,7 @@ public class CubeCamViewModel: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
     private var frameProcessingTask: Task<Void, Never>?
+    private var lastFaceCount: Int = 0
     
     // MARK: - Detection Status
     
@@ -155,13 +162,25 @@ public class CubeCamViewModel: ObservableObject {
         // Bind capture pipeline to view model
         capturePipeline.$capturedFaces
             .sink { [weak self] faces in
-                self?.capturedFaceCount = faces.count
-                self?.capturedFaces = Set(faces.keys)
-                self?.updateProgressText()
+                guard let self = self else { return }
+                
+                let newCount = faces.count
+                let oldCount = self.lastFaceCount
+                
+                self.capturedFaceCount = newCount
+                self.capturedFaces = Set(faces.keys)
+                self.updateProgressText()
+                
+                // Trigger haptic feedback and animation when new face captured
+                if newCount > oldCount {
+                    self.triggerFaceCaptureEffects()
+                }
+                
+                self.lastFaceCount = newCount
                 
                 // Check if all faces captured
                 if faces.count == 6 {
-                    self?.validateAndComplete(faces: faces)
+                    self.validateAndComplete(faces: faces)
                 }
             }
             .store(in: &cancellables)
@@ -230,6 +249,23 @@ public class CubeCamViewModel: ObservableObject {
         }
     }
     
+    private func triggerFaceCaptureEffects() {
+        // Trigger haptic feedback
+        #if os(iOS)
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        #endif
+        
+        // Trigger animation
+        faceCaptured = true
+        
+        // Reset animation trigger after short delay
+        Task {
+            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+            self.faceCaptured = false
+        }
+    }
+    
     private func validateAndComplete(faces: [Face: [CubeColor]]) {
         // Build cube state
         var cubeState = CubeState()
@@ -244,11 +280,29 @@ public class CubeCamViewModel: ObservableObject {
             detectionStatus = .completed
             captureProgressText = "Cube captured successfully!"
             
+            // Celebration haptic
+            #if os(iOS)
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+            
+            // Add a second success haptic after short delay
+            Task {
+                try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+                generator.notificationOccurred(.success)
+            }
+            #endif
+            
         } catch let error as CubeValidationError {
             // Validation failed
             detectionStatus = .error("Invalid cube configuration")
             lastErrorMessage = error.localizedDescription
             captureProgressText = "Validation failed. Please retry."
+            
+            // Error haptic
+            #if os(iOS)
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.error)
+            #endif
             
             // Reset for retry
             Task {
@@ -258,6 +312,12 @@ public class CubeCamViewModel: ObservableObject {
         } catch {
             detectionStatus = .error("Validation failed")
             lastErrorMessage = "Unknown validation error occurred."
+            
+            // Error haptic
+            #if os(iOS)
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.error)
+            #endif
         }
     }
     

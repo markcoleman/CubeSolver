@@ -78,6 +78,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: pr.number,
+              per_page: 100
             });
             
             const botComment = comments.data.find(comment => 

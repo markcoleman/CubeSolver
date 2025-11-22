@@ -21,7 +21,7 @@ permissions:
 
 # Cancel in-progress runs for the same workflow and branch
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: capture-screenshots-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

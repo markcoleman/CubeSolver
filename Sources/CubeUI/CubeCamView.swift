@@ -77,6 +77,8 @@ public struct CubeCamView: View {
                         .tint(.blue)
                         .background(Color.white.opacity(0.3))
                         .cornerRadius(4)
+                        .accessibilityLabel("Cube faces captured")
+                        .accessibilityValue("\(viewModel.capturedFaceCount) of 6 faces")
                     
                     Text("\(viewModel.capturedFaceCount)/6 faces captured")
                         .font(.caption)
@@ -289,6 +291,34 @@ struct FaceIndicatorBadge: View {
                 .font(.caption2)
                 .foregroundColor(.white)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabel)
+    }
+    
+    /// Accessibility label describing face and capture status
+    private var accessibilityLabel: String {
+        var label = "\(faceDisplayName) face"
+        if isCaptured {
+            label += ", captured"
+        } else {
+            label += ", not captured"
+        }
+        if isCurrent {
+            label += ", current face"
+        }
+        return label
+    }
+    
+    /// Human-readable face name
+    private var faceDisplayName: String {
+        switch face {
+        case .up: return "Up"
+        case .down: return "Down"
+        case .left: return "Left"
+        case .right: return "Right"
+        case .front: return "Front"
+        case .back: return "Back"
+        }
     }
 }
 
@@ -327,6 +357,13 @@ struct StabilityIndicator: View {
             }
             .frame(width: 100, height: 8)
         }
+        .accessibilityElement()
+        .accessibilityLabel("Stability indicator")
+        .accessibilityValue(
+            stability > 0.7
+                ? "Hold steady. Stability is \(Int(stability * 100)) percent."
+                : "Move slowly. Stability is \(Int(stability * 100)) percent."
+        )
     }
 }
 

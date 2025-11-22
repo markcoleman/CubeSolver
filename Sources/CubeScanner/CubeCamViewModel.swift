@@ -59,6 +59,13 @@ public class CubeCamViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var frameProcessingTask: Task<Void, Never>?
     private var lastFaceCount: Int = 0
+    private var isProcessingFrames: Bool = false
+    
+    // MARK: - Animation Constants
+    
+    private let faceCaptureAnimationDuration: UInt64 = 300_000_000 // 0.3 seconds
+    private let successHapticDelay: UInt64 = 200_000_000 // 0.2 seconds
+    private let validationFailureRetryDelay: UInt64 = 2_000_000_000 // 2 seconds
     
     // MARK: - Detection Status
     
@@ -122,6 +129,7 @@ public class CubeCamViewModel: ObservableObject {
     
     /// Stop the camera and scanning process
     public func stop() {
+        isProcessingFrames = false
         frameProcessingTask?.cancel()
         frameProcessingTask = nil
         cameraSession.stop()
@@ -196,9 +204,12 @@ public class CubeCamViewModel: ObservableObject {
     }
     
     private func startFrameProcessing() {
+        guard !isProcessingFrames else { return }
+        isProcessingFrames = true
+        
         frameProcessingTask = Task { [weak self] in
             while !Task.isCancelled {
-                guard let self = self else { return }
+                guard let self = self, self.isProcessingFrames else { return }
                 
                 // Get latest frames
                 guard let videoFrame = await self.cameraSession.lastVideoFrame else {
@@ -259,9 +270,9 @@ public class CubeCamViewModel: ObservableObject {
         // Trigger animation
         faceCaptured = true
         
-        // Reset animation trigger after short delay
+        // Reset animation trigger after delay
         Task {
-            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+            try? await Task.sleep(nanoseconds: faceCaptureAnimationDuration)
             self.faceCaptured = false
         }
     }
@@ -285,9 +296,9 @@ public class CubeCamViewModel: ObservableObject {
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
             
-            // Add a second success haptic after short delay
+            // Add a second success haptic after delay
             Task {
-                try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+                try? await Task.sleep(nanoseconds: successHapticDelay)
                 generator.notificationOccurred(.success)
             }
             #endif
@@ -306,7 +317,7 @@ public class CubeCamViewModel: ObservableObject {
             
             // Reset for retry
             Task {
-                try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                try? await Task.sleep(nanoseconds: validationFailureRetryDelay)
                 reset()
             }
         } catch {
@@ -325,9 +336,5 @@ public class CubeCamViewModel: ObservableObject {
         stop()
     }
 }
-
-#if canImport(AVFoundation)
-import AVFoundation
-#endif
 
 #endif

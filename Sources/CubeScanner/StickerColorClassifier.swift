@@ -45,12 +45,11 @@ public actor StickerColorClassifier {
     /// - Parameters:
     ///   - buffer: The pixel buffer containing the frame
     ///   - faceRect: The bounding box of the detected cube face (normalized coordinates)
-    ///   - depthBuffer: Optional depth buffer for lighting correction
-    /// - Returns: Array of 9 classified colors (top-left to bottom-right)
+    /// - Returns: Array of 9 classified colors in row-major order (top-left to bottom-right)
+    ///            Row 0: indices 0-2, Row 1: indices 3-5, Row 2: indices 6-8
     public func classifyStickers(
         buffer: CVPixelBuffer,
-        faceRect: CGRect,
-        depthBuffer: CVPixelBuffer? = nil
+        faceRect: CGRect
     ) async -> [CubeColor] {
         // Lock pixel buffer for reading
         CVPixelBufferLockBaseAddress(buffer, .readOnly)

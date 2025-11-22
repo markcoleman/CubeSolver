@@ -231,8 +231,7 @@ public class CubeCamCapturePipeline: ObservableObject {
         // Classify sticker colors
         let colors = await colorClassifier.classifyStickers(
             buffer: videoFrame,
-            faceRect: detection.boundingBox,
-            depthBuffer: depthFrame
+            faceRect: detection.boundingBox
         )
         
         // Store captured face
@@ -244,6 +243,7 @@ public class CubeCamCapturePipeline: ObservableObject {
         pendingFace = getNextFaceToCapture()
         detectionHistory = []
         stability = 0
+        lastDetection = nil
     }
 }
 

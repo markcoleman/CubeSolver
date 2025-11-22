@@ -8,6 +8,9 @@
 
 import SwiftUI
 import CubeCore
+#if canImport(CubeAR)
+import CubeAR
+#endif
 
 /// Home view showing recent solves and main navigation
 public struct HomeView: View {
@@ -15,6 +18,9 @@ public struct HomeView: View {
     
     @StateObject private var historyManager = SolveHistoryManager()
     @StateObject private var cubeViewModel = CubeViewModel()
+    @StateObject private var sessionViewModel = CubeSessionViewModel()
+    @State private var showARCoachMode = false
+    @State private var showNoCubeAlert = false
     
     public init() {}
     
@@ -78,6 +84,30 @@ public struct HomeView: View {
                                 color: .green
                             )
                         }
+                        
+                        // AR Coach Mode entry point
+                        #if canImport(CubeAR) && os(iOS)
+                        Button(action: {
+                            if sessionViewModel.hasCubeState {
+                                showARCoachMode = true
+                            } else {
+                                // Try to use current cube from cubeViewModel
+                                if !cubeViewModel.cube.isSolved {
+                                    sessionViewModel.setCubeState(from: cubeViewModel.cube)
+                                    showARCoachMode = true
+                                } else {
+                                    showNoCubeAlert = true
+                                }
+                            }
+                        }) {
+                            ActionCard(
+                                icon: "arkit",
+                                title: "AR Coach Mode",
+                                subtitle: "Step-by-step AR guidance",
+                                color: .cyan
+                            )
+                        }
+                        #endif
                         
                         NavigationLink(destination: SolveView(cubeViewModel: cubeViewModel)) {
                             ActionCard(
@@ -162,6 +192,18 @@ public struct HomeView: View {
                 }
             }
         }
+        #if canImport(CubeAR) && os(iOS)
+        .sheet(isPresented: $showARCoachMode) {
+            if let cubeState = sessionViewModel.currentCubeState {
+                ARCoachView(initialState: cubeState)
+            }
+        }
+        .alert("No Cube State", isPresented: $showNoCubeAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Please scan a cube or enter a cube pattern manually before using AR Coach Mode.")
+        }
+        #endif
     }
 }
 

@@ -48,7 +48,9 @@ public class CameraSession: NSObject, ObservableObject {
     private let captureSession = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "com.cubesolver.camera.session")
     private var videoOutput: AVCaptureVideoDataOutput?
+    #if os(iOS)
     private var depthOutput: AVCaptureDepthDataOutput?
+    #endif
     private var videoDeviceInput: AVCaptureDeviceInput?
     
     // MARK: - Initialization
@@ -218,6 +220,7 @@ public class CameraSession: NSObject, ObservableObject {
     }
     
     private func tryAddDepthOutput() {
+        #if os(iOS)
         guard let videoDevice = videoDeviceInput?.device else { return }
         
         // Check if depth data is supported
@@ -245,6 +248,7 @@ public class CameraSession: NSObject, ObservableObject {
             depthConnection.isEnabled = true
             videoConnection.isVideoMirrored = false
         }
+        #endif
     }
 }
 
@@ -290,6 +294,7 @@ extension CameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
 
 // MARK: - AVCaptureDepthDataOutputDelegate
 
+#if os(iOS)
 extension CameraSession: AVCaptureDepthDataOutputDelegate {
     nonisolated public func depthDataOutput(
         _ output: AVCaptureDepthDataOutput,
@@ -305,6 +310,7 @@ extension CameraSession: AVCaptureDepthDataOutputDelegate {
         }
     }
 }
+#endif
 
 // MARK: - Supporting Types
 

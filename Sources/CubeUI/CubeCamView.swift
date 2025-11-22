@@ -5,7 +5,7 @@
 //  Created by GitHub Copilot
 //
 
-#if canImport(SwiftUI) && canImport(AVFoundation)
+#if os(iOS)
 
 import SwiftUI
 import AVFoundation

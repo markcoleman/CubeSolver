@@ -5,15 +5,13 @@
 //  Created by GitHub Copilot
 //
 
-#if canImport(SwiftUI) && canImport(AVFoundation)
+#if os(iOS)
 
 import Foundation
 import SwiftUI
 import Combine
 import CubeCore
-#if canImport(UIKit)
 import UIKit
-#endif
 
 /// View model for Cube Cam auto-scanning experience
 @MainActor
@@ -262,10 +260,8 @@ public class CubeCamViewModel: ObservableObject {
     
     private func triggerFaceCaptureEffects() {
         // Trigger haptic feedback
-        #if os(iOS)
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
-        #endif
         
         // Trigger animation
         faceCaptured = true
@@ -292,7 +288,6 @@ public class CubeCamViewModel: ObservableObject {
             captureProgressText = "Cube captured successfully!"
             
             // Celebration haptic
-            #if os(iOS)
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
             
@@ -301,7 +296,6 @@ public class CubeCamViewModel: ObservableObject {
                 try? await Task.sleep(nanoseconds: successHapticDelay)
                 generator.notificationOccurred(.success)
             }
-            #endif
             
         } catch let error as CubeValidationError {
             // Validation failed
@@ -310,10 +304,8 @@ public class CubeCamViewModel: ObservableObject {
             captureProgressText = "Validation failed. Please retry."
             
             // Error haptic
-            #if os(iOS)
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.error)
-            #endif
             
             // Reset for retry
             Task {
@@ -325,10 +317,8 @@ public class CubeCamViewModel: ObservableObject {
             lastErrorMessage = "Unknown validation error occurred."
             
             // Error haptic
-            #if os(iOS)
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.error)
-            #endif
         }
     }
     

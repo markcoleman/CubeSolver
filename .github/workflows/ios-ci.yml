@@ -9,7 +9,7 @@ on:
 
 # Cancel in-progress runs for the same workflow and branch/PR
 concurrency:
-  group: ios-ci-${{ github.ref }}-${{ github.event_name }}
+  group: ios-ci-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:

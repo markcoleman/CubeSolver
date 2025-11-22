@@ -6,7 +6,7 @@ on:
 
 # Prevent duplicate runs for the same PR
 concurrency:
-  group: dependency-review-${{ github.event.pull_request.number }}
+  group: dependency-review-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:

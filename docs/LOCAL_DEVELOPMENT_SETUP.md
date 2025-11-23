@@ -62,7 +62,7 @@ sw_vers
 
 **Package Requirement:** Swift 5.9+ (declared in Package.swift)
 
-**Xcode Project Setting:** Currently set to 5.0 (⚠️ **mismatch - see Fix below**)
+**Xcode Project Setting:** ✅ Now set to 5.9 (aligned with Package.swift)
 
 ```bash
 # Check Swift version
@@ -70,6 +70,8 @@ swift --version
 
 # Expected: Swift version 5.9.x or higher
 ```
+
+**Note:** As of this PR, the Swift version mismatch has been fixed. Previously the Xcode project had SWIFT_VERSION = 5.0, which could cause issues with Swift 5.9+ features.
 
 ### Platform SDK Versions
 
@@ -177,13 +179,15 @@ open CubeSolver.xcodeproj
 
 ## ⚠️ Known Discrepancies and Fixes
 
-### Swift Version Mismatch
+### ~~Swift Version Mismatch~~ ✅ FIXED
 
-**Issue:** The Xcode project has `SWIFT_VERSION = 5.0` but `Package.swift` requires Swift 5.9.
+**Previous Issue:** The Xcode project had `SWIFT_VERSION = 5.0` but `Package.swift` requires Swift 5.9.
 
-**Impact:** This can cause build failures when using modern Swift 5.9+ features.
+**Status:** ✅ **RESOLVED** - This has been fixed in the current codebase.
 
-**Fix:** Update Xcode project build settings:
+**What was done:** Updated Xcode project build settings from Swift 5.0 to Swift 5.9 to match Package.swift.
+
+**For historical reference**, if you encounter this in an older version:
 
 1. **Via Xcode UI:**
    - Open `CubeSolver.xcodeproj` in Xcode
@@ -194,18 +198,18 @@ open CubeSolver.xcodeproj
    - Change from "Swift 5" to "Swift 5.9" (or later)
    - Repeat for all configurations (Debug, Release)
 
-2. **Via Command Line (after making changes):**
+2. **Via Command Line:**
    ```bash
-   # Verify the change
+   # Verify the current setting
    grep "SWIFT_VERSION" CubeSolver.xcodeproj/project.pbxproj
    # Should show: SWIFT_VERSION = 5.9;
    ```
 
 **Validation:**
 ```bash
-# After the fix, both should succeed:
+# Both should now succeed:
 swift build        # Uses Package.swift (Swift 5.9)
-xcodebuild build   # Uses project settings (should now also be 5.9)
+xcodebuild build   # Uses project settings (now also 5.9)
 ```
 
 ### SPM Package Resolution
@@ -293,46 +297,51 @@ xcodebuild test \
 
 ## 🔍 Pre-Commit Validation
 
-Before committing, run these checks to match CI validation:
+A pre-commit validation script is provided at `scripts/pre-commit-check.sh` that matches CI validation exactly.
 
+**The script checks:**
+- ✅ Xcode version (15.2 or 15.3)
+- ✅ Swift version (5.9+)
+- ✅ SwiftLint in strict mode
+- ✅ Swift package resolution
+- ✅ Swift build
+- ✅ Tests with code coverage and parallel execution
+
+**Run it before committing:**
 ```bash
-#!/bin/bash
-# Save as scripts/pre-commit-check.sh
-
-echo "🔍 Running pre-commit validation..."
-
-# 1. SwiftLint (matches CI)
-echo "📝 Running SwiftLint..."
-swiftlint lint --strict
-if [ $? -ne 0 ]; then
-  echo "❌ SwiftLint failed"
-  exit 1
-fi
-
-# 2. Build (matches CI)
-echo "🏗️  Building with Swift PM..."
-swift build
-if [ $? -ne 0 ]; then
-  echo "❌ Build failed"
-  exit 1
-fi
-
-# 3. Run tests (matches CI)
-echo "🧪 Running tests..."
-swift test --enable-code-coverage --parallel
-if [ $? -ne 0 ]; then
-  echo "❌ Tests failed"
-  exit 1
-fi
-
-echo "✅ All checks passed!"
-```
-
-Make it executable:
-```bash
-chmod +x scripts/pre-commit-check.sh
 ./scripts/pre-commit-check.sh
 ```
+
+**Output:** Color-coded status with helpful error messages and quick fix suggestions.
+
+**Example successful output:**
+```
+🔍 Running pre-commit validation (matching CI pipeline)...
+
+📱 Checking Xcode version...
+✅ Xcode version 15.2 matches CI
+
+🔨 Checking Swift version...
+✅ Swift version meets minimum requirement (5.9+)
+
+📝 Running SwiftLint (strict mode)...
+✅ SwiftLint passed (strict mode)
+
+📦 Resolving Swift Package dependencies...
+✅ Package dependencies resolved
+
+🏗️  Building with Swift Package Manager...
+✅ Build succeeded
+
+🧪 Running tests (parallel + code coverage)...
+✅ All tests passed
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ All validation checks passed!
+Your environment matches CI. Safe to commit and push.
+```
+
+**Note:** The script is already executable. See the script source for implementation details.
 
 ## 🐛 Troubleshooting Common Issues
 

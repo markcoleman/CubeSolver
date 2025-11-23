@@ -29,22 +29,30 @@ print_status() {
 
 # 1. Check Xcode version
 echo "📱 Checking Xcode version..."
-XCODE_VERSION=$(xcodebuild -version 2>/dev/null | head -n 1 | awk '{print $2}')
-if [[ "$XCODE_VERSION" == "15.2" ]] || [[ "$XCODE_VERSION" == "15.3" ]]; then
-    print_status 0 "Xcode version $XCODE_VERSION matches CI"
+if command -v xcodebuild >/dev/null 2>&1; then
+    XCODE_VERSION=$(xcodebuild -version 2>/dev/null | head -n 1 | awk '{print $2}' || echo "unknown")
+    if [[ "$XCODE_VERSION" == "15.2" ]] || [[ "$XCODE_VERSION" == "15.3" ]]; then
+        print_status 0 "Xcode version $XCODE_VERSION matches CI"
+    else
+        echo -e "${YELLOW}⚠️  Xcode version $XCODE_VERSION differs from CI (15.2 or 15.3)${NC}"
+    fi
 else
-    echo -e "${YELLOW}⚠️  Xcode version $XCODE_VERSION differs from CI (15.2 or 15.3)${NC}"
+    echo -e "${YELLOW}⚠️  xcodebuild not found - unable to verify Xcode version${NC}"
 fi
 echo ""
 
 # 2. Check Swift version
 echo "🔨 Checking Swift version..."
-SWIFT_VERSION=$(swift --version 2>/dev/null | head -n 1)
-if [[ "$SWIFT_VERSION" == *"5.9"* ]] || [[ "$SWIFT_VERSION" == *"5.10"* ]] || [[ "$SWIFT_VERSION" == *"6."* ]]; then
-    print_status 0 "Swift version meets minimum requirement (5.9+)"
+if command -v swift >/dev/null 2>&1; then
+    SWIFT_VERSION=$(swift --version 2>/dev/null | head -n 1 || echo "unknown")
+    if [[ "$SWIFT_VERSION" == *"5.9"* ]] || [[ "$SWIFT_VERSION" == *"5.10"* ]] || [[ "$SWIFT_VERSION" == *"6."* ]]; then
+        print_status 0 "Swift version meets minimum requirement (5.9+)"
+    else
+        print_status 1 "Swift version incompatible - requires 5.9+"
+        echo "Current: $SWIFT_VERSION"
+    fi
 else
-    print_status 1 "Swift version incompatible - requires 5.9+"
-    echo "Current: $SWIFT_VERSION"
+    print_status 1 "Swift not found - please install Xcode"
 fi
 echo ""
 
@@ -64,7 +72,7 @@ echo ""
 
 # 4. Swift Package Resolution (matches CI)
 echo "📦 Resolving Swift Package dependencies..."
-if swift package resolve 2>&1 >/dev/null; then
+if swift package resolve >/dev/null 2>&1; then
     print_status 0 "Package dependencies resolved"
 else
     print_status 1 "Package resolution failed"
@@ -73,7 +81,7 @@ echo ""
 
 # 5. Build (matches CI)
 echo "🏗️  Building with Swift Package Manager..."
-if swift build 2>&1 >/dev/null; then
+if swift build >/dev/null 2>&1; then
     print_status 0 "Build succeeded"
 else
     print_status 1 "Build failed"
@@ -83,7 +91,7 @@ echo ""
 
 # 6. Run tests (matches CI: with code coverage and parallel)
 echo "🧪 Running tests (parallel + code coverage)..."
-if swift test --enable-code-coverage --parallel 2>&1 >/dev/null; then
+if swift test --enable-code-coverage --parallel >/dev/null 2>&1; then
     print_status 0 "All tests passed"
 else
     print_status 1 "Tests failed"

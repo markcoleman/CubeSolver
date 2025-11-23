@@ -151,6 +151,7 @@ struct ManualCaptureButton: View {
     
     @State private var countdown: Int? = nil
     @State private var isPressed: Bool = false
+    @State private var countdownTimer: Timer? = nil
     
     var body: some View {
         ZStack {
@@ -179,6 +180,11 @@ struct ManualCaptureButton: View {
                 .scaleEffect(isPressed ? 0.95 : 1.0)
             }
             .disabled(!isEnabled || countdown != nil)
+            .onDisappear {
+                // Clean up timer if view disappears
+                countdownTimer?.invalidate()
+                countdownTimer = nil
+            }
             
             // Countdown overlay
             if let count = countdown {
@@ -194,9 +200,10 @@ struct ManualCaptureButton: View {
         countdown = 3
         isPressed = true
         
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak countdownTimer] timer in
             guard let current = countdown else {
                 timer.invalidate()
+                self.countdownTimer = nil
                 return
             }
             
@@ -205,6 +212,7 @@ struct ManualCaptureButton: View {
             } else {
                 countdown = nil
                 timer.invalidate()
+                self.countdownTimer = nil
                 
                 // Trigger haptic
                 let generator = UIImpactFeedbackGenerator(style: .medium)

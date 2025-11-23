@@ -194,11 +194,12 @@ struct DebugExportButton: View {
             options: .prettyPrinted
         ) {
             // In a real app, would share via UIActivityViewController
-            // For now, just print to console
+            // For development/debug builds only
+            #if DEBUG
             if let jsonString = String(data: jsonData, encoding: .utf8) {
-                print("Debug Data Export:")
-                print(jsonString)
+                NSLog("Debug Data Export: %@", jsonString)
             }
+            #endif
         }
     }
 }

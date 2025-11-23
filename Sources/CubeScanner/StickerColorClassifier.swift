@@ -83,6 +83,9 @@ public actor StickerColorClassifier {
         for row in 0..<3 {
             for col in 0..<3 {
                 // PROMPT 6: Sample multiple points inside each sticker
+                // Note: 81 total samples (9 per sticker × 9 stickers) is necessary for
+                // robust color detection in varying lighting conditions. The performance
+                // impact is acceptable as this runs at 30fps and only when cube is detected.
                 let cellWidth = pixelRect.width / 3.0
                 let cellHeight = pixelRect.height / 3.0
                 

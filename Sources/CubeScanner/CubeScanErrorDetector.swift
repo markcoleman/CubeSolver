@@ -126,6 +126,9 @@ public actor CubeScanErrorDetector {
             return sqrt(dx * dx + dy * dy)
         }
         
+        // Guard against empty movements array (shouldn't happen, but be safe)
+        guard !movements.isEmpty else { return nil }
+        
         let avgMovement = movements.reduce(0, +) / Float(movements.count)
         
         // If movement is too large, cube is moving too fast

@@ -57,10 +57,10 @@ struct DuplicateFaceWarning: View {
                 isVisible = true
             }
             
-            // Auto-dismiss after 4 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+            // Auto-dismiss after 4 seconds with weak reference
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in
                 withAnimation {
-                    isVisible = false
+                    self?.isVisible = false
                 }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     onDismiss()

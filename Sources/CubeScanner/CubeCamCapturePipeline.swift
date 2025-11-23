@@ -70,6 +70,9 @@ public class CubeCamCapturePipeline: ObservableObject {
     public var consecutiveStableFrames: Int = 0
     public var isScanning: Bool = false
     
+    // Brightness sampling cache
+    private var brightnessSampleCoordinates: [(x: Int, y: Int)]?
+    
     // PROMPT 2: Duplicate detection
     private var capturedPatterns: [Face: [CubeColor]] = [:]
     
@@ -228,7 +231,7 @@ public class CubeCamCapturePipeline: ObservableObject {
         return true
     }
     
-    /// PROMPT 1: Calculate frame brightness
+    /// PROMPT 1: Calculate frame brightness with cached sample coordinates
     private func calculateFrameBrightness(_ buffer: CVPixelBuffer) async -> Float {
         // Simple approximation: sample center region
         CVPixelBufferLockBaseAddress(buffer, .readOnly)
@@ -242,29 +245,39 @@ public class CubeCamCapturePipeline: ObservableObject {
             return 0.5
         }
         
-        // Sample 10x10 grid in center
+        // Initialize sample coordinates if not cached
+        if brightnessSampleCoordinates == nil {
+            let centerX = width / 2
+            let centerY = height / 2
+            let sampleSize = min(width, height) / 4
+            let stepSize = sampleSize / 10
+            
+            var coords: [(x: Int, y: Int)] = []
+            for y in stride(from: centerY - sampleSize/2, to: centerY + sampleSize/2, by: stepSize) {
+                for x in stride(from: centerX - sampleSize/2, to: centerX + sampleSize/2, by: stepSize) {
+                    if x >= 0 && x < width && y >= 0 && y < height {
+                        coords.append((x, y))
+                    }
+                }
+            }
+            brightnessSampleCoordinates = coords
+        }
+        
+        // Sample using cached coordinates
         var totalBrightness: Float = 0
         var sampleCount: Int = 0
         
-        let centerX = width / 2
-        let centerY = height / 2
-        let sampleSize = min(width, height) / 4
-        
-        for y in stride(from: centerY - sampleSize/2, to: centerY + sampleSize/2, by: sampleSize/10) {
-            for x in stride(from: centerX - sampleSize/2, to: centerX + sampleSize/2, by: sampleSize/10) {
-                guard x >= 0 && x < width && y >= 0 && y < height else { continue }
-                
-                let offset = y * bytesPerRow + x * 4
-                let pixel = baseAddress.advanced(by: offset).assumingMemoryBound(to: UInt8.self)
-                
-                let b = Float(pixel[0]) / 255.0
-                let g = Float(pixel[1]) / 255.0
-                let r = Float(pixel[2]) / 255.0
-                
-                // Use perceived brightness formula
-                totalBrightness += (0.299 * r + 0.587 * g + 0.114 * b)
-                sampleCount += 1
-            }
+        for coord in brightnessSampleCoordinates ?? [] {
+            let offset = coord.y * bytesPerRow + coord.x * 4
+            let pixel = baseAddress.advanced(by: offset).assumingMemoryBound(to: UInt8.self)
+            
+            let b = Float(pixel[0]) / 255.0
+            let g = Float(pixel[1]) / 255.0
+            let r = Float(pixel[2]) / 255.0
+            
+            // Use perceived brightness formula
+            totalBrightness += (0.299 * r + 0.587 * g + 0.114 * b)
+            sampleCount += 1
         }
         
         return sampleCount > 0 ? totalBrightness / Float(sampleCount) : 0.5

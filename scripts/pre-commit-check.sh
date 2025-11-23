@@ -17,6 +17,11 @@ NC='\033[0m' # No Color
 # Track failures
 FAILED=0
 
+# Helper function to run commands silently
+run_silently() {
+    "$@" >/dev/null 2>&1
+}
+
 # Function to print status
 print_status() {
     if [ $1 -eq 0 ]; then
@@ -72,7 +77,7 @@ echo ""
 
 # 4. Swift Package Resolution (matches CI)
 echo "📦 Resolving Swift Package dependencies..."
-if swift package resolve >/dev/null 2>&1; then
+if run_silently swift package resolve; then
     print_status 0 "Package dependencies resolved"
 else
     print_status 1 "Package resolution failed"
@@ -81,7 +86,7 @@ echo ""
 
 # 5. Build (matches CI)
 echo "🏗️  Building with Swift Package Manager..."
-if swift build >/dev/null 2>&1; then
+if run_silently swift build; then
     print_status 0 "Build succeeded"
 else
     print_status 1 "Build failed"
@@ -91,7 +96,7 @@ echo ""
 
 # 6. Run tests (matches CI: with code coverage and parallel)
 echo "🧪 Running tests (parallel + code coverage)..."
-if swift test --enable-code-coverage --parallel >/dev/null 2>&1; then
+if run_silently swift test --enable-code-coverage --parallel; then
     print_status 0 "All tests passed"
 else
     print_status 1 "Tests failed"

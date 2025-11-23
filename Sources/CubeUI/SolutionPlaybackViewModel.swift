@@ -14,6 +14,11 @@ import CubeCore
 @MainActor
 public class SolutionPlaybackViewModel: ObservableObject {
     
+    // MARK: - Constants
+    
+    /// Duration for step animations in seconds
+    private static let animationDuration: TimeInterval = 0.6
+    
     // MARK: - Published Properties
     
     /// The current step in the solution (0 = initial state)
@@ -77,7 +82,7 @@ public class SolutionPlaybackViewModel: ObservableObject {
         // Animation will be handled by the view
         // Set isAnimating back to false after a delay
         Task {
-            try? await Task.sleep(nanoseconds: 600_000_000) // 0.6 seconds
+            try? await Task.sleep(nanoseconds: UInt64(Self.animationDuration * 1_000_000_000))
             isAnimating = false
         }
     }

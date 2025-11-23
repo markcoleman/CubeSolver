@@ -30,6 +30,8 @@ public struct SolutionPlaybackView: View {
             solution = CubeSolution(initialState: initialState, moves: moves)
         } catch {
             // If solving fails, create empty solution
+            // Note: This handles invalid cube states gracefully
+            print("Warning: Failed to solve cube - \(error.localizedDescription)")
             solution = CubeSolution(initialState: initialState, moves: [])
         }
         

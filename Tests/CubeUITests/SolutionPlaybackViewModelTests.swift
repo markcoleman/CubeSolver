@@ -13,6 +13,11 @@ import XCTest
 @MainActor
 final class SolutionPlaybackViewModelTests: XCTestCase {
     
+    // MARK: - Test Constants
+    
+    /// Animation duration plus buffer for testing
+    private let animationWaitDuration: UInt64 = 700_000_000 // 0.7 seconds in nanoseconds
+    
     // MARK: - Initialization Tests
     
     func testInitialization() async {
@@ -66,7 +71,7 @@ final class SolutionPlaybackViewModelTests: XCTestCase {
         
         // Then: Current step should increment
         // Wait for animation to complete
-        try? await Task.sleep(nanoseconds: 700_000_000)
+        try? await Task.sleep(nanoseconds: animationWaitDuration)
         XCTAssertEqual(viewModel.currentStep, 1)
     }
     
@@ -78,7 +83,7 @@ final class SolutionPlaybackViewModelTests: XCTestCase {
         
         // Move to end
         viewModel.stepForward()
-        try? await Task.sleep(nanoseconds: 700_000_000)
+        try? await Task.sleep(nanoseconds: animationWaitDuration)
         
         // When: Attempting to step forward beyond the end
         viewModel.stepForward()

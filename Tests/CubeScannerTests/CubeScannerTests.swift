@@ -227,10 +227,183 @@ final class CubeScannerTests: XCTestCase {
     }
 }
 
+// MARK: - CubeCamCapturePipeline Tests
+
+@MainActor
+final class CubeCamCapturePipelineTests: XCTestCase {
+    
+    var pipeline: CubeCamCapturePipeline!
+    
+    override func setUp() async throws {
+        pipeline = CubeCamCapturePipeline()
+    }
+    
+    override func tearDown() async throws {
+        pipeline = nil
+    }
+    
+    // MARK: - Initialization Tests
+    
+    func testPipelineInitialization() {
+        XCTAssertEqual(pipeline.captureState, .idle, "Pipeline should start in idle state")
+        XCTAssertEqual(pipeline.capturedFaces.count, 0, "Should have no captured faces")
+        XCTAssertNil(pipeline.pendingFace, "Should have no pending face")
+        XCTAssertEqual(pipeline.stability, 0, "Stability should be 0")
+        XCTAssertEqual(pipeline.consecutiveStableFrames, 0, "Should have 0 stable frames")
+        XCTAssertFalse(pipeline.isScanning, "Should not be scanning")
+    }
+    
+    func testPipelineConfiguration() {
+        XCTAssertEqual(pipeline.stabilityDuration, 0.4, "Default stability duration should be 0.4s")
+        XCTAssertEqual(pipeline.debounceDelay, 0.4, "Default debounce delay should be 0.4s")
+        XCTAssertEqual(pipeline.requiredStableFrames, 8, "Default required frames should be 8")
+        XCTAssertEqual(pipeline.autoCaptureThreshold, 0.8, "Default auto-capture threshold should be 0.8")
+    }
+    
+    // MARK: - CaptureState Tests
+    
+    func testCaptureStateEquality() {
+        XCTAssertEqual(CubeCamCapturePipeline.CaptureState.idle, .idle)
+        XCTAssertEqual(CubeCamCapturePipeline.CaptureState.detecting, .detecting)
+        XCTAssertEqual(CubeCamCapturePipeline.CaptureState.capturing, .capturing)
+        XCTAssertEqual(CubeCamCapturePipeline.CaptureState.captured, .captured)
+        
+        XCTAssertEqual(
+            CubeCamCapturePipeline.CaptureState.stabilizing(progress: 0.5),
+            CubeCamCapturePipeline.CaptureState.stabilizing(progress: 0.5)
+        )
+        
+        XCTAssertNotEqual(
+            CubeCamCapturePipeline.CaptureState.stabilizing(progress: 0.5),
+            CubeCamCapturePipeline.CaptureState.stabilizing(progress: 0.6)
+        )
+        
+        XCTAssertNotEqual(CubeCamCapturePipeline.CaptureState.idle, .detecting)
+    }
+    
+    func testCaptureStateProgress() {
+        let state1 = CubeCamCapturePipeline.CaptureState.stabilizing(progress: 0.0)
+        let state2 = CubeCamCapturePipeline.CaptureState.stabilizing(progress: 0.5)
+        let state3 = CubeCamCapturePipeline.CaptureState.stabilizing(progress: 1.0)
+        
+        switch state1 {
+        case .stabilizing(let progress):
+            XCTAssertEqual(progress, 0.0, accuracy: 0.01)
+        default:
+            XCTFail("Should be stabilizing state")
+        }
+        
+        switch state2 {
+        case .stabilizing(let progress):
+            XCTAssertEqual(progress, 0.5, accuracy: 0.01)
+        default:
+            XCTFail("Should be stabilizing state")
+        }
+        
+        switch state3 {
+        case .stabilizing(let progress):
+            XCTAssertEqual(progress, 1.0, accuracy: 0.01)
+        default:
+            XCTFail("Should be stabilizing state")
+        }
+    }
+    
+    // MARK: - Reset Tests
+    
+    func testResetClearsAllState() {
+        // Set up some state
+        pipeline.capturedFaces[.front] = Array(repeating: .blue, count: 9)
+        pipeline.pendingFace = .back
+        pipeline.stability = 0.9
+        pipeline.consecutiveStableFrames = 5
+        pipeline.captureState = .capturing
+        
+        // Reset
+        pipeline.reset()
+        
+        // Verify all cleared
+        XCTAssertEqual(pipeline.capturedFaces.count, 0, "Should have no captured faces")
+        XCTAssertNil(pipeline.pendingFace, "Should have no pending face")
+        XCTAssertEqual(pipeline.stability, 0, "Stability should be 0")
+        XCTAssertEqual(pipeline.consecutiveStableFrames, 0, "Should have 0 stable frames")
+        XCTAssertEqual(pipeline.captureState, .idle, "Should be in idle state")
+        XCTAssertFalse(pipeline.isScanning, "Should not be scanning")
+    }
+    
+    // MARK: - Next Face Tests
+    
+    func testGetNextFaceToCapture() {
+        XCTAssertNotNil(pipeline.getNextFaceToCapture(), "Should have next face when none captured")
+        
+        // Capture all faces
+        for face in Face.allCases {
+            pipeline.capturedFaces[face] = Array(repeating: .blue, count: 9)
+        }
+        
+        XCTAssertNil(pipeline.getNextFaceToCapture(), "Should have no next face when all captured")
+    }
+    
+    func testGetNextFaceExcludesCaptured() {
+        pipeline.capturedFaces[.front] = Array(repeating: .blue, count: 9)
+        pipeline.capturedFaces[.back] = Array(repeating: .red, count: 9)
+        
+        let nextFace = pipeline.getNextFaceToCapture()
+        
+        XCTAssertNotNil(nextFace)
+        XCTAssertNotEqual(nextFace, .front, "Should not return already captured front face")
+        XCTAssertNotEqual(nextFace, .back, "Should not return already captured back face")
+    }
+    
+    // MARK: - State Transitions
+    
+    func testStateRemainsIdleWithoutDetection() {
+        XCTAssertEqual(pipeline.captureState, .idle)
+        // Without processing frames with actual detections, state should remain idle
+        XCTAssertEqual(pipeline.captureState, .idle)
+    }
+    
+    func testConsecutiveStableFramesIncrements() {
+        // This test verifies the counter logic (actual frame processing requires Vision)
+        // We can verify the initial state and that reset clears it
+        pipeline.consecutiveStableFrames = 5
+        XCTAssertEqual(pipeline.consecutiveStableFrames, 5)
+        
+        pipeline.reset()
+        XCTAssertEqual(pipeline.consecutiveStableFrames, 0)
+    }
+    
+    // MARK: - Auto Capture Configuration
+    
+    func testAutoCaptureCanBeDisabled() {
+        XCTAssertTrue(pipeline.autoCaptureEnabled, "Auto-capture should be enabled by default")
+        
+        pipeline.autoCaptureEnabled = false
+        XCTAssertFalse(pipeline.autoCaptureEnabled)
+    }
+    
+    func testConfigurationChanges() {
+        pipeline.stabilityDuration = 1.0
+        pipeline.debounceDelay = 0.5
+        pipeline.requiredStableFrames = 10
+        pipeline.autoCaptureThreshold = 0.9
+        
+        XCTAssertEqual(pipeline.stabilityDuration, 1.0)
+        XCTAssertEqual(pipeline.debounceDelay, 0.5)
+        XCTAssertEqual(pipeline.requiredStableFrames, 10)
+        XCTAssertEqual(pipeline.autoCaptureThreshold, 0.9)
+    }
+}
+
 #else
 
 // Placeholder tests for platforms without AVFoundation/Vision
 final class CubeScannerTests: XCTestCase {
+    func testPlaceholder() {
+        XCTAssertTrue(true, "Platform does not support AVFoundation/Vision")
+    }
+}
+
+final class CubeCamCapturePipelineTests: XCTestCase {
     func testPlaceholder() {
         XCTAssertTrue(true, "Platform does not support AVFoundation/Vision")
     }

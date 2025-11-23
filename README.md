@@ -71,11 +71,12 @@ A next-generation, modular iOS/iPadOS/macOS/watchOS application for solving Rubi
 
 ### Requirements
 
-- Xcode 15.0 or later
+- Xcode 15.2 or 15.3 (matches CI environment)
 - iOS 17.0+ / iPadOS 17.0+ / macOS 14.0+
 - Swift 5.9+
+- macOS 14.0+ (Sonoma)
 
-### Installation
+### Quick Setup
 
 1. Clone the repository:
 ```bash
@@ -83,19 +84,38 @@ git clone https://github.com/markcoleman/CubeSolver.git
 cd CubeSolver
 ```
 
-2. Build the project:
+2. Resolve dependencies and build:
 ```bash
+swift package resolve
 swift build
 ```
 
 3. Run tests:
 ```bash
-swift test
+swift test --enable-code-coverage --parallel
 ```
 
 4. Open in Xcode:
 ```bash
 open CubeSolver.xcodeproj
+```
+
+### 🛠️ Developer Environment Setup
+
+**Important:** To ensure your local builds match CI builds, please follow the comprehensive setup guide:
+
+📖 **[Local Development Environment Setup Guide](docs/LOCAL_DEVELOPMENT_SETUP.md)**
+
+This guide covers:
+- Matching Xcode and Swift versions with CI
+- Resolving "works in CI, fails locally" issues
+- Pre-commit validation scripts
+- Build settings alignment
+- Troubleshooting common problems
+
+**Quick validation:** Run the pre-commit check script to verify your environment matches CI:
+```bash
+./scripts/pre-commit-check.sh
 ```
 
 ## 🏗️ Architecture

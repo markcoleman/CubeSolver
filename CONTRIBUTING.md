@@ -43,10 +43,20 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 ### Setting Up Your Environment
 
+**📖 First-time setup:** Please read the [Local Development Environment Setup Guide](docs/LOCAL_DEVELOPMENT_SETUP.md) to ensure your local environment matches the CI pipeline.
+
 1. Fork the repository
 2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/CubeSolver.git`
 3. Add the upstream remote: `git remote add upstream https://github.com/markcoleman/CubeSolver.git`
 4. Create a new branch: `git checkout -b feature/my-new-feature`
+5. **Verify your environment:** Run `./scripts/pre-commit-check.sh` to ensure everything matches CI
+
+### Environment Requirements
+
+- Xcode 15.2 or 15.3 (matches CI)
+- macOS 14.0+ (Sonoma)
+- Swift 5.9+
+- SwiftLint installed (`brew install swiftlint`)
 
 ### Using GitHub Copilot Agents
 
@@ -65,9 +75,10 @@ See [.github/agents/README.md](.github/agents/README.md) for detailed informatio
 
 1. Make your changes
 2. Add tests for your changes
-3. Run the test suite: `swift test`
+3. Run the test suite: `swift test --enable-code-coverage --parallel` (matches CI)
 4. Make sure all tests pass
 5. Build the project: `swift build`
+6. **Run pre-commit validation:** `./scripts/pre-commit-check.sh`
 6. Commit your changes with a descriptive commit message
 
 ### Commit Message Guidelines (Recommended)

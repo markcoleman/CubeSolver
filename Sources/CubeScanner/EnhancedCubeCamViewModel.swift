@@ -333,9 +333,6 @@ public class EnhancedCubeCamViewModel: ObservableObject {
         }
     }
     
-    deinit {
-        stop()
-    }
 }
 
 #endif

@@ -71,7 +71,7 @@ public struct HomeView: View {
                         #if canImport(AVFoundation) && os(iOS)
                         NavigationLink(destination: CubeCamView { cubeState in
                             // Handle completed cube state
-                            sessionViewModel.setCubeState(from: cubeState)
+                            sessionViewModel.setCubeStateFromScan(cubeState)
                             cubeViewModel.cube = cubeState.toRubiksCube()
                         }) {
                             ActionCard(

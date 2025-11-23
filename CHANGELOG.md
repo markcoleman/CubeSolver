@@ -8,6 +8,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **CubeCam Scanning UX Improvements (10 Major Enhancements)**
+  - **PROMPT 1: Frame Stability Detection**
+    - 400ms debounce delay before accepting scans
+    - Requires 8 consecutive stable frames
+    - Lighting change detection to reject unstable frames
+    - Real-time scanning progress overlay
+  - **PROMPT 2: Duplicate Face Prevention**
+    - Pattern matching to detect already-scanned faces
+    - Tolerance threshold for minor color differences
+    - Warning overlay when duplicate detected
+  - **PROMPT 3: Auto Face Detection**
+    - Analyzes center tile color to determine face
+    - Maps center color to expected face (standard Rubik's cube)
+    - Displays guidance when wrong face is shown
+  - **PROMPT 4: 3D Cube Mini-Diagram**
+    - Isometric 3D visualization showing all 6 faces
+    - Color-coded: green (captured), blue (next), gray (pending)
+    - Pulsing animation for next face to scan
+    - Clear text labels for each side
+  - **PROMPT 5: Guided Step-by-Step Flow**
+    - Step 1/2/3... instructions for each face
+    - Haptic feedback on successful captures
+    - Human-readable face names (Top, Bottom, etc.)
+  - **PROMPT 6: Improved Color Detection**
+    - 9-point sampling per sticker (81 samples per face)
+    - Median filtering to reduce noise
+    - Enhanced white balance normalization
+    - Lighting compensation for better accuracy
+  - **PROMPT 7: Live 3D Preview**
+    - Real-time scan progress visualization
+    - Updates as each face is captured
+    - Integrated into 3D cube mini-diagram
+  - **PROMPT 8: Robust Error Handling**
+    - Validates lighting conditions (too dark/bright)
+    - Checks color readability
+    - Detects impossible patterns
+    - Provides recovery suggestions
+  - **PROMPT 9: Manual/Auto Capture Modes**
+    - Toggle between auto-scan and manual capture
+    - Alignment guides with corner markers
+    - 3-2-1 countdown for manual captures
+    - Haptic feedback on capture
+  - **PROMPT 10: Debug Mode**
+    - Triple-tap to toggle debug overlay
+    - Shows stability, frames, brightness metrics
+    - Displays detected face and colors
+    - JSON export for debugging
+
 - Initial iOS 26 universal app implementation
 - SwiftUI-based user interface
 - Glassmorphism design with Mac-style aesthetics

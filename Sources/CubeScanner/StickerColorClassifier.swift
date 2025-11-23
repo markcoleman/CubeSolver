@@ -104,6 +104,58 @@ public actor StickerColorClassifier {
         return colors
     }
     
+    /// PROMPT 3: Classify just the center sticker to determine face orientation
+    /// - Parameters:
+    ///   - buffer: The pixel buffer containing the frame
+    ///   - faceRect: The bounding box of the detected cube face (normalized coordinates)
+    /// - Returns: The classified color of the center sticker
+    public func classifyCenterSticker(
+        buffer: CVPixelBuffer,
+        faceRect: CGRect
+    ) async -> CubeColor {
+        // Lock pixel buffer for reading
+        CVPixelBufferLockBaseAddress(buffer, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+        
+        let width = CVPixelBufferGetWidth(buffer)
+        let height = CVPixelBufferGetHeight(buffer)
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
+        
+        guard let baseAddress = CVPixelBufferGetBaseAddress(buffer) else {
+            return .white
+        }
+        
+        // Convert normalized rect to pixel coordinates
+        let pixelRect = CGRect(
+            x: faceRect.minX * CGFloat(width),
+            y: faceRect.minY * CGFloat(height),
+            width: faceRect.width * CGFloat(width),
+            height: faceRect.height * CGFloat(height)
+        )
+        
+        // Sample center sticker (row 1, col 1 in 3x3 grid)
+        let cellWidth = pixelRect.width / 3.0
+        let cellHeight = pixelRect.height / 3.0
+        
+        let sampleX = Int(pixelRect.minX + (1.5) * cellWidth)
+        let sampleY = Int(pixelRect.minY + (1.5) * cellHeight)
+        
+        // Sample color at center point
+        if let sampledColor = sampleColor(
+            at: CGPoint(x: sampleX, y: sampleY),
+            buffer: buffer,
+            bytesPerRow: bytesPerRow,
+            width: width,
+            height: height,
+            baseAddress: baseAddress
+        ) {
+            let normalizedColor = normalizeColor(sampledColor)
+            return classifyColor(normalizedColor)
+        }
+        
+        return .white // Default
+    }
+    
     // MARK: - Private Methods
     
     /// Sample color at a specific point in the buffer

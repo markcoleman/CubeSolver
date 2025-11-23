@@ -50,10 +50,22 @@ public class CubeCamViewModel: ObservableObject {
     /// Trigger for face capture animation
     @Published public var faceCaptured: Bool = false
     
+    /// PROMPT 1: Scanning progress indicator
+    @Published public var isScanningStable: Bool = false
+    
+    /// PROMPT 2: Warning when duplicate face detected
+    @Published public var duplicateFaceWarning: String?
+    
+    /// PROMPT 3: Detected face from center color
+    @Published public var detectedFaceFromColor: Face?
+    
+    /// PROMPT 3: Wrong face warning
+    @Published public var wrongFaceWarning: String?
+    
     // MARK: - Private Properties
     
-    private let cameraSession = CameraSession()
-    private let capturePipeline = CubeCamCapturePipeline()
+    public let cameraSession = CameraSession()
+    public let capturePipeline = CubeCamCapturePipeline()
     
     private var cancellables = Set<AnyCancellable>()
     private var frameProcessingTask: Task<Void, Never>?
@@ -142,6 +154,9 @@ public class CubeCamViewModel: ObservableObject {
         detectionStatus = .detecting
         captureProgressText = "Position your cube in the frame"
         lastErrorMessage = nil
+        duplicateFaceWarning = nil
+        wrongFaceWarning = nil
+        isScanningStable = false
     }
     
     /// Get the camera preview layer
@@ -246,16 +261,41 @@ public class CubeCamViewModel: ObservableObject {
     }
     
     private func updateProgressText() {
+        // PROMPT 5: Enhanced step-by-step guidance
         if capturedFaceCount == 0 {
-            captureProgressText = "Rotate your cube slowly to capture all sides"
+            captureProgressText = "Step 1: Position cube so a face fills the frame"
         } else if capturedFaceCount < 6 {
             if let nextFace = capturePipeline.getNextFaceToCapture() {
-                captureProgressText = "Captured \(capturedFaceCount)/6 faces. Show \(nextFace.rawValue) face"
+                let faceDisplayName = faceDisplayName(nextFace)
+                captureProgressText = "Step \(capturedFaceCount + 1): Scan the \(faceDisplayName) face"
+                
+                // PROMPT 3: Add wrong face warning if detected
+                if let detectedFace = currentFace,
+                   detectedFace != nextFace,
+                   capturedFaces.contains(detectedFace) {
+                    wrongFaceWarning = "This is the \(faceDisplayName(detectedFace)) face (already scanned). Please scan the \(faceDisplayName) face next."
+                } else {
+                    wrongFaceWarning = nil
+                }
             } else {
                 captureProgressText = "Captured \(capturedFaceCount)/6 faces. Rotate to next face"
+                wrongFaceWarning = nil
             }
         } else {
             captureProgressText = "All faces captured! Validating..."
+            wrongFaceWarning = nil
+        }
+    }
+    
+    /// Get human-readable face name
+    private func faceDisplayName(_ face: Face) -> String {
+        switch face {
+        case .up: return "Top"
+        case .down: return "Bottom"
+        case .left: return "Left"
+        case .right: return "Right"
+        case .front: return "Front"
+        case .back: return "Back"
         }
     }
     

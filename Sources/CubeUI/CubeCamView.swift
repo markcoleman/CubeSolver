@@ -44,25 +44,74 @@ public struct CubeCamView: View {
                     .transition(.opacity)
             }
             
+            // PROMPT 2: Duplicate face warning
+            if let warning = viewModel.duplicateFaceWarning {
+                VStack {
+                    DuplicateFaceWarning(message: warning) {
+                        viewModel.duplicateFaceWarning = nil
+                    }
+                    .padding(.top, 100)
+                    
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            
+            // PROMPT 3: Wrong face warning
+            if let warning = viewModel.wrongFaceWarning {
+                VStack {
+                    WrongFaceWarning(message: warning) {
+                        viewModel.wrongFaceWarning = nil
+                    }
+                    .padding(.top, 100)
+                    
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            
             // UI Overlay
             VStack {
                 // Top instruction text
                 VStack(spacing: 12) {
-                    Text(viewModel.captureProgressText)
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(12)
-                        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                    HStack {
+                        Text(viewModel.captureProgressText)
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        // PROMPT 9: Capture mode badge
+                        CaptureModeBadge(
+                            isAutoMode: viewModel.capturePipeline.autoCaptureEnabled
+                        ) {
+                            viewModel.capturePipeline.autoCaptureEnabled.toggle()
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(12)
+                    .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
                     
-                    // Face capture indicators
-                    FaceCaptureIndicators(
+                    // PROMPT 4: Improved 3D face indicators
+                    Improved3DFaceIndicator(
                         capturedFaces: Array(viewModel.capturedFaces),
-                        currentFace: viewModel.currentFace
+                        currentFace: viewModel.currentFace,
+                        nextFace: viewModel.capturePipeline.getNextFaceToCapture()
                     )
                     .padding(.horizontal)
+                    
+                    // PROMPT 1: Scanning stability overlay
+                    if viewModel.stability > 0.3 {
+                        ScanningOverlay(
+                            stability: viewModel.stability,
+                            requiredFrames: viewModel.capturePipeline.requiredStableFrames,
+                            currentFrames: viewModel.capturePipeline.consecutiveStableFrames,
+                            isScanning: viewModel.capturePipeline.isScanning
+                        )
+                        .transition(.opacity.combined(with: .scale))
+                    }
                 }
                 .padding(.top, 60)
                 

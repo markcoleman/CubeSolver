@@ -33,6 +33,12 @@ public struct CubeCamView: View {
             CameraPreviewView(viewModel: viewModel)
                 .ignoresSafeArea()
             
+            // PROMPT 9: Alignment guide (shown in manual mode)
+            if !viewModel.capturePipeline.autoCaptureEnabled {
+                AlignmentGuide(isAligned: viewModel.stability > 0.7)
+                    .allowsHitTesting(false)
+            }
+            
             // Detection overlay
             if let detection = viewModel.detectionResult {
                 DetectionOverlay(detection: detection, stability: viewModel.stability)
@@ -44,27 +50,97 @@ public struct CubeCamView: View {
                     .transition(.opacity)
             }
             
+            // PROMPT 2: Duplicate face warning
+            if let warning = viewModel.duplicateFaceWarning {
+                VStack {
+                    DuplicateFaceWarning(message: warning) {
+                        viewModel.duplicateFaceWarning = nil
+                    }
+                    .padding(.top, 100)
+                    
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            
+            // PROMPT 3: Wrong face warning
+            if let warning = viewModel.wrongFaceWarning {
+                VStack {
+                    WrongFaceWarning(message: warning) {
+                        viewModel.wrongFaceWarning = nil
+                    }
+                    .padding(.top, 100)
+                    
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            
             // UI Overlay
             VStack {
                 // Top instruction text
                 VStack(spacing: 12) {
-                    Text(viewModel.captureProgressText)
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(12)
-                        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                    HStack {
+                        Text(viewModel.captureProgressText)
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        // PROMPT 9: Capture mode badge
+                        CaptureModeBadge(
+                            isAutoMode: viewModel.capturePipeline.autoCaptureEnabled
+                        ) {
+                            viewModel.capturePipeline.autoCaptureEnabled.toggle()
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(12)
+                    .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
                     
-                    // Face capture indicators
-                    FaceCaptureIndicators(
+                    // PROMPT 4: Improved 3D face indicators
+                    Improved3DFaceIndicator(
                         capturedFaces: Array(viewModel.capturedFaces),
-                        currentFace: viewModel.currentFace
+                        currentFace: viewModel.currentFace,
+                        nextFace: viewModel.capturePipeline.getNextFaceToCapture()
                     )
                     .padding(.horizontal)
+                    
+                    // PROMPT 1: Scanning stability overlay
+                    if viewModel.stability > 0.3 {
+                        ScanningOverlay(
+                            stability: viewModel.stability,
+                            requiredFrames: viewModel.capturePipeline.requiredStableFrames,
+                            currentFrames: viewModel.capturePipeline.consecutiveStableFrames,
+                            isScanning: viewModel.capturePipeline.isScanning
+                        )
+                        .transition(.opacity.combined(with: .scale))
+                    }
+                    
+                    // PROMPT 10: Debug overlay (toggle with triple-tap)
+                    if viewModel.debugModeEnabled {
+                        DebugOverlay(
+                            stability: viewModel.stability,
+                            consecutiveStableFrames: viewModel.capturePipeline.consecutiveStableFrames,
+                            requiredStableFrames: viewModel.capturePipeline.requiredStableFrames,
+                            detectedFace: viewModel.currentFace,
+                            detectedCenterColor: nil, // Would need to expose this
+                            brightness: viewModel.frameMetadata?.brightness ?? 0.5,
+                            capturedFaces: Array(viewModel.capturedFaces)
+                        )
+                        .padding(.horizontal)
+                        .transition(.opacity)
+                    }
                 }
                 .padding(.top, 60)
+                .onTapGesture(count: 3) {
+                    // PROMPT 10: Triple-tap to toggle debug mode
+                    withAnimation {
+                        viewModel.debugModeEnabled.toggle()
+                    }
+                }
                 
                 Spacer()
                 
@@ -101,31 +177,38 @@ public struct CubeCamView: View {
                                 .cornerRadius(16)
                         }
                         
-                        // Manual capture button (shown when stable)
-                        if viewModel.stability > 0.7 && viewModel.capturedFaceCount < 6 {
-                            Button {
+                        // PROMPT 9: Manual capture button with countdown (shown in manual mode)
+                        if !viewModel.capturePipeline.autoCaptureEnabled && viewModel.capturedFaceCount < 6 {
+                            ManualCaptureButton(
+                                isEnabled: viewModel.stability > 0.7
+                            ) {
                                 Task {
                                     await viewModel.manualCapture()
                                 }
-                            } label: {
-                                HStack {
-                                    Image(systemName: "camera.fill")
-                                    Text("Capture")
-                                        .fontWeight(.semibold)
-                                }
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(
-                                    LinearGradient(
-                                        colors: [.blue, .blue.opacity(0.8)],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .cornerRadius(16)
-                                .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
                             }
+                        }
+                        
+                        // Auto capture indicator (shown in auto mode when stable)
+                        if viewModel.capturePipeline.autoCaptureEnabled 
+                            && viewModel.stability > 0.7 
+                            && viewModel.capturedFaceCount < 6 {
+                            HStack {
+                                Image(systemName: "wand.and.stars")
+                                Text("Auto-scanning...")
+                                    .fontWeight(.semibold)
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(
+                                LinearGradient(
+                                    colors: [.purple, .purple.opacity(0.8)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(16)
+                            .shadow(color: .purple.opacity(0.3), radius: 8, x: 0, y: 4)
                         }
                     }
                 }
@@ -133,6 +216,13 @@ public struct CubeCamView: View {
                 .background(.ultraThinMaterial)
                 .cornerRadius(20, corners: [.topLeft, .topRight])
                 .shadow(color: .black.opacity(0.3), radius: 16, x: 0, y: -4)
+            }
+            
+            // PROMPT 8: Scan error overlay
+            if let error = viewModel.capturePipeline.currentError {
+                ScanErrorOverlay(error: error) {
+                    viewModel.capturePipeline.currentError = nil
+                }
             }
             
             // Error alert overlay

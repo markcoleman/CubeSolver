@@ -23,6 +23,12 @@ public actor StickerColorClassifier {
     /// Use depth data for lighting normalization
     public var useDepthCorrection: Bool = true
     
+    /// PROMPT 6: Number of sample points per sticker for noise reduction
+    public var samplesPerSticker: Int = 9
+    
+    /// PROMPT 6: Use median filtering to reduce noise
+    public var useMedianFiltering: Bool = true
+    
     // MARK: - Private Properties
     
     // Reference colors in HSB color space for each cube color
@@ -76,32 +82,102 @@ public actor StickerColorClassifier {
         
         for row in 0..<3 {
             for col in 0..<3 {
-                // Calculate sample point (center of each cell)
+                // PROMPT 6: Sample multiple points inside each sticker
+                // Note: 81 total samples (9 per sticker × 9 stickers) is necessary for
+                // robust color detection in varying lighting conditions. The performance
+                // impact is acceptable as this runs at 30fps and only when cube is detected.
                 let cellWidth = pixelRect.width / 3.0
                 let cellHeight = pixelRect.height / 3.0
                 
-                let sampleX = Int(pixelRect.minX + (CGFloat(col) + 0.5) * cellWidth)
-                let sampleY = Int(pixelRect.minY + (CGFloat(row) + 0.5) * cellHeight)
+                let cellOriginX = pixelRect.minX + CGFloat(col) * cellWidth
+                let cellOriginY = pixelRect.minY + CGFloat(row) * cellHeight
                 
-                // Sample color at this point
-                if let sampledColor = sampleColor(
-                    at: CGPoint(x: sampleX, y: sampleY),
-                    buffer: buffer,
-                    bytesPerRow: bytesPerRow,
-                    width: width,
-                    height: height,
-                    baseAddress: baseAddress
-                ) {
-                    let normalizedColor = normalizeColor(sampledColor)
-                    let classifiedColor = classifyColor(normalizedColor)
-                    colors.append(classifiedColor)
-                } else {
-                    colors.append(.white) // Default
+                // Sample in a 3x3 grid within each sticker (avoiding edges)
+                var sampleColors: [RGBColor] = []
+                
+                for sampleRow in 0..<3 {
+                    for sampleCol in 0..<3 {
+                        let sampleX = Int(cellOriginX + cellWidth * (CGFloat(sampleCol) + 1) / 4)
+                        let sampleY = Int(cellOriginY + cellHeight * (CGFloat(sampleRow) + 1) / 4)
+                        
+                        if let sampledColor = sampleColor(
+                            at: CGPoint(x: sampleX, y: sampleY),
+                            buffer: buffer,
+                            bytesPerRow: bytesPerRow,
+                            width: width,
+                            height: height,
+                            baseAddress: baseAddress
+                        ) {
+                            sampleColors.append(sampledColor)
+                        }
+                    }
                 }
+                
+                // PROMPT 6: Use median color to reduce noise
+                let representativeColor = useMedianFiltering 
+                    ? medianColor(sampleColors)
+                    : averageColor(sampleColors)
+                
+                // PROMPT 6: Apply white balance normalization
+                let normalizedColor = normalizeColorWithWhiteBalance(representativeColor)
+                let classifiedColor = classifyColor(normalizedColor)
+                colors.append(classifiedColor)
             }
         }
         
         return colors
+    }
+    
+    /// PROMPT 3: Classify just the center sticker to determine face orientation
+    /// - Parameters:
+    ///   - buffer: The pixel buffer containing the frame
+    ///   - faceRect: The bounding box of the detected cube face (normalized coordinates)
+    /// - Returns: The classified color of the center sticker
+    public func classifyCenterSticker(
+        buffer: CVPixelBuffer,
+        faceRect: CGRect
+    ) async -> CubeColor {
+        // Lock pixel buffer for reading
+        CVPixelBufferLockBaseAddress(buffer, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+        
+        let width = CVPixelBufferGetWidth(buffer)
+        let height = CVPixelBufferGetHeight(buffer)
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
+        
+        guard let baseAddress = CVPixelBufferGetBaseAddress(buffer) else {
+            return .white
+        }
+        
+        // Convert normalized rect to pixel coordinates
+        let pixelRect = CGRect(
+            x: faceRect.minX * CGFloat(width),
+            y: faceRect.minY * CGFloat(height),
+            width: faceRect.width * CGFloat(width),
+            height: faceRect.height * CGFloat(height)
+        )
+        
+        // Sample center sticker (row 1, col 1 in 3x3 grid)
+        let cellWidth = pixelRect.width / 3.0
+        let cellHeight = pixelRect.height / 3.0
+        
+        let sampleX = Int(pixelRect.minX + (1.5) * cellWidth)
+        let sampleY = Int(pixelRect.minY + (1.5) * cellHeight)
+        
+        // Sample color at center point
+        if let sampledColor = sampleColor(
+            at: CGPoint(x: sampleX, y: sampleY),
+            buffer: buffer,
+            bytesPerRow: bytesPerRow,
+            width: width,
+            height: height,
+            baseAddress: baseAddress
+        ) {
+            let normalizedColor = normalizeColor(sampledColor)
+            return classifyColor(normalizedColor)
+        }
+        
+        return .white // Default
     }
     
     // MARK: - Private Methods
@@ -155,6 +231,70 @@ public actor StickerColorClassifier {
             r: color.r / max,
             g: color.g / max,
             b: color.b / max
+        )
+    }
+    
+    /// PROMPT 6: Enhanced white balance normalization with lighting compensation
+    private func normalizeColorWithWhiteBalance(_ color: RGBColor) -> RGBColor {
+        // Apply gray world assumption for white balance
+        let avg = (color.r + color.g + color.b) / 3.0
+        
+        guard avg > 0.05 else {
+            return color
+        }
+        
+        // Normalize each channel
+        var normalized = RGBColor(
+            r: color.r / avg,
+            g: color.g / avg,
+            b: color.b / avg
+        )
+        
+        // Clamp values
+        normalized = RGBColor(
+            r: min(1.0, max(0.0, normalized.r)),
+            g: min(1.0, max(0.0, normalized.g)),
+            b: min(1.0, max(0.0, normalized.b))
+        )
+        
+        return normalized
+    }
+    
+    /// PROMPT 6: Calculate median color from samples to reduce noise
+    private func medianColor(_ colors: [RGBColor]) -> RGBColor {
+        guard !colors.isEmpty else {
+            return RGBColor(r: 0.5, g: 0.5, b: 0.5)
+        }
+        
+        let sortedR = colors.map { $0.r }.sorted()
+        let sortedG = colors.map { $0.g }.sorted()
+        let sortedB = colors.map { $0.b }.sorted()
+        
+        let midIndex = colors.count / 2
+        
+        return RGBColor(
+            r: sortedR[midIndex],
+            g: sortedG[midIndex],
+            b: sortedB[midIndex]
+        )
+    }
+    
+    /// PROMPT 6: Calculate average color from samples
+    private func averageColor(_ colors: [RGBColor]) -> RGBColor {
+        guard !colors.isEmpty else {
+            return RGBColor(r: 0.5, g: 0.5, b: 0.5)
+        }
+        
+        let sumR = colors.reduce(0.0) { $0 + $1.r }
+        let sumG = colors.reduce(0.0) { $0 + $1.g }
+        let sumB = colors.reduce(0.0) { $0 + $1.b }
+        
+        let count = Float(colors.count)
+        
+        return RGBColor(
+            r: sumR / count,
+            g: sumG / count,
+            b: sumB / count
         )
     }
     

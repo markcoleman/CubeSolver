@@ -181,7 +181,6 @@ public struct ManualInputView: View {
             }
             .sheet(isPresented: $showingSolutionPlayback) {
                 SolutionPlaybackView(
-                    cubeViewModel: cubeViewModel,
                     initialState: CubeState(from: cubeViewModel.cube)
                 )
             }

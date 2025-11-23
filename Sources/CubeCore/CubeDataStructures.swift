@@ -207,6 +207,78 @@ public struct Move: Equatable, Codable, Sendable {
     }
 }
 
+// MARK: - Solution
+
+/// Represents a complete solution for a Rubik's Cube
+public struct CubeSolution: Equatable, Codable, Sendable {
+    /// The initial state of the cube before applying the solution
+    public let initialState: CubeState
+    
+    /// The sequence of moves that solve the cube
+    public let moves: [Move]
+    
+    /// Initialize a cube solution
+    /// - Parameters:
+    ///   - initialState: The starting cube state
+    ///   - moves: The solution moves
+    public init(initialState: CubeState, moves: [Move]) {
+        self.initialState = initialState
+        self.moves = moves
+    }
+}
+
+// MARK: - Move Application Helpers
+
+extension CubeState {
+    /// Apply a single move to a cube state and return the new state
+    /// - Parameters:
+    ///   - move: The move to apply
+    ///   - state: The current cube state
+    /// - Returns: The new cube state after applying the move
+    public static func apply(move: Move, to state: CubeState) -> CubeState {
+        var newState = state
+        var cube = state.toRubiksCube()
+        
+        // Apply the move the appropriate number of times based on amount
+        for _ in 0..<move.amount.quarters {
+            switch move.turn {
+            case .F: cube.rotateFront()
+            case .B: cube.rotateBack()
+            case .L: cube.rotateLeft()
+            case .R: cube.rotateRight()
+            case .U: cube.rotateTop()
+            case .D: cube.rotateBottom()
+            }
+        }
+        
+        newState = CubeState(from: cube)
+        return newState
+    }
+    
+    /// Get the cube state at a specific step in a solution
+    /// - Parameters:
+    ///   - step: The step number (0 = initial state, 1 = after first move, etc.)
+    ///   - solution: The cube solution
+    /// - Returns: The cube state at the specified step
+    public static func state(at step: Int, for solution: CubeSolution) -> CubeState {
+        guard step >= 0 else { return solution.initialState }
+        guard step <= solution.moves.count else {
+            // Return the final state if step is beyond the solution
+            return state(at: solution.moves.count, for: solution)
+        }
+        
+        // Start with the initial state
+        var currentState = solution.initialState
+        
+        // Apply moves up to the specified step
+        for i in 0..<step {
+            currentState = apply(move: solution.moves[i], to: currentState)
+        }
+        
+        return currentState
+    }
+}
+
 // MARK: - Conversion Utilities
 
 public extension CubeState {

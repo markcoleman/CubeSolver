@@ -198,7 +198,6 @@ public struct ValidatedManualInputView: View {
             }
             .sheet(isPresented: $showingSolutionPlayback) {
                 SolutionPlaybackView(
-                    cubeViewModel: cubeViewModel,
                     initialState: CubeState(from: cubeViewModel.cube)
                 )
             }

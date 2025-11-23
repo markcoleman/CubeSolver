@@ -517,7 +517,6 @@ struct SolveView: View {
         #endif
         .navigationDestination(isPresented: $showingSolution) {
             SolutionPlaybackView(
-                cubeViewModel: cubeViewModel,
                 initialState: CubeState(from: cubeViewModel.cube)
             )
         }
@@ -812,7 +811,6 @@ struct PracticeView: View {
         #endif
         .navigationDestination(isPresented: $showingSolutionPlayback) {
             SolutionPlaybackView(
-                cubeViewModel: cubeViewModel,
                 initialState: CubeState(from: cubeViewModel.cube)
             )
         }

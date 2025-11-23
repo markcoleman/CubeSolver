@@ -109,12 +109,11 @@ public struct CubeCamView: View {
                     .padding(.horizontal)
                     
                     // PROMPT 1: Scanning stability overlay
-                    if viewModel.stability > 0.3 {
+                    if viewModel.capturePipeline.captureState != .idle {
                         ScanningOverlay(
-                            stability: viewModel.stability,
+                            captureState: viewModel.capturePipeline.captureState,
                             requiredFrames: viewModel.capturePipeline.requiredStableFrames,
-                            currentFrames: viewModel.capturePipeline.consecutiveStableFrames,
-                            isScanning: viewModel.capturePipeline.isScanning
+                            currentFrames: viewModel.capturePipeline.consecutiveStableFrames
                         )
                         .transition(.opacity.combined(with: .scale))
                     }

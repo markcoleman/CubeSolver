@@ -29,6 +29,9 @@ public class CubeCamCapturePipeline: ObservableObject {
     /// Last detection result
     @Published public var lastDetection: CubeFaceDetectionResult?
     
+    /// PROMPT 8: Current scan error (if any)
+    @Published public var currentError: CubeScanErrorDetector.ScanError?
+    
     // MARK: - Configuration
     
     /// Minimum stability duration before auto-capture (seconds) - PROMPT 1
@@ -53,6 +56,7 @@ public class CubeCamCapturePipeline: ObservableObject {
     
     private let faceDetectionService = CubeFaceDetectionService()
     private let colorClassifier = StickerColorClassifier()
+    private let errorDetector = CubeScanErrorDetector()
     
     private var detectionHistory: [(time: TimeInterval, result: CubeFaceDetectionResult, brightness: Float)] = []
     private var lastCaptureTime: TimeInterval = 0
@@ -365,7 +369,7 @@ public class CubeCamCapturePipeline: ObservableObject {
         return true
     }
     
-    /// Capture the current face - PROMPT 2: Enhanced with duplicate detection
+    /// Capture the current face - PROMPT 2: Enhanced with duplicate detection, PROMPT 8: Error validation
     private func captureCurrentFace(
         videoFrame: CVPixelBuffer,
         depthFrame: CVPixelBuffer?,
@@ -373,11 +377,30 @@ public class CubeCamCapturePipeline: ObservableObject {
     ) async {
         guard let face = currentFaceEstimate else { return }
         
+        // PROMPT 8: Validate lighting
+        let brightness = detectionHistory.last?.brightness ?? 0.5
+        if let lightingError = await errorDetector.validateLighting(brightness: brightness) {
+            currentError = lightingError
+            return
+        }
+        
         // Classify sticker colors
         let colors = await colorClassifier.classifyStickers(
             buffer: videoFrame,
             faceRect: detection.boundingBox
         )
+        
+        // PROMPT 8: Validate colors are readable
+        if let colorError = await errorDetector.validateColors(colors) {
+            currentError = colorError
+            return
+        }
+        
+        // PROMPT 8: Validate face layout
+        if let layoutError = await errorDetector.validateFaceLayout(colors) {
+            currentError = layoutError
+            return
+        }
         
         // PROMPT 2: Check for duplicate patterns
         if let duplicateFace = findDuplicatePattern(colors: colors, excluding: face) {
@@ -396,6 +419,9 @@ public class CubeCamCapturePipeline: ObservableObject {
         capturedFaces[face] = colors
         capturedPatterns[face] = colors
         lastCaptureTime = Date().timeIntervalSince1970
+        
+        // Clear any errors
+        currentError = nil
         
         // Reset for next face
         currentFaceEstimate = nil

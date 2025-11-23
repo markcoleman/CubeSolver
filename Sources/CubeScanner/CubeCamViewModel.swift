@@ -62,6 +62,12 @@ public class CubeCamViewModel: ObservableObject {
     /// PROMPT 3: Wrong face warning
     @Published public var wrongFaceWarning: String?
     
+    /// PROMPT 10: Debug mode enabled
+    @Published public var debugModeEnabled: Bool = false
+    
+    /// Frame metadata for debugging
+    @Published public var frameMetadata: FrameMetadata?
+    
     // MARK: - Private Properties
     
     public let cameraSession = CameraSession()
@@ -233,6 +239,9 @@ public class CubeCamViewModel: ObservableObject {
                 
                 let depthFrame = await self.cameraSession.lastDepthFrame
                 let timestamp = Date().timeIntervalSince1970
+                
+                // PROMPT 10: Update frame metadata for debugging
+                self.frameMetadata = await self.cameraSession.frameMetadata
                 
                 // Process frame through pipeline
                 await self.capturePipeline.processFrame(

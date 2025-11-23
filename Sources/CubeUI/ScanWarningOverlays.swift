@@ -8,6 +8,7 @@
 #if os(iOS)
 
 import SwiftUI
+import CubeScanner
 
 /// PROMPT 2: Duplicate face warning overlay
 struct DuplicateFaceWarning: View {
@@ -123,6 +124,80 @@ struct WrongFaceWarning: View {
         .accessibilityElement()
         .accessibilityLabel("Wrong face warning")
         .accessibilityValue(message)
+    }
+}
+
+/// PROMPT 8: Scan error overlay with recovery suggestions
+struct ScanErrorOverlay: View {
+    let error: CubeScanErrorDetector.ScanError
+    let onDismiss: () -> Void
+    
+    @State private var isVisible: Bool = false
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 12) {
+                Image(systemName: "exclamationmark.octagon.fill")
+                    .font(.title)
+                    .foregroundColor(.red)
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Scan Error")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    Text(error.localizedDescription)
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.9))
+                        .fixedSize(horizontal: false, vertical: true)
+                    
+                    if let suggestion = error.recoverySuggestion {
+                        HStack(spacing: 6) {
+                            Image(systemName: "lightbulb.fill")
+                                .font(.caption)
+                                .foregroundColor(.yellow)
+                            
+                            Text(suggestion)
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.8))
+                                .italic()
+                        }
+                        .padding(.top, 4)
+                    }
+                }
+                
+                Spacer()
+            }
+            
+            HStack(spacing: 12) {
+                Button(action: onDismiss) {
+                    Text("Retry")
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.blue)
+                        .cornerRadius(8)
+                }
+            }
+        }
+        .padding(20)
+        .background(Color.red.opacity(0.15))
+        .background(.ultraThinMaterial)
+        .cornerRadius(16)
+        .shadow(color: .red.opacity(0.3), radius: 12, x: 0, y: 4)
+        .padding(.horizontal)
+        .offset(y: isVisible ? 0 : -200)
+        .opacity(isVisible ? 1 : 0)
+        .onAppear {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                isVisible = true
+            }
+        }
+        .accessibilityElement()
+        .accessibilityLabel("Scan error")
+        .accessibilityValue(error.localizedDescription)
     }
 }
 

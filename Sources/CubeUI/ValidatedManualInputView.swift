@@ -11,6 +11,8 @@ import CubeCore
 
 /// View for manually inputting a cube configuration with validation
 public struct ValidatedManualInputView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     @ObservedObject var cubeViewModel: CubeViewModel
     @Environment(\.dismiss) private var dismiss
     

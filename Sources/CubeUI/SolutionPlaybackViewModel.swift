@@ -31,10 +31,17 @@ public class SolutionPlaybackViewModel: ObservableObject {
     /// Whether an animation is currently in progress
     @Published public private(set) var isAnimating: Bool = false
     
+    // MARK: - Public Properties
+    
+    /// The solution being played back (read-only access to moves)
+    public var solution: CubeSolution {
+        return self._solution
+    }
+    
     // MARK: - Private Properties
     
     /// The complete solution being played back
-    private let solution: CubeSolution
+    private let _solution: CubeSolution
     
     /// Timer for automatic playback
     private var playbackTimer: Timer?
@@ -49,7 +56,7 @@ public class SolutionPlaybackViewModel: ObservableObject {
     ///   - solution: The cube solution to play back
     ///   - playbackSpeed: Speed in moves per second (default: 1.0)
     public init(solution: CubeSolution, playbackSpeed: Double = 1.0) {
-        self.solution = solution
+        self._solution = solution
         self.playbackSpeed = playbackSpeed
         self.totalMoves = solution.moves.count
         self.currentCubeState = solution.initialState
@@ -162,7 +169,7 @@ public class SolutionPlaybackViewModel: ObservableObject {
     
     /// Update the cube state based on the current step
     private func updateCubeState() {
-        currentCubeState = CubeState.state(at: currentStep, for: solution)
+        currentCubeState = CubeState.state(at: currentStep, for: _solution)
     }
     
     /// Clean up resources

@@ -12,19 +12,43 @@ import CubeCore
 /// View for displaying and playing back cube solution steps with 3D animations
 public struct SolutionPlaybackView: View {
     @Environment(\.colorScheme) private var colorScheme
-    
-    @ObservedObject var cubeViewModel: CubeViewModel
     @Environment(\.dismiss) private var dismiss
     
-    @State private var currentStep = 0
-    @State private var isPlaying = false
-    @State private var playbackTimer: Timer?
-    @State private var cubeStates: [CubeCore.CubeState] = []
-    @State private var moves: [String] = []
-    @State private var currentAnimatingMove: String?
-    @State private var isAnimating = false
+    @StateObject private var viewModel: SolutionPlaybackViewModel
+    @State private var lastStep = 0
+    @State private var currentAnimatingMove: Move?
     
-    let initialState: CubeCore.CubeState
+    /// Initialize the solution playback view
+    /// - Parameters:
+    ///   - initialState: The initial cube state
+    ///   - playbackSpeed: Speed in moves per second (default: 1.0)
+    public init(initialState: CubeCore.CubeState, playbackSpeed: Double = 1.0) {
+        // Create a solution from the initial state
+        let solution: CubeSolution
+        do {
+            let moves = try EnhancedCubeSolver.solveCube(from: initialState)
+            solution = CubeSolution(initialState: initialState, moves: moves)
+        } catch {
+            // If solving fails, create empty solution
+            solution = CubeSolution(initialState: initialState, moves: [])
+        }
+        
+        _viewModel = StateObject(wrappedValue: SolutionPlaybackViewModel(
+            solution: solution,
+            playbackSpeed: playbackSpeed
+        ))
+    }
+    
+    /// Initialize with an existing solution
+    /// - Parameters:
+    ///   - solution: The cube solution to play back
+    ///   - playbackSpeed: Speed in moves per second (default: 1.0)
+    public init(solution: CubeSolution, playbackSpeed: Double = 1.0) {
+        _viewModel = StateObject(wrappedValue: SolutionPlaybackViewModel(
+            solution: solution,
+            playbackSpeed: playbackSpeed
+        ))
+    }
     
     public var body: some View {
         NavigationStack {
@@ -38,73 +62,94 @@ public struct SolutionPlaybackView: View {
                 .ignoresSafeArea()
                 .accessibilityHidden(true)
                 
-                VStack(spacing: 30) {
+                VStack(spacing: 25) {
+                    // Title
                     Text("Solution Playback")
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
-                        .padding(.top, 50)
+                        .padding(.top, 20)
                         .accessibilityAddTraits(.isHeader)
                     
-                    // Solution overview
+                    // Solution overview card
                     SolutionOverviewCard(
-                        totalMoves: moves.count,
-                        currentStep: currentStep
+                        totalMoves: viewModel.totalMoves,
+                        currentStep: viewModel.currentStep
                     )
                     .padding(.horizontal)
                     
-                    // Cube visualization - Use 3D view for better UX with animations
-                    if currentStep < cubeStates.count {
-                        #if canImport(SceneKit)
-                        AnimatedCube3DView(
-                            cube: cubeStates[currentStep].toRubiksCube(),
-                            currentMove: .constant(nil),
-                            onMoveComplete: handleAnimationComplete
+                    // Scrubbing slider
+                    VStack(spacing: 10) {
+                        Slider(
+                            value: Binding(
+                                get: { Double(viewModel.currentStep) },
+                                set: { viewModel.scrub(to: Int($0)) }
+                            ),
+                            in: 0...Double(viewModel.totalMoves),
+                            step: 1
                         )
-                        .frame(height: 450)
                         .padding(.horizontal)
-                        .accessibilityLabel("3D animated cube at step \(currentStep)")
-                        .transition(.asymmetric(
-                            insertion: .scale.combined(with: .opacity),
-                            removal: .scale.combined(with: .opacity)
-                        ))
-                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentStep)
-                        .id(currentStep) // Force SwiftUI to recognize state changes
-                        #else
-                        // Fallback to 2D view on platforms without SceneKit
-                        CubeView(cube: cubeStates[currentStep].toRubiksCube())
-                            .frame(maxWidth: 450, maxHeight: 450)
-                            .accessibilityLabel("Cube state at step \(currentStep)")
-                            .transition(.asymmetric(
-                                insertion: .scale.combined(with: .opacity),
-                                removal: .scale.combined(with: .opacity)
-                            ))
-                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentStep)
-                            .id(currentStep)
-                        #endif
+                        .accentColor(.blue)
+                        .accessibilityLabel("Solution progress slider")
+                        .accessibilityValue("Step \(viewModel.currentStep) of \(viewModel.totalMoves)")
+                        
+                        HStack {
+                            Text("Start")
+                                .font(.caption)
+                                .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
+                            Spacer()
+                            Text("End")
+                                .font(.caption)
+                                .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
+                        }
+                        .padding(.horizontal)
                     }
                     
+                    // 3D Cube visualization
+                    #if canImport(SceneKit)
+                    AnimatedCube3DView(
+                        cube: viewModel.currentCubeState.toRubiksCube(),
+                        currentMove: $currentAnimatingMove,
+                        onMoveComplete: handleAnimationComplete
+                    )
+                    .frame(height: 350)
+                    .padding(.horizontal)
+                    .accessibilityLabel("3D animated cube at step \(viewModel.currentStep)")
+                    .id(viewModel.currentStep)
+                    #else
+                    // Fallback to 2D view on platforms without SceneKit
+                    CubeView(cube: viewModel.currentCubeState.toRubiksCube())
+                        .frame(maxWidth: 350, maxHeight: 350)
+                        .accessibilityLabel("Cube state at step \(viewModel.currentStep)")
+                        .id(viewModel.currentStep)
+                    #endif
+                    
                     // Current move display
-                    if currentStep > 0 && currentStep <= moves.count {
-                        CurrentMoveCard(move: moves[currentStep - 1])
-                            .padding(.horizontal)
-                            .transition(.asymmetric(
-                                insertion: .move(edge: .trailing).combined(with: .opacity),
-                                removal: .move(edge: .leading).combined(with: .opacity)
-                            ))
-                            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: currentStep)
+                    if viewModel.currentStep > 0 && viewModel.currentStep <= viewModel.totalMoves {
+                        // Get the move that was just applied (currentStep - 1 because we show the result)
+                        if viewModel.currentStep - 1 < viewModel.solution.moves.count {
+                            let move = viewModel.solution.moves[viewModel.currentStep - 1]
+                            CurrentMoveCard(moveNotation: move.notation, moveDescription: move.description)
+                                .padding(.horizontal)
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                                    removal: .move(edge: .leading).combined(with: .opacity)
+                                ))
+                                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.currentStep)
+                        }
                     }
                     
                     // Playback controls
                     PlaybackControls(
-                        currentStep: $currentStep,
-                        isPlaying: $isPlaying,
-                        totalSteps: moves.count,
-                        onPrevious: previousStep,
-                        onNext: nextStep,
-                        onPlayPause: togglePlayback,
-                        onReset: resetPlayback,
-                        isAnimating: isAnimating
+                        currentStep: viewModel.currentStep,
+                        totalSteps: viewModel.totalMoves,
+                        isPlaying: viewModel.isPlaying,
+                        isAnimating: viewModel.isAnimating,
+                        onPrevious: { viewModel.stepBackward() },
+                        onNext: { viewModel.stepForward() },
+                        onPlayPause: { viewModel.togglePlayPause() },
+                        onReset: { viewModel.jumpToStart() },
+                        onJumpToEnd: { viewModel.jumpToEnd() }
                     )
                     .padding(.horizontal)
                     
@@ -117,103 +162,43 @@ public struct SolutionPlaybackView: View {
             .toolbar {
                 ToolbarItem(placement: .automatic) {
                     Button("Done") {
-                        stopPlayback()
+                        viewModel.pause()
                         dismiss()
                     }
                     .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                 }
             }
-            .onAppear {
-                loadSolution()
+            .onChange(of: viewModel.currentStep) { oldValue, newValue in
+                handleStepChange(from: oldValue, to: newValue)
             }
             .onDisappear {
-                stopPlayback()
+                viewModel.pause()
             }
         }
     }
     
-    private func loadSolution() {
-        // Get solution moves
-        do {
-            let coreMoves = try EnhancedCubeSolver.solveCube(from: initialState)
-            moves = coreMoves.map { String(describing: $0) }
-            
-            // Generate cube states for each step using core moves for correctness
-            cubeStates = [initialState]
-            var currentState = initialState
-            
-            for coreMove in coreMoves {
-                EnhancedCubeSolver.applyMoves(to: &currentState, moves: [coreMove])
-                cubeStates.append(currentState)
-            }
-        } catch {
-            // If solving fails, just show the initial state
-            moves = []
-            cubeStates = [initialState]
-        }
-    }
+    // MARK: - Private Methods
     
-    private func previousStep() {
-        guard !isAnimating else { return }
-        if currentStep > 0 {
-            currentStep -= 1
-        }
-    }
-    
-    private func nextStep() {
-        guard !isAnimating else { return }
-        if currentStep < moves.count {
-            triggerAnimation(for: currentStep)
-            currentStep += 1
-        }
-    }
-    
-    private func triggerAnimation(for step: Int) {
+    private func handleStepChange(from oldStep: Int, to newStep: Int) {
+        let stepDiff = newStep - oldStep
+        
         #if canImport(SceneKit)
-        if step < moves.count {
-            isAnimating = true
-            currentAnimatingMove = moves[step]
+        // If we moved forward by exactly 1 step, trigger animation
+        if stepDiff == 1 && newStep > 0 {
+            if newStep - 1 < viewModel.solution.moves.count {
+                currentAnimatingMove = viewModel.solution.moves[newStep - 1]
+            }
+        } else {
+            // For other changes (backward, jumps), just update without animation
+            currentAnimatingMove = nil
         }
         #endif
+        
+        lastStep = newStep
     }
     
     private func handleAnimationComplete() {
-        isAnimating = false
         currentAnimatingMove = nil
-    }
-    
-    private func togglePlayback() {
-        isPlaying.toggle()
-        
-        if isPlaying {
-            startPlayback()
-        } else {
-            stopPlayback()
-        }
-    }
-    
-    private func startPlayback() {
-        playbackTimer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { _ in
-            if currentStep < moves.count && !isAnimating {
-                triggerAnimation(for: currentStep)
-                currentStep += 1
-            } else if currentStep >= moves.count {
-                stopPlayback()
-            }
-        }
-    }
-    
-    private func stopPlayback() {
-        isPlaying = false
-        playbackTimer?.invalidate()
-        playbackTimer = nil
-    }
-    
-    private func resetPlayback() {
-        stopPlayback()
-        currentStep = 0
-        currentAnimatingMove = nil
-        isAnimating = false
     }
 }
 
@@ -279,7 +264,8 @@ public struct SolutionOverviewCard: View {
 public struct CurrentMoveCard: View {
     @Environment(\.colorScheme) private var colorScheme
     
-    let move: String
+    let moveNotation: String
+    let moveDescription: String
     
     public var body: some View {
         GlassmorphicCard {
@@ -289,12 +275,12 @@ public struct CurrentMoveCard: View {
                     .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
                 
                 HStack(spacing: 15) {
-                    Text(moveDisplay(move))
+                    Text(moveNotation)
                         .font(.system(size: 48, weight: .bold, design: .monospaced))
                         .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                     
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(moveDetails(move))
+                        Text(moveDescription)
                             .font(.body)
                             .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
                     }
@@ -302,33 +288,31 @@ public struct CurrentMoveCard: View {
             }
             .padding()
         }
-        .accessibilityLabel("Move: \(moveDisplay(move))")
+        .accessibilityLabel("Move: \(moveNotation), \(moveDescription)")
     }
-    
-    private func moveDisplay(_ move: String) -> String { move }
-    private func moveDetails(_ move: String) -> String { "" }
 }
 
 /// Playback control buttons
 public struct PlaybackControls: View {
-    @Binding var currentStep: Int
-    @Binding var isPlaying: Bool
+    let currentStep: Int
     let totalSteps: Int
+    let isPlaying: Bool
+    let isAnimating: Bool
     let onPrevious: () -> Void
     let onNext: () -> Void
     let onPlayPause: () -> Void
     let onReset: () -> Void
-    var isAnimating: Bool = false
+    let onJumpToEnd: () -> Void
     
     public var body: some View {
         VStack(spacing: 15) {
             HStack(spacing: 20) {
-                // Reset button
+                // Reset to start button
                 PlaybackButton(icon: "backward.end.fill", action: onReset)
                     .disabled(currentStep == 0 || isAnimating)
                     .accessibilityLabel("Reset to beginning")
                 
-                // Previous button
+                // Previous step button
                 PlaybackButton(icon: "backward.fill", action: onPrevious)
                     .disabled(currentStep == 0 || isAnimating)
                     .accessibilityLabel("Previous step")
@@ -342,17 +326,15 @@ public struct PlaybackControls: View {
                 .disabled(currentStep >= totalSteps || isAnimating)
                 .accessibilityLabel(isPlaying ? "Pause" : "Play")
                 
-                // Next button
+                // Next step button
                 PlaybackButton(icon: "forward.fill", action: onNext)
                     .disabled(currentStep >= totalSteps || isAnimating)
                     .accessibilityLabel("Next step")
                 
-                // Fast forward (to end)
-                PlaybackButton(icon: "forward.end.fill") {
-                    currentStep = totalSteps
-                }
-                .disabled(currentStep >= totalSteps || isAnimating)
-                .accessibilityLabel("Skip to end")
+                // Jump to end button
+                PlaybackButton(icon: "forward.end.fill", action: onJumpToEnd)
+                    .disabled(currentStep >= totalSteps || isAnimating)
+                    .accessibilityLabel("Skip to end")
             }
         }
     }
@@ -388,7 +370,6 @@ public struct PlaybackButton: View {
 
 #Preview {
     SolutionPlaybackView(
-        cubeViewModel: CubeViewModel(),
         initialState: CubeCore.CubeState()
     )
 }

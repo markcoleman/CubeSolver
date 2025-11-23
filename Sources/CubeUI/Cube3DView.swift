@@ -305,16 +305,7 @@ private typealias platformColor = UIColor
 #Preview {
     Cube3DView(cube: RubiksCube())
         .frame(width: 400, height: 400)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0.1, green: 0.1, blue: 0.2),
-                    Color(red: 0.2, green: 0.15, blue: 0.3)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
+        .adaptiveBackground()
 }
 
 #endif // canImport(SceneKit)

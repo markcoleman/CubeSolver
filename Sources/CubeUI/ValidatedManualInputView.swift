@@ -11,6 +11,8 @@ import CubeCore
 
 /// View for manually inputting a cube configuration with validation
 public struct ValidatedManualInputView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     @ObservedObject var cubeViewModel: CubeViewModel
     @Environment(\.dismiss) private var dismiss
     
@@ -27,10 +29,7 @@ public struct ValidatedManualInputView: View {
             ZStack {
                 // Background gradient matching main view
                 LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.1, green: 0.1, blue: 0.2),
-                        Color(red: 0.2, green: 0.15, blue: 0.3)
-                    ]),
+                    gradient: Gradient(colors: CubeSolverColors.backgroundGradient(for: colorScheme)),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )

@@ -39,7 +39,7 @@ jobs:
     needs: lint
     strategy:
       matrix:
-        xcode: ['15.2', '15.3']
+        xcode: ['16.1']
       fail-fast: false
     
     steps:
@@ -71,7 +71,7 @@ jobs:
       run: swift test --enable-code-coverage --parallel
       
     - name: Generate code coverage report
-      if: matrix.xcode == '15.2'
+      if: matrix.xcode == '16.1'
       run: |
         # Find all test executables and generate coverage for each
         for test_exec in .build/debug/*.xctest/Contents/MacOS/*; do
@@ -83,7 +83,7 @@ jobs:
         done
       
     - name: Upload coverage to Codecov
-      if: matrix.xcode == '15.2'
+      if: matrix.xcode == '16.1'
       uses: codecov/codecov-action@v5
       with:
         files: ./coverage.lcov
@@ -92,7 +92,7 @@ jobs:
         fail_ci_if_error: false
         
     - name: Check code coverage threshold
-      if: matrix.xcode == '15.2'
+      if: matrix.xcode == '16.1'
       run: |
         # Extract coverage percentage (basic check)
         if [ -f coverage.lcov ]; then

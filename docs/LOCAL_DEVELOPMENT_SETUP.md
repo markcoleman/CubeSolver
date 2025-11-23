@@ -6,7 +6,7 @@ This guide helps you set up your local development environment to match the CI/C
 
 Before you start development, ensure your environment matches CI:
 
-- [ ] Xcode 15.2 or 15.3 installed (CI uses both)
+- [ ] Xcode 16.1 installed (CI uses both)
 - [ ] macOS 14.0+ (Sonoma)
 - [ ] Swift 5.9+ toolchain
 - [ ] SwiftLint installed
@@ -17,16 +17,16 @@ Before you start development, ensure your environment matches CI:
 
 ### Xcode Version
 
-**CI Configuration:** macOS 14 runners with Xcode 15.2 and 15.3 (matrix build)
+**CI Configuration:** macOS 14 runners with Xcode 16.1
 
-**Local Requirement:** Install Xcode 15.2 or 15.3
+**Local Requirement:** Install Xcode 16.1
 
 ```bash
 # Check your current Xcode version
 xcodebuild -version
 
 # Expected output:
-# Xcode 15.2 (or 15.3)
+# Xcode 16.1
 # Build version 15C500b (or similar)
 ```
 
@@ -41,8 +41,8 @@ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 ```bash
 # Use xcodes (recommended): https://github.com/RobotsAndPencils/xcodes
 brew install xcodes
-xcodes install 15.2
-xcodes select 15.2
+xcodes install 16.1
+xcodes select 16.1
 ```
 
 ### macOS Version
@@ -300,7 +300,7 @@ xcodebuild test \
 A pre-commit validation script is provided at `scripts/pre-commit-check.sh` that matches CI validation exactly.
 
 **The script checks:**
-- ✅ Xcode version (15.2 or 15.3)
+- ✅ Xcode version (16.1)
 - ✅ Swift version (5.9+)
 - ✅ SwiftLint in strict mode
 - ✅ Swift package resolution
@@ -319,7 +319,7 @@ A pre-commit validation script is provided at `scripts/pre-commit-check.sh` that
 🔍 Running pre-commit validation (matching CI pipeline)...
 
 📱 Checking Xcode version...
-✅ Xcode version 15.2 matches CI
+✅ Xcode version 16.1 matches CI
 
 🔨 Checking Swift version...
 ✅ Swift version meets minimum requirement (5.9+)
@@ -362,7 +362,7 @@ rm -rf ~/Library/Caches/org.swift.swiftpm
 swift package clean
 
 # 2. Verify environment
-xcodebuild -version  # Should be 15.2 or 15.3
+xcodebuild -version  # Should be 16.1
 swift --version      # Should be 5.9+
 
 # 3. Re-resolve and build
@@ -479,7 +479,7 @@ xcodebuild -resolvePackageDependencies
 
 Before opening a PR, verify your environment matches CI:
 
-- [ ] Xcode version is 15.2 or 15.3
+- [ ] Xcode version is 16.1
 - [ ] Swift version is 5.9+
 - [ ] `swift build` succeeds
 - [ ] `swift test --enable-code-coverage --parallel` succeeds

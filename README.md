@@ -71,7 +71,7 @@ A next-generation, modular iOS/iPadOS/macOS/watchOS application for solving Rubi
 
 ### Requirements
 
-- Xcode 15.2 or 15.3 (matches CI environment)
+- Xcode 16.1 (matches CI environment)
 - iOS 17.0+ / iPadOS 17.0+ / macOS 14.0+
 - Swift 5.9+
 - macOS 14.0+ (Sonoma)

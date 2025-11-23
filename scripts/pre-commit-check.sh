@@ -36,10 +36,10 @@ print_status() {
 echo "📱 Checking Xcode version..."
 if command -v xcodebuild >/dev/null 2>&1; then
     XCODE_VERSION=$(xcodebuild -version 2>/dev/null | head -n 1 | awk '{print $2}' || echo "unknown")
-    if [[ "$XCODE_VERSION" == "15.2" ]] || [[ "$XCODE_VERSION" == "15.3" ]]; then
+    if [[ "$XCODE_VERSION" == "16.1" ]]; then
         print_status 0 "Xcode version $XCODE_VERSION matches CI"
     else
-        echo -e "${YELLOW}⚠️  Xcode version $XCODE_VERSION differs from CI (15.2 or 15.3)${NC}"
+        echo -e "${YELLOW}⚠️  Xcode version $XCODE_VERSION differs from CI (16.1)${NC}"
     fi
 else
     echo -e "${YELLOW}⚠️  xcodebuild not found - unable to verify Xcode version${NC}"

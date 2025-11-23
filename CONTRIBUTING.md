@@ -53,7 +53,7 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 ### Environment Requirements
 
-- Xcode 15.2 or 15.3 (matches CI)
+- Xcode 16.1 (matches CI)
 - macOS 14.0+ (Sonoma)
 - Swift 5.9+
 - SwiftLint installed (`brew install swiftlint`)

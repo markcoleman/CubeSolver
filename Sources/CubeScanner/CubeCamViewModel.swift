@@ -12,6 +12,7 @@ import SwiftUI
 import Combine
 import CubeCore
 import UIKit
+import AVFoundation
 
 /// View model for Cube Cam auto-scanning experience
 @MainActor
@@ -321,7 +322,7 @@ public class CubeCamViewModel: ObservableObject {
             generator.notificationOccurred(.error)
         }
     }
-    
+    @MainActor
     deinit {
         stop()
     }

@@ -8,13 +8,31 @@
 #if os(iOS)
 
 import SwiftUI
+import CubeScanner
 
 /// PROMPT 1: Scanning overlay that shows stability detection progress
 struct ScanningOverlay: View {
-    let stability: Float
+    let captureState: CubeCamCapturePipeline.CaptureState
     let requiredFrames: Int
     let currentFrames: Int
-    let isScanning: Bool
+    
+    private var isReady: Bool {
+        if case .stabilizing(let progress) = captureState {
+            return progress >= 1.0
+        }
+        return false
+    }
+    
+    private var progress: Double {
+        switch captureState {
+        case .idle, .detecting:
+            return 0.0
+        case .stabilizing(let p):
+            return p
+        case .capturing, .captured:
+            return 1.0
+        }
+    }
     
     var body: some View {
         VStack(spacing: 8) {
@@ -27,16 +45,16 @@ struct ScanningOverlay: View {
                         .frame(width: 40, height: 40)
                     
                     Circle()
-                        .trim(from: 0, to: CGFloat(currentFrames) / CGFloat(requiredFrames))
+                        .trim(from: 0, to: progress)
                         .stroke(
-                            isScanning ? Color.green : Color.yellow,
+                            isReady ? Color.green : Color.yellow,
                             style: StrokeStyle(lineWidth: 3, lineCap: .round)
                         )
                         .frame(width: 40, height: 40)
                         .rotationEffect(.degrees(-90))
-                        .animation(.easeInOut(duration: 0.3), value: currentFrames)
+                        .animation(.easeInOut(duration: 0.3), value: progress)
                     
-                    if isScanning {
+                    if isReady {
                         Image(systemName: "checkmark")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
@@ -48,7 +66,7 @@ struct ScanningOverlay: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(isScanning ? "Ready to scan" : "Stabilizing...")
+                    Text(statusText)
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
@@ -66,7 +84,26 @@ struct ScanningOverlay: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Scanning stability")
-        .accessibilityValue(isScanning ? "Ready to scan" : "Stabilizing, \(currentFrames) of \(requiredFrames) stable frames")
+        .accessibilityValue("\(statusText), \(currentFrames) of \(requiredFrames) stable frames")
+    }
+    
+    private var statusText: String {
+        switch captureState {
+        case .idle:
+            return "Position cube"
+        case .detecting:
+            return "Detecting..."
+        case .stabilizing(let progress):
+            if progress >= 1.0 {
+                return "Ready to scan"
+            } else {
+                return "Stabilizing..."
+            }
+        case .capturing:
+            return "Capturing..."
+        case .captured:
+            return "Captured!"
+        }
     }
 }
 
@@ -74,9 +111,10 @@ struct ScanningOverlay: View {
     ZStack {
         Color.black
         VStack(spacing: 20) {
-            ScanningOverlay(stability: 0.3, requiredFrames: 8, currentFrames: 2, isScanning: false)
-            ScanningOverlay(stability: 0.7, requiredFrames: 8, currentFrames: 6, isScanning: false)
-            ScanningOverlay(stability: 0.95, requiredFrames: 8, currentFrames: 8, isScanning: true)
+            ScanningOverlay(captureState: .detecting, requiredFrames: 8, currentFrames: 2)
+            ScanningOverlay(captureState: .stabilizing(progress: 0.75), requiredFrames: 8, currentFrames: 6)
+            ScanningOverlay(captureState: .stabilizing(progress: 1.0), requiredFrames: 8, currentFrames: 8)
+            ScanningOverlay(captureState: .captured, requiredFrames: 8, currentFrames: 8)
         }
     }
 }

@@ -27,10 +27,7 @@ public struct ValidatedManualInputView: View {
             ZStack {
                 // Background gradient matching main view
                 LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.1, green: 0.1, blue: 0.2),
-                        Color(red: 0.2, green: 0.15, blue: 0.3)
-                    ]),
+                    gradient: Gradient(colors: CubeSolverColors.backgroundGradient(for: colorScheme)),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )

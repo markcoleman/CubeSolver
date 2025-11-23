@@ -11,41 +11,46 @@ import Foundation
 import CoreVideo
 import CubeCore
 
-/// Capture state machine for deterministic flow
-public enum CaptureState: Equatable {
-    /// Idle - waiting for cube detection
-    case idle
-    
-    /// Detecting - cube found but not yet stable
-    case detecting
-    
-    /// Stabilizing - cube is stable, accumulating frames
-    case stabilizing(progress: Double)
-    
-    /// Capturing - triggering capture (one-time state)
-    case capturing
-    
-    /// Captured - face successfully captured
-    case captured
-    
-    public static func == (lhs: CaptureState, rhs: CaptureState) -> Bool {
-        switch (lhs, rhs) {
-        case (.idle, .idle),
-             (.detecting, .detecting),
-             (.capturing, .capturing),
-             (.captured, .captured):
-            return true
-        case let (.stabilizing(p1), .stabilizing(p2)):
-            return abs(p1 - p2) < 0.01
-        default:
-            return false
-        }
-    }
-}
-
 /// Pipeline for automatic cube face capture with rotation tracking
 @MainActor
 public class CubeCamCapturePipeline: ObservableObject {
+    
+    // MARK: - Nested Types
+    
+    /// Capture state machine for deterministic flow
+    public enum CaptureState: Equatable {
+        /// Idle - waiting for cube detection
+        case idle
+        
+        /// Detecting - cube found but not yet stable
+        case detecting
+        
+        /// Stabilizing - cube is stable, accumulating frames
+        case stabilizing(progress: Double)
+        
+        /// Capturing - triggering capture (one-time state)
+        case capturing
+        
+        /// Captured - face successfully captured
+        case captured
+        
+        /// Tolerance for comparing progress values
+        private static let progressEqualityTolerance: Double = 0.01
+        
+        public static func == (lhs: CaptureState, rhs: CaptureState) -> Bool {
+            switch (lhs, rhs) {
+            case (.idle, .idle),
+                 (.detecting, .detecting),
+                 (.capturing, .capturing),
+                 (.captured, .captured):
+                return true
+            case let (.stabilizing(p1), .stabilizing(p2)):
+                return abs(p1 - p2) < progressEqualityTolerance
+            default:
+                return false
+            }
+        }
+    }
     
     // MARK: - Published Properties
     
@@ -87,6 +92,9 @@ public class CubeCamCapturePipeline: ObservableObject {
     /// Lighting change threshold for rejecting unstable frames - PROMPT 1
     public var maxBrightnessChange: Float = 0.15
     
+    /// Delay before resetting state after successful capture (seconds)
+    public var captureResetDelay: TimeInterval = 0.5
+    
     // MARK: - Private Properties
     
     private let faceDetectionService = CubeFaceDetectionService()
@@ -110,6 +118,9 @@ public class CubeCamCapturePipeline: ObservableObject {
     
     // Track if we've already triggered capture for this stabilization cycle
     private var hasCapturedThisCycle: Bool = false
+    
+    // Metrics: Track dropped frames for monitoring
+    private var droppedFrameCount: Int = 0
     
     // Brightness sampling cache
     private var brightnessSampleCoordinates: [(x: Int, y: Int)]?
@@ -141,7 +152,10 @@ public class CubeCamCapturePipeline: ObservableObject {
     ) async {
         // GUARD: Prevent overlapping Vision requests
         guard !isProcessingFrame else {
-            print("[CubeCam] ⚠️ Skipping frame - already processing")
+            droppedFrameCount += 1
+            if droppedFrameCount % 10 == 0 {
+                print("[CubeCam] ⚠️ Dropped \(droppedFrameCount) frames due to concurrent processing")
+            }
             return
         }
         
@@ -231,6 +245,7 @@ public class CubeCamCapturePipeline: ObservableObject {
         isScanning = false
         captureState = .idle
         hasCapturedThisCycle = false
+        droppedFrameCount = 0
     }
     
     /// Get the next face that needs to be captured
@@ -607,7 +622,7 @@ public class CubeCamCapturePipeline: ObservableObject {
         
         // Reset for next face after a brief delay
         Task {
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            try? await Task.sleep(nanoseconds: UInt64(captureResetDelay * 1_000_000_000))
             await resetForNextFace()
         }
     }

@@ -10,6 +10,7 @@
 import SwiftUI
 import AVFoundation
 import CubeCore
+import CubeScanner
 
 /// Cube Cam auto-scanning view with camera preview and guided UX
 @MainActor

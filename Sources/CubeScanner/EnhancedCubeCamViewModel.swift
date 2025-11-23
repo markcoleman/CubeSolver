@@ -338,12 +338,4 @@ public class EnhancedCubeCamViewModel: ObservableObject {
     }
 }
 
-// MARK: - Face Extension
-
-extension Face: CaseIterable {
-    public static var allCases: [Face] {
-        [.up, .down, .left, .right, .front, .back]
-    }
-}
-
 #endif

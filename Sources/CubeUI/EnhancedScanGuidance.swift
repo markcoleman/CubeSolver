@@ -250,6 +250,8 @@ struct TappableIsometricFace: View {
                             .foregroundColor(.white)
                             .shadow(color: .black.opacity(0.3), radius: 2)
                             .position(offset)
+                            .accessibilityLabel("Captured")
+                            .accessibilityHidden(true) // Parent button already has accessibility info
                     }
                 }
             )

@@ -328,5 +328,4 @@ For questions or issues with the enhanced CubeCam implementation, please:
 ---
 
 **Author**: GitHub Copilot  
-**Last Updated**: 2025-11-23  
 **Version**: 1.0

@@ -371,7 +371,7 @@ public class CubeCamViewModel: ObservableObject {
             generator.notificationOccurred(.error)
         }
     }
-    @MainActor
+    
     deinit {
         stop()
     }

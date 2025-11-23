@@ -119,7 +119,8 @@ public class CubeCamCapturePipeline: ObservableObject {
             stability = lightingStable ? positionStability : max(0, positionStability - 0.3)
             
             // PROMPT 1: Track consecutive stable frames
-            if stability > 0.8 && lightingStable {
+            // Threshold aligned with auto-capture threshold to ensure frames counted as stable will trigger capture
+            if stability >= 0.85 && lightingStable {
                 consecutiveStableFrames += 1
                 isScanning = consecutiveStableFrames >= requiredStableFrames
             } else {
@@ -367,8 +368,8 @@ public class CubeCamCapturePipeline: ObservableObject {
         // PROMPT 1: Check consecutive stable frames requirement
         guard consecutiveStableFrames >= requiredStableFrames else { return false }
         
-        // Check stability
-        guard stability >= 0.9 else { return false }
+        // Check stability - lowered threshold to match consecutive frame threshold
+        guard stability >= 0.85 else { return false }
         
         // Check confidence
         guard faceEstimateConfidence >= autoCaptureThreshold else { return false }

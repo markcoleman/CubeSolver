@@ -120,7 +120,7 @@ public actor CubeScanErrorDetector {
         guard !previousPositions.isEmpty else { return nil }
         
         // Calculate average movement
-        let movements = previousPositions.map { prev in
+        let movements: [CGFloat] = previousPositions.map { prev in
             let dx = currentPosition.x - prev.x
             let dy = currentPosition.y - prev.y
             return sqrt(dx * dx + dy * dy)
@@ -129,7 +129,7 @@ public actor CubeScanErrorDetector {
         // Guard against empty movements array (shouldn't happen, but be safe)
         guard !movements.isEmpty else { return nil }
         
-        let avgMovement = movements.reduce(0, +) / Float(movements.count)
+        let avgMovement = movements.reduce(0.0, +) / CGFloat(movements.count)
         
         // If movement is too large, cube is moving too fast
         if avgMovement > 0.1 { // 10% of screen in short time

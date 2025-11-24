@@ -145,10 +145,12 @@ public class CubeCamViewModel: ObservableObject {
     }
     
     /// Stop the camera and scanning process
-    public func stop() {
-        isProcessingFrames = false
-        frameProcessingTask?.cancel()
-        frameProcessingTask = nil
+    nonisolated public func stop() {
+        Task { @MainActor in
+            isProcessingFrames = false
+            frameProcessingTask?.cancel()
+            frameProcessingTask = nil
+        }
         cameraSession.stop()
     }
     
@@ -275,14 +277,14 @@ public class CubeCamViewModel: ObservableObject {
             captureProgressText = "Step 1: Position cube so a face fills the frame"
         } else if capturedFaceCount < 6 {
             if let nextFace = capturePipeline.getNextFaceToCapture() {
-                let faceDisplayName = faceDisplayName(nextFace)
-                captureProgressText = "Step \(capturedFaceCount + 1): Scan the \(faceDisplayName) face"
+                let nextFaceDisplayName = faceDisplayName(nextFace)
+                captureProgressText = "Step \(capturedFaceCount + 1): Scan the \(nextFaceDisplayName) face"
                 
                 // PROMPT 3: Add wrong face warning if detected
                 if let detectedFace = currentFace,
                    detectedFace != nextFace,
                    capturedFaces.contains(detectedFace) {
-                    wrongFaceWarning = "This is the \(faceDisplayName(detectedFace)) face (already scanned). Please scan the \(faceDisplayName) face next."
+                    wrongFaceWarning = "This is the \(faceDisplayName(detectedFace)) face (already scanned). Please scan the \(nextFaceDisplayName) face next."
                 } else {
                     wrongFaceWarning = nil
                 }

@@ -361,20 +361,57 @@ private func animateMove(in scene: SCNScene, move: Move, coordinator: AnimationC
     // Get cubies to rotate
     let cubiesToRotate = getCubiesForMove(containerNode, move: move)
     
-    // Create rotation animation
+    // Create a temporary parent node for the layer being rotated
+    let layerNode = SCNNode()
+    layerNode.name = "tempLayer"
+    scene.rootNode.addChildNode(layerNode)
+    
+    // Store original parent and transforms
+    var originalParents: [SCNNode: SCNNode] = [:]
+    var originalTransforms: [SCNNode: SCNMatrix4] = [:]
+    
+    // Reparent cubies to the layer node, preserving world position
+    for cubie in cubiesToRotate {
+        originalParents[cubie] = cubie.parent
+        originalTransforms[cubie] = cubie.transform
+        
+        // Convert position to layer node's coordinate system
+        if let parent = cubie.parent {
+            let worldPosition = parent.convertPosition(cubie.position, to: nil)
+            cubie.removeFromParentNode()
+            layerNode.addChildNode(cubie)
+            cubie.position = layerNode.convertPosition(worldPosition, from: nil)
+        }
+    }
+    
+    // Create rotation animation for the entire layer
     let duration: TimeInterval = 0.5
     
     SCNTransaction.begin()
     SCNTransaction.animationDuration = duration
     SCNTransaction.completionBlock = {
+        // Reparent cubies back to container with updated transforms
+        for cubie in cubiesToRotate {
+            if let originalParent = originalParents[cubie] {
+                let worldPosition = layerNode.convertPosition(cubie.position, to: nil)
+                let worldTransform = cubie.worldTransform
+                cubie.removeFromParentNode()
+                originalParent.addChildNode(cubie)
+                cubie.position = originalParent.convertPosition(worldPosition, from: nil)
+                cubie.transform = originalParent.convertTransform(worldTransform, from: nil)
+            }
+        }
+        
+        // Remove temporary layer node
+        layerNode.removeFromParentNode()
+        
         coordinator.animationDidStop(CAAnimation(), finished: true)
         completion()
     }
     
-    for cubie in cubiesToRotate {
-        let rotation = SCNAction.rotate(by: CGFloat(angle), around: axis, duration: duration)
-        cubie.runAction(rotation)
-    }
+    // Rotate the layer node (which rotates all cubies as a group)
+    let rotation = SCNAction.rotate(by: CGFloat(angle), around: axis, duration: duration)
+    layerNode.runAction(rotation)
     
     SCNTransaction.commit()
 }

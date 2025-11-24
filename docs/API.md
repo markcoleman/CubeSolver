@@ -1,15 +1,41 @@
 # API Documentation
 
+> **Note**: This is the API documentation for CubeSolver. For user guides, see the [Documentation Index](../README.md#-documentation).
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Core Modules](#core-modules)
+  - [RubiksCube Module](#rubikscube-module)
+  - [CubeSolver Module](#cubesolver-module)
+  - [CubeViewModel](#cubeviewmodel)
+  - [UI Components](#ui-components)
+- [Platform Support](#platform-support)
+- [Error Handling](#error-handling)
+- [Performance Considerations](#performance-considerations)
+- [Thread Safety](#thread-safety)
+- [Future API Extensions](#future-api-extensions)
+
 ## Overview
 
-CubeSolver provides a clean and simple API for working with Rubik's Cubes. The core functionality is divided into several modules:
+CubeSolver provides a clean, modular API for working with Rubik's Cubes across Apple platforms. The core functionality is organized into several well-defined modules:
 
-- **RubiksCube**: The cube model and rotation operations
-- **CubeSolver**: Solving algorithms and scramble generation
-- **CubeViewModel**: SwiftUI ViewModel for UI state management
-- **UI Components**: Reusable glassmorphic UI components
+- **RubiksCube**: The cube model and rotation operations (platform-independent)
+- **CubeSolver**: Solving algorithms and scramble generation (platform-independent)
+- **CubeViewModel**: SwiftUI ViewModel for reactive UI state management
+- **UI Components**: Reusable glassmorphic UI components built with SwiftUI
+
+### Design Principles
+
+- **Value Types**: Uses Swift structs for thread safety and efficiency
+- **Immutability**: Operations return new values where appropriate
+- **Type Safety**: Leverages Swift's strong type system
+- **Observable**: Full support for SwiftUI's reactive patterns
+- **Platform-Agnostic**: Core logic works on all Apple platforms
 
 ---
+
+## Core Modules
 
 ## RubiksCube Module
 

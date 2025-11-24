@@ -11,29 +11,35 @@ We release patches for security vulnerabilities in the following versions:
 
 ## Reporting a Vulnerability
 
-We take the security of CubeSolver seriously. If you discover a security vulnerability, please follow these steps:
+We take the security of CubeSolver seriously. If you discover a security vulnerability, please follow these steps to report it responsibly:
 
 ### 1. Do Not Disclose Publicly
 
-Please do not open a public GitHub issue for security vulnerabilities. This could put users at risk.
+**Important**: Please do not open a public GitHub issue for security vulnerabilities, as this could put users at risk before a fix is available.
 
 ### 2. Report Privately
 
-Report security vulnerabilities through one of the following methods:
+Report security vulnerabilities through one of the following secure methods:
 
 - **GitHub Security Advisories** (Preferred): Use the [Security tab](https://github.com/markcoleman/CubeSolver/security/advisories/new) to privately report a vulnerability
-- **Email**: Send details to the repository maintainer at [security contact email]
+- **Email**: Contact the repository maintainers directly (see repository for contact details)
 
 ### 3. What to Include
 
-Please include the following information in your report:
+To help us understand and address the vulnerability quickly, please include:
 
-- Type of vulnerability
-- Full paths of source file(s) related to the vulnerability
-- Location of the affected source code (tag/branch/commit or direct URL)
-- Step-by-step instructions to reproduce the issue
-- Proof-of-concept or exploit code (if possible)
-- Impact of the issue, including how an attacker might exploit it
+**Required Information:**
+- **Type of vulnerability** (e.g., injection, authentication bypass, data exposure)
+- **Full paths of source file(s)** related to the vulnerability
+- **Location of affected code** (tag/branch/commit or direct URL)
+- **Step-by-step instructions** to reproduce the issue
+- **Impact assessment**: How an attacker might exploit this vulnerability
+- **Affected versions**: Which versions of CubeSolver are impacted
+
+**Optional but Helpful:**
+- Proof-of-concept or exploit code (if available)
+- Suggested fix or mitigation
+- References to similar vulnerabilities or CVEs
 
 ### 4. Response Timeline
 
@@ -63,13 +69,34 @@ Please include the following information in your report:
 
 ## Security Features
 
-- **Privacy-First Design**: All analytics are opt-in only
-- **Local Storage**: Data stored locally using iOS secure storage APIs
-- **No Network Calls**: Core functionality works offline
-- **Code Signing**: All releases are properly signed
+CubeSolver is built with security and privacy as core principles:
+
+### Privacy Protection
+- **Privacy-First Design**: All analytics are strictly opt-in only (disabled by default)
+- **Local Storage**: User data stored locally using iOS secure storage APIs (UserDefaults, Keychain)
+- **No Network Calls**: Core functionality works entirely offline
+- **GDPR Compliance**: Users can delete all their data at any time
+- **No Third-Party Tracking**: No analytics or tracking libraries by default
+
+### Code Security
+- **Code Signing**: All releases are properly signed with valid developer certificates
+- **App Sandbox**: Running in iOS/macOS sandbox with minimal permissions
+- **Secure Coding**: Following OWASP Mobile Security guidelines
+- **Input Validation**: All user inputs validated and sanitized
+- **No Eval/Dynamic Code**: No dynamic code execution or eval functions
+
+### Dependency Management
 - **Regular Updates**: Dependencies updated weekly via Dependabot
-- **Automated Scanning**: CodeQL security scanning on every commit
-- **GDPR Compliance**: User data can be deleted at any time
+- **Automated Scanning**: CodeQL security scanning on every commit and PR
+- **Dependency Review**: GitHub Dependency Review checks all dependency changes
+- **Minimal Dependencies**: Using native Apple frameworks where possible
+
+### Development Practices
+- **Code Review Required**: All code changes require review before merging
+- **Static Analysis**: SwiftLint enforces secure coding practices
+- **Automated Testing**: Comprehensive test coverage including security scenarios
+- **Principle of Least Privilege**: Request only necessary system permissions
+- **Secure Defaults**: Security features enabled by default
 
 ## Security Updates
 

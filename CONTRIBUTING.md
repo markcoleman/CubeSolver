@@ -4,7 +4,13 @@ First off, thank you for considering contributing to CubeSolver! It's people lik
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by a Code of Conduct. By participating, you are expected to uphold this code.
+This project and everyone participating in it is governed by our Code of Conduct. By participating, you are expected to uphold this code. We are committed to providing a welcoming and inclusive environment for all contributors.
+
+**Key Principles:**
+- Be respectful and inclusive
+- Provide constructive feedback
+- Focus on what's best for the community
+- Show empathy towards others
 
 ## How Can I Contribute?
 
@@ -53,10 +59,16 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 ### Environment Requirements
 
-- Xcode 16.1 (matches CI)
-- macOS 14.0+ (Sonoma)
-- Swift 5.9+
-- SwiftLint installed (`brew install swiftlint`)
+**Essential:**
+- **Xcode**: 16.1 or later (must match CI environment)
+- **macOS**: 14.0 or later (Sonoma)
+- **Swift**: 5.9 or later (included with Xcode)
+- **SwiftLint**: For code quality (`brew install swiftlint`)
+
+**Optional but Recommended:**
+- **fastlane**: For automated tasks (`brew install fastlane`)
+- **xcbeautify**: For pretty build output (`brew install xcbeautify`)
+- **git-lfs**: If working with large files (`brew install git-lfs`)
 
 ### Using GitHub Copilot Agents
 
@@ -73,13 +85,41 @@ See [.github/agents/README.md](.github/agents/README.md) for detailed informatio
 
 ### Making Changes
 
-1. Make your changes
-2. Add tests for your changes
-3. Run the test suite: `swift test --enable-code-coverage --parallel` (matches CI)
-4. Make sure all tests pass
-5. Build the project: `swift build`
-6. **Run pre-commit validation:** `./scripts/pre-commit-check.sh`
-6. Commit your changes with a descriptive commit message
+1. **Create a feature branch** from `main`:
+   ```bash
+   git checkout -b feature/my-feature
+   ```
+
+2. **Make your changes** following the style guidelines below
+
+3. **Add tests** for your changes:
+   - Unit tests for business logic
+   - UI tests if changing user interface
+   - Integration tests if appropriate
+
+4. **Run the test suite** (must match CI):
+   ```bash
+   swift test --enable-code-coverage --parallel
+   ```
+
+5. **Ensure all tests pass** with no failures
+
+6. **Build the project** without warnings:
+   ```bash
+   swift build
+   ```
+
+7. **Run SwiftLint** to check code quality:
+   ```bash
+   swiftlint
+   ```
+
+8. **Run pre-commit validation** (recommended):
+   ```bash
+   ./scripts/pre-commit-check.sh
+   ```
+
+9. **Commit your changes** with a descriptive message (see guidelines below)
 
 ### Commit Message Guidelines (Recommended)
 

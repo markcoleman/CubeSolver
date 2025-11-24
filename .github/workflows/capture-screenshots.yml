@@ -124,7 +124,7 @@ jobs:
     
     - name: Upload screenshots as artifacts
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: ios-screenshots
         path: |
@@ -222,7 +222,7 @@ jobs:
     
     - name: Upload macOS build artifacts
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: macos-build
         path: .build/DerivedData/Build/Products/

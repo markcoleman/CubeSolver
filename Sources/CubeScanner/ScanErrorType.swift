@@ -1,6 +1,6 @@
 //
 //  ScanErrorType.swift
-//  CubeSolver - Scan Error Types
+//  CubeSolver - Scan Error Types for Cube Scanning
 //
 //  Created by GitHub Copilot
 //

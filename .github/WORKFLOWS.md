@@ -1,8 +1,37 @@
 # GitHub Actions Workflows
 
-This document describes the CI/CD workflows configured for the CubeSolver project and recent optimizations to prevent duplicate work and comments on pull requests.
+> **Complete reference for CI/CD workflows in the CubeSolver project**, including recent optimizations to prevent duplicate work and comments.
+
+## Table of Contents
+
+- [Overview](#workflows-overview)
+  - [Core CI/CD Workflows](#core-cicd-workflows)
+  - [PR Quality Workflows](#pr-quality-workflows)
+  - [Utility Workflows](#utility-workflows)
+- [Workflow Details](#workflow-details)
+- [Optimization Summary](#workflow-optimization-summary)
+- [Best Practices](#best-practices-for-contributors)
+- [Troubleshooting](#troubleshooting)
+- [Future Improvements](#future-improvements)
 
 ## Workflows Overview
+
+### Workflow Status Dashboard
+
+| Workflow | Triggers | Purpose | Runs On |
+|----------|----------|---------|---------|
+| iOS CI | Push, PR, Manual | Build, test, coverage | Every commit |
+| CodeQL | Push, PR, Schedule | Security scanning | Code changes |
+| PR Size Check | PR events | Auto-label by size | PRs only |
+| Build Performance | PR, Manual | Performance metrics | PRs only |
+| Auto Label | PR events | Auto-label by files | PRs only |
+| Dependency Review | PR | Security review | Dependency changes |
+| Screenshots | Main, Manual, Label | UI screenshots | Conditional |
+| Stale | Daily schedule | Cleanup inactive items | Daily |
+
+This document describes the CI/CD workflows configured for the CubeSolver project and recent optimizations to prevent duplicate work and comments on pull requests.
+
+## Workflow Details
 
 ### Core CI/CD Workflows
 

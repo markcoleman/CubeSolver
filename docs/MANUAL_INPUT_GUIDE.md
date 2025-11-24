@@ -66,12 +66,36 @@ Follow these steps to input your cube:
 
 ### 5. Standard Cube Orientation
 
-The app uses this standard orientation:
+The app uses this standard orientation (standard Western color scheme):
+
 ```
-    [White]      (Top)
-[Green][Red][Blue][Orange]  (Left, Front, Right, Back)
-    [Yellow]     (Bottom)
+           ┌─────────┐
+           │ W  W  W │
+           │ W  W  W │  TOP (White)
+           │ W  W  W │
+┌─────────┬┼─────────┼┬─────────┬─────────┐
+│ G  G  G ││ R  R  R ││ B  B  B │ O  O  O │
+│ G  G  G ││ R  R  R ││ B  B  B │ O  O  O │  LEFT, FRONT, RIGHT, BACK
+│ G  G  G ││ R  R  R ││ B  B  B │ O  O  O │
+└─────────┴┼─────────┼┴─────────┴─────────┘
+           │ Y  Y  Y │
+           │ Y  Y  Y │  BOTTOM (Yellow)
+           │ Y  Y  Y │
+           └─────────┘
+
+W = White, Y = Yellow, R = Red, O = Orange, B = Blue, G = Green
 ```
+
+**Face Abbreviations:**
+- **U** (Up) = Top = White
+- **D** (Down) = Bottom = Yellow
+- **F** (Front) = Red
+- **B** (Back) = Orange
+- **L** (Left) = Green
+- **R** (Right) = Blue
+
+**Important Note:**
+Your physical cube may have different colors than shown here, but the app uses this standard scheme. Focus on matching the *positions* rather than specific colors.
 
 ### 6. Reset Face
 

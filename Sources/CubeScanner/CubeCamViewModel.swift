@@ -145,7 +145,7 @@ public class CubeCamViewModel: ObservableObject {
     }
     
     /// Stop the camera and scanning process
-    nonisolated public func stop() {
+    public func stop() {
         Task { @MainActor in
             isProcessingFrames = false
             frameProcessingTask?.cancel()
@@ -375,8 +375,11 @@ public class CubeCamViewModel: ObservableObject {
     }
     
     deinit {
-        stop()
+        Task { @MainActor in
+            self.stop()
+        }
     }
 }
 
 #endif
+

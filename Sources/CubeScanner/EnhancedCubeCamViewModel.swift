@@ -240,11 +240,11 @@ public class EnhancedCubeCamViewModel: ObservableObject {
                 case .movingTooFast:
                     self.currentError = .tooMuchMotion
                 case .invalidFaceLayout:
-                    self.currentError = .backgroundClutter
+                    self.currentError = .cubeNotDetected
                 case .unreadableColors:
                     self.currentError = .invalidColors
-                default:
-                    self.currentError = .cubeNotDetected
+                case .impossiblePattern:
+                    self.currentError = .invalidColors
                 }
             }
             .store(in: &cancellables)

@@ -92,10 +92,12 @@ public class EnhancedCubeCamViewModel: ObservableObject {
     }
     
     /// Stop the camera and scanning process
-    public func stop() {
-        isProcessingFrames = false
-        frameProcessingTask?.cancel()
-        frameProcessingTask = nil
+    nonisolated public func stop() {
+        Task { @MainActor in
+            isProcessingFrames = false
+            frameProcessingTask?.cancel()
+            frameProcessingTask = nil
+        }
         cameraSession.stop()
     }
     
@@ -235,14 +237,14 @@ public class EnhancedCubeCamViewModel: ObservableObject {
                 switch error {
                 case .poorLighting:
                     self.currentError = .poorLighting
-                case .tooMuchMovement:
+                case .movingTooFast:
                     self.currentError = .tooMuchMotion
-                case .backgroundTooComplex:
-                    self.currentError = .backgroundClutter
-                case .cubeNotFound:
+                case .invalidFaceLayout:
                     self.currentError = .cubeNotDetected
-                default:
-                    self.currentError = .cubeNotDetected
+                case .unreadableColors:
+                    self.currentError = .invalidColors
+                case .impossiblePattern:
+                    self.currentError = .invalidColors
                 }
             }
             .store(in: &cancellables)

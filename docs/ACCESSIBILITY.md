@@ -1,6 +1,30 @@
 # Accessibility Guide
 
-CubeSolver is designed to be fully accessible to all users, including those using assistive technologies like VoiceOver.
+> **CubeSolver is committed to being accessible to everyone.** This guide explains our accessibility features and how to use them effectively.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Accessibility Features](#accessibility-features)
+  - [VoiceOver Support](#voiceover-support)
+  - [Dynamic Type](#dynamic-type)
+  - [Color Contrast](#color-contrast)
+  - [Reduce Motion](#reduce-motion)
+  - [Keyboard Navigation](#keyboard-navigation-macos)
+- [Using CubeSolver with VoiceOver](#using-cubesolver-with-voiceover)
+- [Accessibility Testing](#accessibility-testing)
+- [Reporting Accessibility Issues](#reporting-accessibility-issues)
+
+## Overview
+
+CubeSolver is designed to be fully accessible to all users, including those using assistive technologies like VoiceOver, Switch Control, and keyboard navigation.
+
+**Accessibility Standards:**
+- Follows WCAG 2.1 Level AA guidelines
+- Full VoiceOver compatibility
+- Dynamic Type support across all screens
+- Keyboard navigation on macOS
+- Reduced motion alternatives
 
 ## Accessibility Features
 
@@ -126,20 +150,50 @@ Each cell in the 3×3 grid has:
 
 ### Manual Input Workflow
 
-1. Navigate to "Manual Input button"
-2. Double-tap to open manual input
-3. Select a face (e.g., "Front face button")
-4. Double-tap to select
-5. VoiceOver announces: "Front face, button, selected"
-6. Navigate to color picker
-7. Select a color (e.g., "Red color button")
-8. Double-tap to select
-9. Navigate to grid cells
-10. For each cell:
-    - VoiceOver announces: "Cell row 1, column 1, Red color"
-    - Double-tap to set color
-11. Navigate to "Done button"
-12. Double-tap to return to main screen
+**Complete workflow for entering a real-world cube:**
+
+1. **Open Manual Input**
+   - Navigate to "Manual Input button"
+   - VoiceOver announces: "Manual Input, button, Opens the manual cube input interface"
+   - Double-tap to activate
+   
+2. **Select First Face (e.g., Front)**
+   - Swipe right to face selector
+   - VoiceOver announces: "Front face, button"
+   - Double-tap to select
+   - VoiceOver confirms: "Front face, button, selected"
+   
+3. **Choose a Color**
+   - Navigate to color picker section
+   - Swipe through colors (White, Yellow, Red, Orange, Blue, Green)
+   - For example: "Red color, button"
+   - Double-tap to select color
+   - VoiceOver confirms: "Red color, button, selected"
+   
+4. **Fill in Grid Cells**
+   - Navigate to the 3×3 grid
+   - VoiceOver announces each cell: "Cell row 1, column 1, White color, button"
+   - Double-tap on any cell to set it to the selected color
+   - VoiceOver confirms the color change
+   - Continue for all 9 cells
+   
+5. **Repeat for Each Face**
+   - Select next face (Back, Left, Right, Top, Bottom)
+   - Choose appropriate colors
+   - Fill in all cells
+   - Complete all 6 faces
+   
+6. **Finish and Return**
+   - Navigate to "Done button"
+   - VoiceOver announces: "Done, button, Closes the manual input view"
+   - Double-tap to return to main screen
+   - Your cube configuration is now ready to solve
+
+**Tips for VoiceOver Users:**
+- Use the rotor to navigate by "Buttons" for faster access
+- Double-tap with two fingers to pause VoiceOver temporarily if needed
+- If you make a mistake, use "Reset Face button" to start that face over
+- The center sticker of each face determines its color (center never moves)
 
 ## Dynamic Type Support
 

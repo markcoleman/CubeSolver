@@ -4,6 +4,19 @@ This directory contains specialized GitHub Copilot agents tailored to the CubeSo
 
 ## Available Agents
 
+This directory contains specialized GitHub Copilot agents tailored to the CubeSolver project's needs. Each agent is an expert in a specific domain and can be invoked to help with tasks in their area of expertise.
+
+### Quick Reference Table
+
+| Agent | Name | Best For |
+|-------|------|----------|
+| **SwiftUI Expert** | `swiftui-ios-expert` | UI components, glassmorphic design, platform features |
+| **Algorithm Expert** | `algorithm-expert` | Solving algorithms, data structures, performance |
+| **Accessibility Expert** | `accessibility-expert` | VoiceOver, Dynamic Type, WCAG compliance |
+| **Testing Specialist** | `test-specialist` | XCTest, code coverage, test quality |
+| **Documentation Expert** | `documentation-expert` | API docs, README updates, technical writing |
+| **DevOps Expert** | `devops-expert` | CI/CD workflows, GitHub Actions, deployment |
+
 ### 1. SwiftUI & iOS Expert (`swiftui-expert.agent.md`)
 **Name**: `swiftui-ios-expert`
 

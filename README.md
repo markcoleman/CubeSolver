@@ -71,10 +71,11 @@ A next-generation, modular iOS/iPadOS/macOS/watchOS application for solving Rubi
 
 ### Requirements
 
-- Xcode 16.1 (matches CI environment)
-- iOS 17.0+ / iPadOS 17.0+ / macOS 14.0+
-- Swift 5.9+
-- macOS 14.0+ (Sonoma)
+- **Xcode**: 16.1 or later (matches CI environment)
+- **iOS/iPadOS**: 17.0 or later
+- **macOS**: 14.0 or later (Sonoma)
+- **Swift**: 5.9 or later
+- **SwiftLint**: For code quality checks (install via `brew install swiftlint`)
 
 ### Quick Setup
 
@@ -297,12 +298,25 @@ See [.github/agents/README.md](.github/agents/README.md) for details on using th
 
 Full documentation is available at [https://markcoleman.github.io/CubeSolver](https://markcoleman.github.io/CubeSolver)
 
-### Documentation Guides
+### User Documentation
+- **[Getting Started](../README.md#-getting-started)** - Quick start and installation
+- **[Manual Input Guide](docs/MANUAL_INPUT_GUIDE.md)** - How to input a real cube pattern
+- **[Enhanced CubeCam Guide](docs/ENHANCED_CUBECAM_GUIDE.md)** - Using camera scanning features
+- **[Accessibility Guide](docs/ACCESSIBILITY.md)** - Accessibility features and VoiceOver support
 
-- [Screenshot Automation](docs/SCREENSHOT_AUTOMATION.md) - App Store screenshots, UI testing, and automation
-- [UI Testing Guide](docs/UI_TESTING_GUIDE.md) - Comprehensive UI testing documentation
-- [DevOps Summary](docs/DEVOPS_SUMMARY.md) - CI/CD and infrastructure
-- [Accessibility](docs/ACCESSIBILITY.md) - Accessibility features and guidelines
+### Developer Documentation
+- **[API Reference](docs/API.md)** - Complete API documentation
+- **[Local Development Setup](docs/LOCAL_DEVELOPMENT_SETUP.md)** - Environment setup guide
+- **[Testing Guide](docs/TESTING.md)** - Unit and UI testing documentation
+- **[UI Testing Guide](docs/UI_TESTING_GUIDE.md)** - Comprehensive UI testing
+- **[Screenshot Automation](docs/SCREENSHOT_AUTOMATION.md)** - Automated screenshot capture
+
+### DevOps Documentation
+- **[DevOps Guide](docs/DEVOPS.md)** - CI/CD pipelines and workflows
+- **[DevOps Summary](docs/DEVOPS_SUMMARY.md)** - Quick reference for CI/CD
+- **[DevOps Quick Reference](docs/QUICK_REFERENCE.md)** - Common DevOps commands
+- **[Workflows Documentation](.github/WORKFLOWS.md)** - GitHub Actions workflows
+- **[Branch Protection](docs/BRANCH_PROTECTION.md)** - Repository protection rules
 
 ## 🎯 Roadmap
 

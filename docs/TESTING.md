@@ -1,14 +1,39 @@
-# Test Documentation
+# Testing Documentation
 
-This document provides an overview of the test suite for the CubeSolver project.
+> **Comprehensive test documentation for the CubeSolver project**, including test structure, guidelines, and how to run tests.
+
+## Table of Contents
+
+- [Test Suite Overview](#test-suite-overview)
+- [Test Structure](#test-structure)
+  - [CubeCore Module Tests](#cubecore-module-tests)
+  - [CubeScanner Module Tests](#cubescanner-module-tests)
+  - [CubeAR Module Tests](#cubear-module-tests)
+- [Running Tests](#running-tests)
+- [Test Quality Standards](#test-quality-standards)
+- [Test Maintenance](#test-maintenance)
+- [Code Coverage](#code-coverage)
+- [Continuous Integration](#continuous-integration)
+- [Future Improvements](#future-test-improvements)
+- [Resources](#resources)
 
 ## Test Suite Overview
 
 The CubeSolver project has comprehensive test coverage across all modules:
 
-- **Total Tests**: 136
-- **Test Files**: 10
-- **Test Coverage**: All core functionality, performance, and integration scenarios
+| Metric | Value |
+|--------|-------|
+| **Total Tests** | 136 |
+| **Test Files** | 10 |
+| **Modules Tested** | 4 (CubeCore, CubeScanner, CubeAR, CubeUI) |
+| **Coverage Focus** | Core functionality, performance, integration |
+
+**Testing Philosophy:**
+- Write tests before or alongside code (TDD approach)
+- Test behavior, not implementation
+- Maintain high coverage for business logic
+- Performance benchmarks for critical paths
+- Integration tests for workflows
 
 ## Test Structure
 

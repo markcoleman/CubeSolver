@@ -366,22 +366,23 @@ private func animateMove(in scene: SCNScene, move: Move, coordinator: AnimationC
     layerNode.name = "tempLayer"
     scene.rootNode.addChildNode(layerNode)
     
-    // Store original parent and transforms
+    // Store original parents
     var originalParents: [SCNNode: SCNNode] = [:]
-    var originalTransforms: [SCNNode: SCNMatrix4] = [:]
     
     // Reparent cubies to the layer node, preserving world position
     for cubie in cubiesToRotate {
-        originalParents[cubie] = cubie.parent
-        originalTransforms[cubie] = cubie.transform
+        guard let parent = cubie.parent else {
+            // Skip cubies without a parent to avoid inconsistent state
+            continue
+        }
+        
+        originalParents[cubie] = parent
         
         // Convert position to layer node's coordinate system
-        if let parent = cubie.parent {
-            let worldPosition = parent.convertPosition(cubie.position, to: nil)
-            cubie.removeFromParentNode()
-            layerNode.addChildNode(cubie)
-            cubie.position = layerNode.convertPosition(worldPosition, from: nil)
-        }
+        let worldPosition = parent.convertPosition(cubie.position, to: nil)
+        cubie.removeFromParentNode()
+        layerNode.addChildNode(cubie)
+        cubie.position = layerNode.convertPosition(worldPosition, from: nil)
     }
     
     // Create rotation animation for the entire layer
@@ -391,15 +392,17 @@ private func animateMove(in scene: SCNScene, move: Move, coordinator: AnimationC
     SCNTransaction.animationDuration = duration
     SCNTransaction.completionBlock = {
         // Reparent cubies back to container with updated transforms
-        for cubie in cubiesToRotate {
-            if let originalParent = originalParents[cubie] {
-                let worldPosition = layerNode.convertPosition(cubie.position, to: nil)
-                let worldTransform = cubie.worldTransform
-                cubie.removeFromParentNode()
-                originalParent.addChildNode(cubie)
-                cubie.position = originalParent.convertPosition(worldPosition, from: nil)
-                cubie.transform = originalParent.convertTransform(worldTransform, from: nil)
+        for cubie in layerNode.childNodes {
+            guard let originalParent = originalParents[cubie] else {
+                continue
             }
+            
+            let worldPosition = layerNode.convertPosition(cubie.position, to: nil)
+            let worldTransform = cubie.worldTransform
+            cubie.removeFromParentNode()
+            originalParent.addChildNode(cubie)
+            cubie.position = originalParent.convertPosition(worldPosition, from: nil)
+            cubie.transform = originalParent.convertTransform(worldTransform, from: nil)
         }
         
         // Remove temporary layer node

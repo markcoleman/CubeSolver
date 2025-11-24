@@ -125,15 +125,32 @@ struct StabilityIndicator: View {
             
             Spacer()
             
-            ProgressView(value: stability, total: 1.0)
-                .progressViewStyle(.linear)
-                .tint(stability > 0.7 ? .green : .yellow)
-                .frame(width: 100)
+            // Stability bar
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.white.opacity(0.3))
+                    
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(
+                            LinearGradient(
+                                colors: [.red, .yellow, .green],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geometry.size.width * CGFloat(stability))
+                }
+            }
+            .frame(width: 100, height: 8)
         }
-        .padding()
-        .background(.ultraThinMaterial)
-        .cornerRadius(12)
-        .padding(.horizontal)
+        .accessibilityElement()
+        .accessibilityLabel("Stability indicator")
+        .accessibilityValue(
+            stability > 0.7
+                ? "Hold steady. Stability is \(Int(stability * 100)) percent."
+                : "Move slowly. Stability is \(Int(stability * 100)) percent."
+        )
     }
 }
 
@@ -162,53 +179,57 @@ struct CompletionOverlay: View {
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .frame(width: 120, height: 120)
+                        .frame(width: 100, height: 100)
                         .scaleEffect(circleScale)
                     
                     Image(systemName: "checkmark")
-                        .font(.system(size: 60, weight: .bold))
+                        .font(.system(size: 50, weight: .bold))
                         .foregroundColor(.white)
                         .scaleEffect(checkmarkScale)
                         .rotationEffect(.degrees(checkmarkRotation))
                 }
+                .onAppear {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.6, blendDuration: 0)) {
+                        circleScale = 1.0
+                    }
+                    
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.5, blendDuration: 0).delay(0.1)) {
+                        checkmarkScale = 1.0
+                        checkmarkRotation = 0
+                    }
+                }
                 
-                Text("Scan Complete!")
+                Text("Success!")
                     .font(.title)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
                 
-                Text("All faces captured successfully")
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.8))
+                Text("All cube faces captured successfully")
+                    .font(.body)
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
                 
                 Button(action: onDone) {
-                    Text("Continue")
-                        .font(.headline)
+                    Text("Done")
+                        .fontWeight(.semibold)
                         .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: 200)
                         .padding()
                         .background(
                             LinearGradient(
-                                colors: [.blue, .blue.opacity(0.8)],
+                                colors: [.green, .green.opacity(0.8)],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
                         )
                         .cornerRadius(16)
+                        .shadow(color: .green.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
-                .padding(.horizontal, 40)
             }
-        }
-        .onAppear {
-            // Trigger spring animations
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.6, blendDuration: 0)) {
-                checkmarkScale = 1.0
-                checkmarkRotation = 0
-            }
-            
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.7, blendDuration: 0)) {
-                circleScale = 1.0
-            }
+            .padding(40)
+            .background(.ultraThinMaterial)
+            .cornerRadius(20)
+            .shadow(color: .black.opacity(0.5), radius: 20)
         }
     }
 }

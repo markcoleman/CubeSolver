@@ -392,6 +392,8 @@ private func animateMove(in scene: SCNScene, move: Move, coordinator: AnimationC
     SCNTransaction.animationDuration = duration
     SCNTransaction.completionBlock = {
         // Reparent cubies back to container with updated transforms
+        // Note: Only cubies that were successfully reparented to layerNode will be in childNodes,
+        // and all of those will have entries in originalParents due to the guard in reparenting loop
         for cubie in layerNode.childNodes {
             guard let originalParent = originalParents[cubie] else {
                 continue

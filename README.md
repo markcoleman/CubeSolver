@@ -299,7 +299,7 @@ See [.github/agents/README.md](.github/agents/README.md) for details on using th
 Full documentation is available at [https://markcoleman.github.io/CubeSolver](https://markcoleman.github.io/CubeSolver)
 
 ### User Documentation
-- **[Getting Started Guide](docs/QUICK_REFERENCE.md)** - Quick start and basic usage
+- **[Getting Started](../README.md#-getting-started)** - Quick start and installation
 - **[Manual Input Guide](docs/MANUAL_INPUT_GUIDE.md)** - How to input a real cube pattern
 - **[Enhanced CubeCam Guide](docs/ENHANCED_CUBECAM_GUIDE.md)** - Using camera scanning features
 - **[Accessibility Guide](docs/ACCESSIBILITY.md)** - Accessibility features and VoiceOver support
@@ -314,6 +314,7 @@ Full documentation is available at [https://markcoleman.github.io/CubeSolver](ht
 ### DevOps Documentation
 - **[DevOps Guide](docs/DEVOPS.md)** - CI/CD pipelines and workflows
 - **[DevOps Summary](docs/DEVOPS_SUMMARY.md)** - Quick reference for CI/CD
+- **[DevOps Quick Reference](docs/QUICK_REFERENCE.md)** - Common DevOps commands
 - **[Workflows Documentation](.github/WORKFLOWS.md)** - GitHub Actions workflows
 - **[Branch Protection](docs/BRANCH_PROTECTION.md)** - Repository protection rules
 

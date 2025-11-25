@@ -10,14 +10,14 @@ import SwiftUI
 import CubeCore
 
 /// View displaying solve history list
-public struct HistoryView: View {
+struct HistoryView: View {
     @ObservedObject var historyManager: SolveHistoryManager
     
-    public init(historyManager: SolveHistoryManager) {
+    init(historyManager: SolveHistoryManager) {
         self.historyManager = historyManager
     }
     
-    public var body: some View {
+    var body: some View {
         List(historyManager.savedSolves) { solve in
             NavigationLink(destination: SolveDetailView(solve: solve)) {
                 VStack(alignment: .leading) {
@@ -34,14 +34,14 @@ public struct HistoryView: View {
 }
 
 /// Detail view for a single saved solve
-public struct SolveDetailView: View {
+struct SolveDetailView: View {
     let solve: SavedSolve
     
-    public init(solve: SavedSolve) {
+    init(solve: SavedSolve) {
         self.solve = solve
     }
     
-    public var body: some View {
+    var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Solution")
@@ -65,12 +65,12 @@ public struct SolveDetailView: View {
 }
 
 /// Settings view for privacy and app configuration
-public struct SettingsView: View {
+struct SettingsView: View {
     @StateObject private var privacySettings = PrivacySettings()
     
-    public init() {}
+    init() {}
     
-    public var body: some View {
+    var body: some View {
         Form {
             Section("Privacy") {
                 Toggle("Analytics", isOn: $privacySettings.analyticsEnabled)

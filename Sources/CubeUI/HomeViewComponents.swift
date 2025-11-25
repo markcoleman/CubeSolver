@@ -62,16 +62,16 @@ public struct ActionCard: View {
 }
 
 /// Row component for displaying a recent solve in the history list
-public struct RecentSolveRow: View {
+struct RecentSolveRow: View {
     @Environment(\.colorScheme) private var colorScheme
     
     let solve: SavedSolve
     
-    public init(solve: SavedSolve) {
+    init(solve: SavedSolve) {
         self.solve = solve
     }
     
-    public var body: some View {
+    var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(solve.moveCount) moves")

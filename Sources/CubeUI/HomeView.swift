@@ -92,6 +92,18 @@ public struct HomeView: View {
                             )
                         }
                         
+                        // Photo Capture - Manual single-shot mode with debug
+                        #if os(iOS)
+                        NavigationLink(destination: ManualPhotoCaptureView()) {
+                            ActionCard(
+                                icon: "camera.viewfinder",
+                                title: "Photo Capture",
+                                subtitle: "Take a photo and see detected colors",
+                                color: .teal
+                            )
+                        }
+                        #endif
+                        
                         NavigationLink(destination: ManualInputView(cubeViewModel: cubeViewModel)) {
                             ActionCard(
                                 icon: "hand.tap.fill",

@@ -2,29 +2,46 @@
 //  RubiksCube.swift
 //  CubeSolver
 //
+//  Physical cube representation with direct face manipulation.
+//
+//  This file provides the `RubiksCube` type which represents a 3x3x3 cube
+//  using direct face references (front, back, left, right, top, bottom).
+//  This representation is optimized for move execution and visualization.
+//
+//  For solving and validation, convert to `CubeState` which uses a more
+//  compact sticker-based representation suitable for algorithms.
+//
 //  Created by GitHub Copilot
 //
 
 import Foundation
 
-/// Represents a face color on the Rubik's Cube
-/// Each color corresponds to one of the six faces in a standard Rubik's Cube
+/// Represents a face color on the Rubik's Cube.
+///
+/// This type is used with `RubiksCube` and `CubeFace` for the physical
+/// cube representation. For the solver and validation, use `CubeColor`.
+///
+/// - Note: `FaceColor` and `CubeColor` have identical cases and raw values.
+///         Conversion utilities are provided in `CubeDataStructures.swift`.
 public enum FaceColor: String, CaseIterable, Equatable {
-    /// White face color
     case white = "W"
-    /// Yellow face color
     case yellow = "Y"
-    /// Red face color
     case red = "R"
-    /// Orange face color
     case orange = "O"
-    /// Blue face color
     case blue = "B"
-    /// Green face color
     case green = "G"
 }
 
-/// Represents a single face of the Rubik's Cube as a 3x3 grid of colors
+/// Represents a single face of the Rubik's Cube as a 3x3 grid of colors.
+///
+/// The colors are stored as a 2D array indexed by [row][column]:
+/// ```
+/// colors[0][0] | colors[0][1] | colors[0][2]
+/// -----------------------------------------
+/// colors[1][0] | colors[1][1] | colors[1][2]
+/// -----------------------------------------
+/// colors[2][0] | colors[2][1] | colors[2][2]
+/// ```
 public struct CubeFace: Equatable {
     /// 2D array representing the 3x3 grid of colors on this face
     public var colors: [[FaceColor]]
@@ -35,8 +52,8 @@ public struct CubeFace: Equatable {
         self.colors = Array(repeating: Array(repeating: color, count: 3), count: 3)
     }
     
-    /// Rotates the face 90 degrees clockwise
-    /// This operation transposes and reverses the color matrix
+    /// Rotates the face 90 degrees clockwise.
+    /// This operation transposes and reverses the color matrix.
     mutating func rotateClockwise() {
         let n = 3
         var rotated = colors
@@ -48,8 +65,8 @@ public struct CubeFace: Equatable {
         colors = rotated
     }
     
-    /// Rotates the face 90 degrees counter-clockwise
-    /// Implemented as three consecutive clockwise rotations
+    /// Rotates the face 90 degrees counter-clockwise.
+    /// Implemented as three consecutive clockwise rotations.
     mutating func rotateCounterClockwise() {
         rotateClockwise()
         rotateClockwise()
@@ -57,7 +74,25 @@ public struct CubeFace: Equatable {
     }
 }
 
-/// Represents a complete 3x3x3 Rubik's Cube with six faces
+/// Represents a complete 3x3x3 Rubik's Cube with six faces.
+///
+/// This type provides a physical representation of the cube with direct
+/// access to each face. It includes methods for standard cube moves.
+///
+/// ## Usage
+/// ```swift
+/// var cube = RubiksCube()  // Creates a solved cube
+/// cube.rotateFront()       // F move
+/// cube.rotateRight()       // R move
+/// print(cube.isSolved)     // false
+/// ```
+///
+/// ## Converting to CubeState
+/// For solving and validation, convert to `CubeState`:
+/// ```swift
+/// let state = CubeState(from: cube)
+/// let moves = try EnhancedCubeSolver.solveCube(from: state)
+/// ```
 public struct RubiksCube: Equatable {
     /// The front face (typically red in standard orientation)
     public var front: CubeFace
@@ -72,7 +107,7 @@ public struct RubiksCube: Equatable {
     /// The bottom face (typically yellow in standard orientation)
     public var bottom: CubeFace
     
-    /// Initializes a solved Rubik's Cube with standard color configuration
+    /// Initializes a solved Rubik's Cube with standard color configuration.
     public init() {
         front = CubeFace(color: .red)
         back = CubeFace(color: .orange)
@@ -82,8 +117,8 @@ public struct RubiksCube: Equatable {
         bottom = CubeFace(color: .yellow)
     }
     
-    /// Indicates whether the cube is in a solved state
-    /// Returns true if all faces have uniform colors
+    /// Indicates whether the cube is in a solved state.
+    /// Returns true if all faces have uniform colors.
     public var isSolved: Bool {
         return isFaceSolved(front) && isFaceSolved(back) &&
                isFaceSolved(left) && isFaceSolved(right) &&
@@ -104,8 +139,8 @@ public struct RubiksCube: Equatable {
     
     // MARK: - Cube Rotations
     
-    /// Rotates the front face 90 degrees clockwise
-    /// This also affects the adjacent edges of top, bottom, left, and right faces
+    /// Rotates the front face 90 degrees clockwise (F move).
+    /// This also affects the adjacent edges of top, bottom, left, and right faces.
     mutating func rotateFront() {
         front.rotateClockwise()
         

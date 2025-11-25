@@ -394,6 +394,299 @@ final class CubeCamCapturePipelineTests: XCTestCase {
     }
 }
 
+// MARK: - StickerColorClassifier Tests
+
+@MainActor
+final class StickerColorClassifierTests: XCTestCase {
+    
+    var classifier: StickerColorClassifier!
+    
+    override func setUp() async throws {
+        classifier = StickerColorClassifier()
+    }
+    
+    override func tearDown() async throws {
+        classifier = nil
+    }
+    
+    // MARK: - Configuration Tests
+    
+    func testClassifierDefaultConfiguration() async {
+        // Default flipYCoordinates should be true for Vision compatibility
+        let flipY = await classifier.flipYCoordinates
+        XCTAssertTrue(flipY, "Default flipYCoordinates should be true")
+        
+        let whiteSatThreshold = await classifier.whiteSaturationThreshold
+        XCTAssertEqual(whiteSatThreshold, 0.25, accuracy: 0.01, "Default white saturation threshold")
+        
+        let whiteBriThreshold = await classifier.whiteBrightnessThreshold
+        XCTAssertEqual(whiteBriThreshold, 0.60, accuracy: 0.01, "Default white brightness threshold")
+    }
+    
+    func testSetFlipYCoordinates() async {
+        await classifier.setFlipYCoordinates(false)
+        let flipY = await classifier.flipYCoordinates
+        XCTAssertFalse(flipY, "flipYCoordinates should be false after setting")
+        
+        await classifier.setFlipYCoordinates(true)
+        let flipY2 = await classifier.flipYCoordinates
+        XCTAssertTrue(flipY2, "flipYCoordinates should be true after setting")
+    }
+    
+    // MARK: - Pixel Buffer Color Classification Tests
+    
+    func testClassifyStickersReturnsNineColors() async {
+        let pixelBuffer = createTestPixelBuffer(width: 100, height: 100, color: (r: 255, g: 255, b: 255))
+        
+        let faceRect = CGRect(x: 0.15, y: 0.15, width: 0.7, height: 0.7)
+        let colors = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: faceRect)
+        
+        XCTAssertEqual(colors.count, 9, "Should return exactly 9 colors")
+    }
+    
+    func testClassifyWhiteStickers() async {
+        // Create a pixel buffer with white color (high brightness, low saturation)
+        let pixelBuffer = createTestPixelBuffer(width: 100, height: 100, color: (r: 240, g: 240, b: 240))
+        await classifier.setFlipYCoordinates(false)
+        
+        let faceRect = CGRect(x: 0.15, y: 0.15, width: 0.7, height: 0.7)
+        let colors = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: faceRect)
+        
+        // All colors should be white
+        for (index, color) in colors.enumerated() {
+            XCTAssertEqual(color, .white, "Sticker \(index) should be white")
+        }
+    }
+    
+    func testClassifyRedStickers() async {
+        // Create a pixel buffer with red color
+        let pixelBuffer = createTestPixelBuffer(width: 100, height: 100, color: (r: 220, g: 30, b: 30))
+        await classifier.setFlipYCoordinates(false)
+        
+        let faceRect = CGRect(x: 0.15, y: 0.15, width: 0.7, height: 0.7)
+        let colors = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: faceRect)
+        
+        // All colors should be red
+        for (index, color) in colors.enumerated() {
+            XCTAssertEqual(color, .red, "Sticker \(index) should be red")
+        }
+    }
+    
+    func testClassifyBlueStickers() async {
+        // Create a pixel buffer with blue color
+        let pixelBuffer = createTestPixelBuffer(width: 100, height: 100, color: (r: 30, g: 30, b: 200))
+        await classifier.setFlipYCoordinates(false)
+        
+        let faceRect = CGRect(x: 0.15, y: 0.15, width: 0.7, height: 0.7)
+        let colors = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: faceRect)
+        
+        // All colors should be blue
+        for (index, color) in colors.enumerated() {
+            XCTAssertEqual(color, .blue, "Sticker \(index) should be blue")
+        }
+    }
+    
+    func testClassifyGreenStickers() async {
+        // Create a pixel buffer with green color
+        let pixelBuffer = createTestPixelBuffer(width: 100, height: 100, color: (r: 30, g: 180, b: 30))
+        await classifier.setFlipYCoordinates(false)
+        
+        let faceRect = CGRect(x: 0.15, y: 0.15, width: 0.7, height: 0.7)
+        let colors = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: faceRect)
+        
+        // All colors should be green
+        for (index, color) in colors.enumerated() {
+            XCTAssertEqual(color, .green, "Sticker \(index) should be green")
+        }
+    }
+    
+    func testClassifyYellowStickers() async {
+        // Create a pixel buffer with yellow color
+        let pixelBuffer = createTestPixelBuffer(width: 100, height: 100, color: (r: 240, g: 230, b: 40))
+        await classifier.setFlipYCoordinates(false)
+        
+        let faceRect = CGRect(x: 0.15, y: 0.15, width: 0.7, height: 0.7)
+        let colors = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: faceRect)
+        
+        // All colors should be yellow
+        for (index, color) in colors.enumerated() {
+            XCTAssertEqual(color, .yellow, "Sticker \(index) should be yellow")
+        }
+    }
+    
+    func testClassifyOrangeStickers() async {
+        // Create a pixel buffer with orange color
+        let pixelBuffer = createTestPixelBuffer(width: 100, height: 100, color: (r: 240, g: 120, b: 30))
+        await classifier.setFlipYCoordinates(false)
+        
+        let faceRect = CGRect(x: 0.15, y: 0.15, width: 0.7, height: 0.7)
+        let colors = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: faceRect)
+        
+        // All colors should be orange
+        for (index, color) in colors.enumerated() {
+            XCTAssertEqual(color, .orange, "Sticker \(index) should be orange")
+        }
+    }
+    
+    // MARK: - White vs Yellow Discrimination Test
+    
+    func testWhiteNotMisclassifiedAsYellow() async {
+        // Test case: bright, slightly warm white should NOT be classified as yellow
+        // This addresses the issue where white stickers were being detected as yellow
+        let warmWhite = createTestPixelBuffer(width: 100, height: 100, color: (r: 250, g: 245, b: 235))
+        await classifier.setFlipYCoordinates(false)
+        
+        let faceRect = CGRect(x: 0.15, y: 0.15, width: 0.7, height: 0.7)
+        let colors = await classifier.classifyStickers(buffer: warmWhite, faceRect: faceRect)
+        
+        for (index, color) in colors.enumerated() {
+            XCTAssertEqual(color, .white, "Warm white sticker \(index) should be white, not yellow")
+        }
+    }
+    
+    // MARK: - Blue vs Orange Discrimination Test
+    
+    func testBlueNotMisclassifiedAsOrange() async {
+        // Test case: blue should never be classified as orange
+        let blue = createTestPixelBuffer(width: 100, height: 100, color: (r: 50, g: 80, b: 200))
+        await classifier.setFlipYCoordinates(false)
+        
+        let faceRect = CGRect(x: 0.15, y: 0.15, width: 0.7, height: 0.7)
+        let colors = await classifier.classifyStickers(buffer: blue, faceRect: faceRect)
+        
+        for (index, color) in colors.enumerated() {
+            XCTAssertNotEqual(color, .orange, "Blue sticker \(index) should not be orange")
+            XCTAssertNotEqual(color, .yellow, "Blue sticker \(index) should not be yellow")
+        }
+    }
+    
+    // MARK: - Center Sticker Tests
+    
+    func testClassifyCenterStickerReturnsColor() async {
+        let pixelBuffer = createTestPixelBuffer(width: 100, height: 100, color: (r: 220, g: 30, b: 30))
+        await classifier.setFlipYCoordinates(false)
+        
+        let faceRect = CGRect(x: 0.15, y: 0.15, width: 0.7, height: 0.7)
+        let centerColor = await classifier.classifyCenterSticker(buffer: pixelBuffer, faceRect: faceRect)
+        
+        XCTAssertEqual(centerColor, .red, "Center sticker should be red")
+    }
+    
+    // MARK: - Y-Flip Tests
+    
+    func testYFlipAffectsColorDetection() async {
+        // Create a pixel buffer with different colors in top half vs bottom half
+        let pixelBuffer = createVerticallyDividedPixelBuffer(
+            width: 100, height: 100,
+            topColor: (r: 30, g: 30, b: 200),  // Blue on top
+            bottomColor: (r: 220, g: 30, b: 30) // Red on bottom
+        )
+        
+        // Detect region in the top portion (y: 0.1 to 0.4)
+        let topRegion = CGRect(x: 0.15, y: 0.1, width: 0.7, height: 0.3)
+        
+        // With Y-flip enabled (Vision coordinates), the "top" region maps to bottom of pixel buffer
+        await classifier.setFlipYCoordinates(true)
+        let colorsWithFlip = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: topRegion)
+        
+        // Without Y-flip (standard coordinates), the "top" region maps to top of pixel buffer
+        await classifier.setFlipYCoordinates(false)
+        let colorsNoFlip = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: topRegion)
+        
+        // The colors should be different depending on flip setting
+        // This verifies the Y-flip is actually affecting which region is sampled
+        XCTAssertNotEqual(colorsWithFlip, colorsNoFlip, "Y-flip should affect which region is sampled")
+    }
+    
+    // MARK: - Helper Methods
+    
+    /// Creates a solid color pixel buffer in BGRA format
+    private func createTestPixelBuffer(width: Int, height: Int, color: (r: UInt8, g: UInt8, b: UInt8)) -> CVPixelBuffer {
+        var pixelBuffer: CVPixelBuffer?
+        let attributes: [String: Any] = [
+            kCVPixelBufferCGImageCompatibilityKey as String: true,
+            kCVPixelBufferCGBitmapContextCompatibilityKey as String: true
+        ]
+        
+        CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            width,
+            height,
+            kCVPixelFormatType_32BGRA,
+            attributes as CFDictionary,
+            &pixelBuffer
+        )
+        
+        guard let buffer = pixelBuffer else {
+            fatalError("Failed to create test pixel buffer")
+        }
+        
+        CVPixelBufferLockBaseAddress(buffer, [])
+        let baseAddress = CVPixelBufferGetBaseAddress(buffer)!
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
+        
+        for y in 0..<height {
+            for x in 0..<width {
+                let offset = y * bytesPerRow + x * 4
+                let pixel = baseAddress.advanced(by: offset).assumingMemoryBound(to: UInt8.self)
+                pixel[0] = color.b  // Blue
+                pixel[1] = color.g  // Green
+                pixel[2] = color.r  // Red
+                pixel[3] = 255      // Alpha
+            }
+        }
+        
+        CVPixelBufferUnlockBaseAddress(buffer, [])
+        return buffer
+    }
+    
+    /// Creates a pixel buffer with different colors in top and bottom halves
+    private func createVerticallyDividedPixelBuffer(
+        width: Int, height: Int,
+        topColor: (r: UInt8, g: UInt8, b: UInt8),
+        bottomColor: (r: UInt8, g: UInt8, b: UInt8)
+    ) -> CVPixelBuffer {
+        var pixelBuffer: CVPixelBuffer?
+        let attributes: [String: Any] = [
+            kCVPixelBufferCGImageCompatibilityKey as String: true,
+            kCVPixelBufferCGBitmapContextCompatibilityKey as String: true
+        ]
+        
+        CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            width,
+            height,
+            kCVPixelFormatType_32BGRA,
+            attributes as CFDictionary,
+            &pixelBuffer
+        )
+        
+        guard let buffer = pixelBuffer else {
+            fatalError("Failed to create test pixel buffer")
+        }
+        
+        CVPixelBufferLockBaseAddress(buffer, [])
+        let baseAddress = CVPixelBufferGetBaseAddress(buffer)!
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
+        let midY = height / 2
+        
+        for y in 0..<height {
+            let color = y < midY ? topColor : bottomColor
+            for x in 0..<width {
+                let offset = y * bytesPerRow + x * 4
+                let pixel = baseAddress.advanced(by: offset).assumingMemoryBound(to: UInt8.self)
+                pixel[0] = color.b  // Blue
+                pixel[1] = color.g  // Green
+                pixel[2] = color.r  // Red
+                pixel[3] = 255      // Alpha
+            }
+        }
+        
+        CVPixelBufferUnlockBaseAddress(buffer, [])
+        return buffer
+    }
+}
+
 #else
 
 // Placeholder tests for platforms without AVFoundation/Vision
@@ -406,6 +699,12 @@ final class CubeScannerTests: XCTestCase {
 final class CubeCamCapturePipelineTests: XCTestCase {
     func testPlaceholder() {
         XCTAssertTrue(true, "Platform does not support AVFoundation/Vision")
+    }
+}
+
+final class StickerColorClassifierTests: XCTestCase {
+    func testPlaceholder() {
+        XCTAssertTrue(true, "Platform does not support CoreVideo/CoreGraphics")
     }
 }
 

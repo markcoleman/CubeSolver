@@ -491,8 +491,24 @@ final class ManualPhotoCaptureViewModel: ObservableObject {
     // MARK: - Internal Properties
     
     let cameraSession = CameraSession()
-    private let colorClassifier = StickerColorClassifier()
+    private let colorClassifier: StickerColorClassifier
     private var capturedPixelBuffer: CVPixelBuffer?
+    
+    // MARK: - Initialization
+    
+    init() {
+        self.colorClassifier = StickerColorClassifier()
+        // Disable Y-flip since we use a fixed grid region (not Vision detection)
+        Task { @MainActor in
+            await self.configureColorClassifier()
+        }
+    }
+    
+    private func configureColorClassifier() async {
+        // The defaultFaceDetectionRegion uses standard top-left origin coordinates
+        // matching the pixel buffer, so we don't need to flip Y coordinates
+        await colorClassifier.setFlipYCoordinates(false)
+    }
     
     // MARK: - Lifecycle
     

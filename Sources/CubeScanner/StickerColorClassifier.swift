@@ -29,21 +29,40 @@ public actor StickerColorClassifier {
     /// PROMPT 6: Use median filtering to reduce noise
     public var useMedianFiltering: Bool = true
     
+    /// Whether to flip Y coordinates (Vision uses bottom-left origin, pixel buffer uses top-left)
+    /// Set to true when faceRect comes from Vision framework detection
+    public var flipYCoordinates: Bool = true
+    
+    /// Saturation threshold below which a color is considered "white" regardless of hue
+    public var whiteSaturationThreshold: Float = 0.25
+    
+    /// Brightness threshold above which low-saturation colors are classified as white
+    public var whiteBrightnessThreshold: Float = 0.60
+    
     // MARK: - Private Properties
     
     // Reference colors in HSB color space for each cube color
+    // Tuned thresholds for better discrimination between similar colors
     private let referenceColors: [CubeColor: HSBColor] = [
-        .white: HSBColor(h: 0, s: 0, b: 0.95),
-        .yellow: HSBColor(h: 60, s: 0.85, b: 0.95),
-        .red: HSBColor(h: 0, s: 0.85, b: 0.85),
-        .orange: HSBColor(h: 30, s: 0.85, b: 0.90),
-        .blue: HSBColor(h: 220, s: 0.75, b: 0.80),
-        .green: HSBColor(h: 120, s: 0.70, b: 0.70)
+        .white: HSBColor(h: 0, s: 0.05, b: 0.90),
+        .yellow: HSBColor(h: 55, s: 0.80, b: 0.95),
+        .red: HSBColor(h: 5, s: 0.85, b: 0.75),
+        .orange: HSBColor(h: 25, s: 0.90, b: 0.90),
+        .blue: HSBColor(h: 215, s: 0.70, b: 0.75),
+        .green: HSBColor(h: 140, s: 0.65, b: 0.65)
     ]
     
     // MARK: - Initialization
     
     public init() {}
+    
+    // MARK: - Configuration Methods
+    
+    /// Set whether to flip Y coordinates (for Vision framework compatibility)
+    /// - Parameter flip: true if using Vision detection (bottom-left origin), false for standard grids
+    public func setFlipYCoordinates(_ flip: Bool) {
+        self.flipYCoordinates = flip
+    }
     
     // MARK: - Public Methods
     
@@ -51,6 +70,8 @@ public actor StickerColorClassifier {
     /// - Parameters:
     ///   - buffer: The pixel buffer containing the frame
     ///   - faceRect: The bounding box of the detected cube face (normalized coordinates)
+    ///               Note: Vision framework uses bottom-left origin (0,0), so Y coordinates
+    ///               need to be flipped when flipYCoordinates is true (default)
     /// - Returns: Array of 9 classified colors in row-major order (top-left to bottom-right)
     ///            Row 0: indices 0-2, Row 1: indices 3-5, Row 2: indices 6-8
     public func classifyStickers(
@@ -70,11 +91,29 @@ public actor StickerColorClassifier {
         }
         
         // Convert normalized rect to pixel coordinates
+        // Vision framework uses bottom-left origin (0,0), but pixel buffer uses top-left origin
+        // When flipYCoordinates is true, we flip the Y coordinate to match pixel buffer space
+        let adjustedFaceRect: CGRect
+        if flipYCoordinates {
+            // Flip Y: Vision's minY is at bottom, pixel buffer's minY is at top
+            // Vision rect: minY is bottom edge, maxY is top edge
+            // Pixel buffer: minY is top edge, maxY is bottom edge
+            let flippedMinY = 1.0 - faceRect.maxY
+            adjustedFaceRect = CGRect(
+                x: faceRect.minX,
+                y: flippedMinY,
+                width: faceRect.width,
+                height: faceRect.height
+            )
+        } else {
+            adjustedFaceRect = faceRect
+        }
+        
         let pixelRect = CGRect(
-            x: faceRect.minX * CGFloat(width),
-            y: faceRect.minY * CGFloat(height),
-            width: faceRect.width * CGFloat(width),
-            height: faceRect.height * CGFloat(height)
+            x: adjustedFaceRect.minX * CGFloat(width),
+            y: adjustedFaceRect.minY * CGFloat(height),
+            width: adjustedFaceRect.width * CGFloat(width),
+            height: adjustedFaceRect.height * CGFloat(height)
         )
         
         // Sample 9 grid points (3x3 grid)
@@ -118,9 +157,8 @@ public actor StickerColorClassifier {
                     ? medianColor(sampleColors)
                     : averageColor(sampleColors)
                 
-                // PROMPT 6: Apply white balance normalization
-                let normalizedColor = normalizeColorWithWhiteBalance(representativeColor)
-                let classifiedColor = classifyColor(normalizedColor)
+                // Apply improved color classification with better white detection
+                let classifiedColor = classifyColorImproved(representativeColor)
                 colors.append(classifiedColor)
             }
         }
@@ -132,6 +170,8 @@ public actor StickerColorClassifier {
     /// - Parameters:
     ///   - buffer: The pixel buffer containing the frame
     ///   - faceRect: The bounding box of the detected cube face (normalized coordinates)
+    ///               Note: Vision framework uses bottom-left origin (0,0), so Y coordinates
+    ///               need to be flipped when flipYCoordinates is true (default)
     /// - Returns: The classified color of the center sticker
     public func classifyCenterSticker(
         buffer: CVPixelBuffer,
@@ -149,35 +189,62 @@ public actor StickerColorClassifier {
             return .white
         }
         
-        // Convert normalized rect to pixel coordinates
+        // Convert normalized rect to pixel coordinates with Y-flip correction
+        let adjustedFaceRect: CGRect
+        if flipYCoordinates {
+            let flippedMinY = 1.0 - faceRect.maxY
+            adjustedFaceRect = CGRect(
+                x: faceRect.minX,
+                y: flippedMinY,
+                width: faceRect.width,
+                height: faceRect.height
+            )
+        } else {
+            adjustedFaceRect = faceRect
+        }
+        
         let pixelRect = CGRect(
-            x: faceRect.minX * CGFloat(width),
-            y: faceRect.minY * CGFloat(height),
-            width: faceRect.width * CGFloat(width),
-            height: faceRect.height * CGFloat(height)
+            x: adjustedFaceRect.minX * CGFloat(width),
+            y: adjustedFaceRect.minY * CGFloat(height),
+            width: adjustedFaceRect.width * CGFloat(width),
+            height: adjustedFaceRect.height * CGFloat(height)
         )
         
         // Sample center sticker (row 1, col 1 in 3x3 grid)
+        // Use multiple samples for more robust center detection
         let cellWidth = pixelRect.width / 3.0
         let cellHeight = pixelRect.height / 3.0
         
-        let sampleX = Int(pixelRect.minX + (1.5) * cellWidth)
-        let sampleY = Int(pixelRect.minY + (1.5) * cellHeight)
+        let centerCellX = pixelRect.minX + cellWidth
+        let centerCellY = pixelRect.minY + cellHeight
         
-        // Sample color at center point
-        if let sampledColor = sampleColor(
-            at: CGPoint(x: sampleX, y: sampleY),
-            buffer: buffer,
-            bytesPerRow: bytesPerRow,
-            width: width,
-            height: height,
-            baseAddress: baseAddress
-        ) {
-            let normalizedColor = normalizeColor(sampledColor)
-            return classifyColor(normalizedColor)
+        // Sample 9 points within center sticker for robustness
+        var sampleColors: [RGBColor] = []
+        for sampleRow in 0..<3 {
+            for sampleCol in 0..<3 {
+                let sampleX = Int(centerCellX + cellWidth * (CGFloat(sampleCol) + 1) / 4)
+                let sampleY = Int(centerCellY + cellHeight * (CGFloat(sampleRow) + 1) / 4)
+                
+                if let sampledColor = sampleColor(
+                    at: CGPoint(x: sampleX, y: sampleY),
+                    buffer: buffer,
+                    bytesPerRow: bytesPerRow,
+                    width: width,
+                    height: height,
+                    baseAddress: baseAddress
+                ) {
+                    sampleColors.append(sampledColor)
+                }
+            }
         }
         
-        return .white // Default
+        guard !sampleColors.isEmpty else {
+            return .white
+        }
+        
+        // Use median color for robustness
+        let representativeColor = medianColor(sampleColors)
+        return classifyColorImproved(representativeColor)
     }
     
     // MARK: - Private Methods
@@ -315,6 +382,105 @@ public actor StickerColorClassifier {
         }
         
         return bestMatch
+    }
+    
+    /// Improved color classification with better white detection and color discrimination
+    /// This method handles the key issues:
+    /// 1. White stickers being misclassified as yellow/orange due to lighting
+    /// 2. Blue/green being confused with yellow/orange
+    private func classifyColorImproved(_ rgb: RGBColor) -> CubeColor {
+        let hsb = rgbToHSB(rgb)
+        
+        // First, check if this is white - white has low saturation and high brightness
+        // This prevents white from being misclassified as yellow or orange
+        if hsb.s < whiteSaturationThreshold && hsb.b > whiteBrightnessThreshold {
+            return .white
+        }
+        
+        // For colors with moderate saturation, use hue-based discrimination
+        // This helps distinguish between colors that could be confused
+        if hsb.s >= 0.20 {
+            let hue = hsb.h
+            
+            // Use clear hue boundaries to distinguish colors
+            // Red: 340-360 and 0-15
+            // Orange: 15-45
+            // Yellow: 45-70
+            // Green: 70-170
+            // Blue: 170-260
+            // Red/Purple: 260-340
+            
+            if (hue >= 340 || hue < 15) && hsb.s > 0.40 {
+                return .red
+            } else if hue >= 15 && hue < 45 && hsb.s > 0.40 {
+                return .orange
+            } else if hue >= 45 && hue < 70 && hsb.s > 0.35 {
+                return .yellow
+            } else if hue >= 70 && hue < 170 {
+                return .green
+            } else if hue >= 170 && hue < 260 {
+                return .blue
+            } else if hue >= 260 && hue < 340 && hsb.s > 0.40 {
+                // Could be red or purple - use brightness to decide
+                return .red
+            }
+        }
+        
+        // Fall back to distance-based matching for edge cases
+        var bestMatch: CubeColor = .white
+        var bestDistance: Float = .infinity
+        
+        for (cubeColor, refColor) in referenceColors {
+            let distance = colorDistanceImproved(hsb, refColor, targetColor: cubeColor)
+            
+            if distance < bestDistance {
+                bestDistance = distance
+                bestMatch = cubeColor
+            }
+        }
+        
+        return bestMatch
+    }
+    
+    /// Improved distance calculation that handles color discrimination better
+    private func colorDistanceImproved(_ color1: HSBColor, _ color2: HSBColor, targetColor: CubeColor) -> Float {
+        // Handle hue wraparound (360 degrees = 0 degrees)
+        let hueDiff = min(
+            abs(color1.h - color2.h),
+            360 - abs(color1.h - color2.h)
+        )
+        
+        // Adaptive weights based on the target color
+        var hueWeight: Float = 2.5
+        var satWeight: Float = 1.5
+        var briWeight: Float = 0.8
+        
+        // For white, saturation is the most important factor
+        if targetColor == .white {
+            satWeight = 3.0
+            hueWeight = 0.3  // Hue is irrelevant for white
+            briWeight = 1.0
+        }
+        
+        // For distinguishing yellow from orange, emphasize hue
+        if targetColor == .yellow || targetColor == .orange {
+            hueWeight = 3.0
+            satWeight = 1.0
+        }
+        
+        // For blue vs green distinction, hue is critical
+        if targetColor == .blue || targetColor == .green {
+            hueWeight = 3.5
+            satWeight = 1.0
+        }
+        
+        let distance = sqrt(
+            pow(hueDiff / 180.0 * hueWeight, 2) +
+            pow((color1.s - color2.s) * satWeight, 2) +
+            pow((color1.b - color2.b) * briWeight, 2)
+        )
+        
+        return distance
     }
     
     /// Calculate distance between two colors in HSB space

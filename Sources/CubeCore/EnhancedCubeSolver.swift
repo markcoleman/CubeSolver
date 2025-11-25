@@ -2,18 +2,40 @@
 //  EnhancedCubeSolver.swift
 //  CubeSolver
 //
-//  Enhanced cube solver with Two-Phase algorithm approach
+//  Primary cube solving algorithm with Two-Phase approach.
+//
+//  This solver validates cube states before solving and provides both
+//  synchronous and asynchronous solving methods. It replaces the legacy
+//  `CubeSolver` class with improved validation and algorithm structure.
+//
+//  ## Usage
+//  ```swift
+//  let state = CubeState(from: cube)
+//  let moves = try EnhancedCubeSolver.solveCube(from: state)
+//  for move in moves {
+//      print(move.notation)  // "R", "U'", "F2", etc.
+//  }
+//  ```
 //
 
 import Foundation
 
-/// Enhanced Rubik's Cube solver with validation and improved algorithm
-public class EnhancedCubeSolver {
+/// Enhanced Rubik's Cube solver with validation and improved algorithm.
+///
+/// This is the primary solver for CubeSolver. It validates cube states before
+/// attempting to solve and provides both sync and async solving methods.
+///
+/// ## Features
+/// - Validates cube state for physical legality (parity, orientation)
+/// - Two-phase solving approach
+/// - Scramble generation with no consecutive repeats
+/// - Swift 6 concurrency support (async/await)
+public final class EnhancedCubeSolver {
     
-    /// Solve a cube state and return the solution as a sequence of moves
+    /// Solve a cube state and return the solution as a sequence of moves.
     /// - Parameter state: The cube state to solve
     /// - Returns: Array of moves that solve the cube
-    /// - Throws: CubeValidationError if the cube state is invalid
+    /// - Throws: `CubeValidationError` if the cube state is invalid
     public static func solveCube(from state: CubeState) throws -> [Move] {
         // First validate the cube state
         try CubeValidator.validate(state)
@@ -22,11 +44,14 @@ public class EnhancedCubeSolver {
         return try solveCubeInternal(state)
     }
     
-    /// Asynchronously solve a cube state and return the solution
-    /// This method runs the solving algorithm on a background task
+    /// Asynchronously solve a cube state and return the solution.
+    ///
+    /// This method runs the solving algorithm on a background task,
+    /// keeping the main thread responsive for UI updates.
+    ///
     /// - Parameter state: The cube state to solve
     /// - Returns: Array of moves that solve the cube
-    /// - Throws: CubeValidationError if the cube state is invalid
+    /// - Throws: `CubeValidationError` if the cube state is invalid
     public static func solveCubeAsync(from state: CubeState) async throws -> [Move] {
         return try await Task.detached(priority: .userInitiated) {
             return try solveCube(from: state)

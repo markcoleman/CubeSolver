@@ -2,15 +2,31 @@
 //  CubeDataStructures.swift
 //  CubeSolver
 //
-//  Shared data structures for Rubik's Cube solver
+//  Core data structures for Rubik's Cube representation and solving.
+//
+//  This file defines the primary types used throughout CubeSolver:
+//  - CubeColor: The six standard cube colors (Sendable/Codable)
+//  - Face: The six cube faces (U, D, L, R, F, B)
+//  - CubeState: Complete 54-sticker state representation
+//  - Move: Standard cube notation (R, U', F2, etc.)
+//  - CubeSolution: A sequence of moves that solve a cube state
 //
 
 import Foundation
 
 // MARK: - Color Definitions
 
-/// Represents the six standard colors on a Rubik's Cube
-/// Aligned with existing FaceColor enum for backward compatibility
+/// Represents the six standard colors on a Rubik's Cube.
+///
+/// Each color corresponds to a face center on a standard cube:
+/// - White (W): Top face
+/// - Yellow (Y): Bottom face
+/// - Red (R): Front face
+/// - Orange (O): Back face
+/// - Blue (B): Right face
+/// - Green (G): Left face
+///
+/// This type is Sendable and Codable for use in async contexts and persistence.
 public enum CubeColor: String, CaseIterable, Codable, Equatable, Sendable {
     case white = "W"
     case yellow = "Y"
@@ -22,7 +38,15 @@ public enum CubeColor: String, CaseIterable, Codable, Equatable, Sendable {
 
 // MARK: - Face Definitions
 
-/// Represents the six faces of a Rubik's Cube
+/// Represents the six faces of a Rubik's Cube using standard notation.
+///
+/// Face notation follows the standard Rubik's Cube conventions:
+/// - U (Up): Top face
+/// - D (Down): Bottom face
+/// - L (Left): Left face
+/// - R (Right): Right face
+/// - F (Front): Front face
+/// - B (Back): Back face
 public enum Face: String, CaseIterable, Codable, Equatable, Sendable {
     case up = "U"
     case down = "D"
@@ -46,14 +70,26 @@ public enum Face: String, CaseIterable, Codable, Equatable, Sendable {
 
 // MARK: - Cube State
 
-/// Represents the complete state of a Rubik's Cube as 54 individual stickers
-/// Each face has 9 stickers arranged in a 3x3 grid
+/// Represents the complete state of a Rubik's Cube as 54 individual stickers.
+///
+/// Each face contains 9 stickers arranged in a 3x3 grid, indexed as follows:
+/// ```
+/// 0 | 1 | 2
+/// ---------
+/// 3 | 4 | 5
+/// ---------
+/// 6 | 7 | 8
+/// ```
+/// Index 4 is always the center sticker.
+///
+/// This type is the primary representation for cube states in the solver.
+/// Use `CubeState(from:)` to convert from `RubiksCube` representation.
 public struct CubeState: Equatable, Codable, Sendable {
-    /// Dictionary mapping each face to its 9 sticker colors
-    /// Stickers are ordered from top-left to bottom-right (row by row)
+    /// Dictionary mapping each face to its 9 sticker colors.
+    /// Stickers are ordered from top-left to bottom-right (row by row).
     public var faces: [Face: [CubeColor]]
     
-    /// Initializes a solved cube state with standard color configuration
+    /// Initializes a solved cube state with standard color configuration.
     public init() {
         faces = [
             .up: Array(repeating: .white, count: 9),

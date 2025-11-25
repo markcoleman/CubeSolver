@@ -12,22 +12,6 @@ import AVFoundation
 import CubeCore
 import CubeScanner
 
-// MARK: - CubeColor SwiftUI Extension
-
-private extension CubeColor {
-    /// Converts CubeColor to SwiftUI Color
-    var swiftUIColor: Color {
-        switch self {
-        case .white: return .white
-        case .yellow: return .yellow
-        case .red: return .red
-        case .orange: return .orange
-        case .blue: return .blue
-        case .green: return .green
-        }
-    }
-}
-
 // MARK: - ManualPhotoCaptureView
 
 /// A view for manually capturing a photo of a cube face and extracting sticker colors
@@ -333,7 +317,7 @@ private struct AlignmentGridOverlay: View {
                     let x = startX + (corner % 2 == 0 ? 0 : size)
                     let y = startY + (corner < 2 ? 0 : size)
                     
-                    CornerMarker()
+                    SimpleCornerMarker()
                         .rotationEffect(.degrees(Double(corner) * 90))
                         .position(x: x, y: y)
                 }
@@ -343,7 +327,7 @@ private struct AlignmentGridOverlay: View {
     }
 }
 
-private struct CornerMarker: View {
+private struct SimpleCornerMarker: View {
     var body: some View {
         Path { path in
             path.move(to: CGPoint(x: 0, y: 20))

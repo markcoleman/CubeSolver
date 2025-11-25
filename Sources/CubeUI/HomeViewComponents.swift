@@ -58,6 +58,8 @@ public struct ActionCard: View {
         .background(.ultraThinMaterial)
         .cornerRadius(16)
         .shadow(color: colorScheme == .dark ? Color.black.opacity(0.3) : Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title), \(subtitle)")
     }
 }
 

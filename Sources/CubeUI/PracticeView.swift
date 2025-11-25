@@ -342,8 +342,7 @@ public struct PracticeView: View {
     private func startTimer() {
         timerActive = true
         timerStartTime = Date()
-        let newTimer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
+        let newTimer = Timer(timeInterval: 0.1, repeats: true) { _ in
             if let startTime = self.timerStartTime {
                 self.timeElapsed = Date().timeIntervalSince(startTime)
             }

@@ -300,9 +300,14 @@ public struct PracticeView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .navigationDestination(isPresented: $showingSolutionPlayback) {
-            SolutionPlaybackView(
-                initialState: CubeState(from: cubeViewModel.cube)
-            )
+            if !cubeViewModel.solution.isEmpty {
+                SolutionPlaybackView(
+                    solution: CubeSolution(
+                        initialState: CubeState(from: cubeViewModel.cube),
+                        moves: cubeViewModel.solution
+                    )
+                )
+            }
         }
         .onDisappear {
             stopTimer()

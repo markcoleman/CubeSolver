@@ -337,9 +337,10 @@ public struct PracticeView: View {
     private func startTimer() {
         timerActive = true
         timerStartTime = Date()
-        let newTimer = Timer(timeInterval: 0.1, repeats: true) { [self] _ in
-            if let startTime = timerStartTime {
-                timeElapsed = Date().timeIntervalSince(startTime)
+        let newTimer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            if let startTime = self.timerStartTime {
+                self.timeElapsed = Date().timeIntervalSince(startTime)
             }
         }
         RunLoop.current.add(newTimer, forMode: .common)

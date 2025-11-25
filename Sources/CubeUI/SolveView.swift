@@ -202,9 +202,14 @@ public struct SolveView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .navigationDestination(isPresented: $showingSolution) {
-            SolutionPlaybackView(
-                initialState: CubeState(from: cubeViewModel.cube)
-            )
+            if !cubeViewModel.solution.isEmpty {
+                SolutionPlaybackView(
+                    solution: CubeSolution(
+                        initialState: CubeState(from: cubeViewModel.cube),
+                        moves: cubeViewModel.solution
+                    )
+                )
+            }
         }
     }
 }

@@ -417,10 +417,10 @@ final class StickerColorClassifierTests: XCTestCase {
         XCTAssertTrue(flipY, "Default flipYCoordinates should be true")
         
         let whiteSatThreshold = await classifier.whiteSaturationThreshold
-        XCTAssertEqual(whiteSatThreshold, 0.25, accuracy: 0.01, "Default white saturation threshold")
+        XCTAssertEqual(whiteSatThreshold, 0.18, accuracy: 0.01, "Default white saturation threshold")
         
         let whiteBriThreshold = await classifier.whiteBrightnessThreshold
-        XCTAssertEqual(whiteBriThreshold, 0.60, accuracy: 0.01, "Default white brightness threshold")
+        XCTAssertEqual(whiteBriThreshold, 0.50, accuracy: 0.01, "Default white brightness threshold")
     }
     
     func testSetFlipYCoordinates() async {

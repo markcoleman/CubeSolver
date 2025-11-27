@@ -27,7 +27,7 @@ concurrency:
 jobs:
   capture-ios-screenshots:
     name: Capture iOS Screenshots
-    runs-on: macos-14
+    runs-on: macos-26
     # Only run on push to main, manual trigger, or PRs with 'screenshots' label
     if: |
       github.event_name == 'push' || 
@@ -43,7 +43,12 @@ jobs:
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '15.2'
+        xcode-version: '26.0'
+    
+    - name: Verify Swift version
+      run: |
+        swift --version
+        xcodebuild -version
     
     - name: Install fastlane
       run: |
@@ -58,9 +63,9 @@ jobs:
       with:
         path: |
           ~/Library/Caches/org.swift.swiftpm
-        key: ${{ runner.os }}-spm-xcode15-v1
+        key: ${{ runner.os }}-spm-xcode26-v1
         restore-keys: |
-          ${{ runner.os }}-spm-xcode15-
+          ${{ runner.os }}-spm-xcode26-
           ${{ runner.os }}-spm-
     
     - name: Install dependencies
@@ -70,7 +75,7 @@ jobs:
       run: |
         xcodebuild build-for-testing \
           -scheme CubeSolver \
-          -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
+          -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
           -derivedDataPath .build/DerivedData \
           | xcpretty || true
     
@@ -78,7 +83,7 @@ jobs:
       run: |
         xcodebuild test-without-building \
           -scheme CubeSolver \
-          -destination 'platform=iOS Simulator,name=iPhone 15 Pro' \
+          -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
           -derivedDataPath .build/DerivedData \
           -resultBundlePath .build/TestResults.xcresult \
           | xcpretty || true
@@ -173,7 +178,7 @@ jobs:
 
   capture-macos-screenshots:
     name: Capture macOS Screenshots
-    runs-on: macos-14
+    runs-on: macos-26
     # Only run on push to main, manual trigger, or PRs with 'screenshots' label
     if: |
       github.event_name == 'push' || 
@@ -187,16 +192,21 @@ jobs:
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '15.2'
+        xcode-version: '26.0'
+    
+    - name: Verify Swift version
+      run: |
+        swift --version
+        xcodebuild -version
     
     - name: Cache Swift Package Manager
       uses: actions/cache@v4
       with:
         path: |
           ~/Library/Caches/org.swift.swiftpm
-        key: ${{ runner.os }}-spm-xcode15-v1
+        key: ${{ runner.os }}-spm-xcode26-v1
         restore-keys: |
-          ${{ runner.os }}-spm-xcode15-
+          ${{ runner.os }}-spm-xcode26-
           ${{ runner.os }}-spm-
     
     - name: Install dependencies

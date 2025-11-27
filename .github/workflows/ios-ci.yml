@@ -35,11 +35,11 @@ jobs:
 
   build-and-test:
     name: Build and Test
-    runs-on: macos-14
+    runs-on: macos-26
     needs: lint
     strategy:
       matrix:
-        xcode: ['16.1']
+        xcode: ['26.0']
       fail-fast: false
     
     steps:
@@ -50,6 +50,11 @@ jobs:
       uses: maxim-lobanov/setup-xcode@v1
       with:
         xcode-version: ${{ matrix.xcode }}
+    
+    - name: Verify Swift version
+      run: |
+        swift --version
+        xcodebuild -version
     
     - name: Cache Swift Package Manager
       uses: actions/cache@v4
@@ -71,7 +76,7 @@ jobs:
       run: swift test --enable-code-coverage --parallel
       
     - name: Generate code coverage report
-      if: matrix.xcode == '16.1'
+      if: matrix.xcode == '26.0'
       run: |
         # Find all test executables and generate coverage for each
         for test_exec in .build/debug/*.xctest/Contents/MacOS/*; do
@@ -83,7 +88,7 @@ jobs:
         done
       
     - name: Upload coverage to Codecov
-      if: matrix.xcode == '16.1'
+      if: matrix.xcode == '26.0'
       uses: codecov/codecov-action@v5
       with:
         files: ./coverage.lcov
@@ -92,7 +97,7 @@ jobs:
         fail_ci_if_error: false
         
     - name: Check code coverage threshold
-      if: matrix.xcode == '16.1'
+      if: matrix.xcode == '26.0'
       run: |
         # Extract coverage percentage (basic check)
         if [ -f coverage.lcov ]; then

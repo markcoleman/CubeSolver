@@ -16,7 +16,7 @@ import Vision
 
 /// Color classifier that uses Vision framework's on-device capabilities for enhanced color detection.
 ///
-/// This classifier leverages `VNGenerateDominantColorsRequest` (iOS 17+) to detect
+/// This classifier leverages `VNDetectColorsRequest` (iOS 17+) to detect
 /// dominant colors in each sticker region. It provides more accurate color detection under
 /// varying lighting conditions compared to simple HSB-based classification.
 ///
@@ -129,7 +129,7 @@ public actor AppleIntelligenceColorClassifier {
         stickerRect: CGRect
     ) async -> CubeColor? {
         // Create the dominant color analysis request
-        let request = VNGenerateDominantColorsRequest()
+        let request = VNDetectColorsRequest()
         
         // Set the region of interest to the sticker area
         // Note: Vision's regionOfInterest uses normalized coordinates (0-1) with origin at bottom-left.
@@ -142,12 +142,12 @@ public actor AppleIntelligenceColorClassifier {
         do {
             try handler.perform([request])
             
-            guard let observation = request.results?.first as? VNDominantColorObservation else {
+            guard let observation = request.results?.first as? VNColorObservation else {
                 return nil
             }
 
             // Get the most dominant color
-            guard let dominantColor = observation.dominantColors.first else {
+            guard let dominantColor = observation.colors.first else {
                 return nil
             }
             
@@ -160,7 +160,7 @@ public actor AppleIntelligenceColorClassifier {
     }
     
     /// Map a Vision dominant color observation to a CubeColor
-    private func mapToCubeColor(_ colorInfo: VNDominantColor) -> CubeColor {
+    private func mapToCubeColor(_ colorInfo: VNColorObservation.Color) -> CubeColor {
         // Get the CGColor from the observation
         let cgColor = colorInfo.color
         
@@ -257,7 +257,7 @@ public actor AppleIntelligenceColorClassifier {
 #else
 
 // Fallback implementation for platforms or toolchains that do not include
-// `VNGenerateDominantColorsRequest` (iOS 17+ / macOS 14+ SDKs). This simply
+// `VNDetectColorsRequest` (iOS 17+ / macOS 14+ SDKs). This simply
 // delegates to the HSB-based `StickerColorClassifier` so callers can keep
 // using the same API surface without conditional compilation.
 public actor AppleIntelligenceColorClassifier {

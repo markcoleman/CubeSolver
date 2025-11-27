@@ -34,12 +34,12 @@ public actor StickerColorClassifier {
     public var flipYCoordinates: Bool = true
     
     /// Saturation threshold below which a color is considered "white" regardless of hue
-    /// Lowered to 0.18 to better handle white stickers in warm/dim lighting
-    public var whiteSaturationThreshold: Float = 0.18
+    /// Set to 0.15 for reliable white detection without false positives on saturated colors
+    public var whiteSaturationThreshold: Float = 0.15
     
     /// Brightness threshold above which low-saturation colors are classified as white
-    /// Lowered to 0.50 to detect white stickers in dimmer conditions
-    public var whiteBrightnessThreshold: Float = 0.50
+    /// Set to 0.55 to detect white stickers while avoiding dim colored stickers
+    public var whiteBrightnessThreshold: Float = 0.55
     
     // MARK: - Private Properties
     
@@ -47,12 +47,12 @@ public actor StickerColorClassifier {
     // Tuned thresholds for better discrimination between similar colors
     // These are used as fallback when hue-based classification is ambiguous
     private let referenceColors: [CubeColor: HSBColor] = [
-        .white: HSBColor(h: 0, s: 0.02, b: 0.92),      // Very low saturation, high brightness
-        .yellow: HSBColor(h: 52, s: 0.85, b: 0.95),    // Warm yellow
-        .red: HSBColor(h: 2, s: 0.85, b: 0.70),        // True red
-        .orange: HSBColor(h: 22, s: 0.92, b: 0.92),    // Distinct orange
-        .blue: HSBColor(h: 210, s: 0.75, b: 0.70),     // Standard blue
-        .green: HSBColor(h: 135, s: 0.70, b: 0.60)     // Standard green
+        .white: HSBColor(h: 0, s: 0.02, b: 0.90),       // Very low saturation, high brightness
+        .yellow: HSBColor(h: 55, s: 0.90, b: 0.95),     // Bright saturated yellow
+        .red: HSBColor(h: 0, s: 0.90, b: 0.75),         // True red
+        .orange: HSBColor(h: 25, s: 0.95, b: 0.90),     // Distinct orange
+        .blue: HSBColor(h: 215, s: 0.80, b: 0.75),      // Standard blue
+        .green: HSBColor(h: 120, s: 0.75, b: 0.65)      // Standard green
     ]
     
     // MARK: - Initialization
@@ -396,58 +396,54 @@ public actor StickerColorClassifier {
         
         // First, check if this is white - white has low saturation and reasonable brightness
         // This prevents white from being misclassified as yellow or orange
-        // Using a stricter check: very low saturation = white
         if hsb.s < whiteSaturationThreshold && hsb.b > whiteBrightnessThreshold {
             return .white
         }
         
-        // Additional white check: if saturation is very low (< 0.12), it's white regardless of brightness
-        // This helps with white stickers in dim lighting
-        if hsb.s < 0.12 && hsb.b > 0.35 {
+        // Additional white check: if saturation is very low (< 0.10), it's white regardless of brightness
+        if hsb.s < 0.10 && hsb.b > 0.40 {
             return .white
         }
         
         // For colors with moderate saturation, use hue-based discrimination
-        // This helps distinguish between colors that could be confused
-        if hsb.s >= 0.15 {
+        if hsb.s >= 0.20 {
             let hue = hsb.h
             
-            // Use clear hue boundaries to distinguish colors
-            // These ranges are tuned for Rubik's cube sticker colors:
-            // Red: 340-360 and 0-12 (saturated red)
-            // Orange: 12-40 (warm orange)
-            // Yellow: 40-75 (bright yellow, wider range)
-            // Green: 75-165 (green spectrum)
-            // Blue: 165-260 (blue spectrum, including cyan-blue)
-            // Red/Magenta: 260-340
+            // Hue ranges tuned for standard Rubik's cube sticker colors:
+            // Red: 345-360 and 0-15 (pure red, wraps around)
+            // Orange: 15-45 (warm orange, distinct from red and yellow)
+            // Yellow: 45-70 (bright yellow)
+            // Green: 70-160 (green spectrum, lime to teal)
+            // Blue: 160-260 (blue spectrum, cyan to purple-blue)
+            // Red/Purple: 260-345 (magenta region maps to red)
             
             // Red detection (wraps around 0/360)
-            if (hue >= 340 || hue < 12) && hsb.s > 0.35 {
+            if (hue >= 345 || hue < 15) && hsb.s > 0.40 {
                 return .red
             }
             
-            // Orange detection - distinct from yellow and red
-            if hue >= 12 && hue < 40 && hsb.s > 0.35 {
+            // Orange detection
+            if hue >= 15 && hue < 45 && hsb.s > 0.45 {
                 return .orange
             }
             
             // Yellow detection - needs good saturation to distinguish from white
-            if hue >= 40 && hue < 75 && hsb.s > 0.30 {
+            if hue >= 45 && hue < 70 && hsb.s > 0.40 {
                 return .yellow
             }
             
-            // Green detection
-            if hue >= 75 && hue < 165 && hsb.s > 0.25 {
+            // Green detection - wide range for lime green to teal
+            if hue >= 70 && hue < 160 && hsb.s > 0.30 {
                 return .green
             }
             
-            // Blue detection - wide range including cyan-blue
-            if hue >= 165 && hue < 260 && hsb.s > 0.25 {
+            // Blue detection - wide range for cyan-blue to purple-blue
+            if hue >= 160 && hue < 260 && hsb.s > 0.30 {
                 return .blue
             }
             
-            // Red/Magenta region
-            if hue >= 260 && hue < 340 && hsb.s > 0.35 {
+            // Red/Magenta region - treat as red
+            if hue >= 260 && hue < 345 && hsb.s > 0.40 {
                 return .red
             }
         }

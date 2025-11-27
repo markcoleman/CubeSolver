@@ -142,10 +142,10 @@ public actor AppleIntelligenceColorClassifier {
         do {
             try handler.perform([request])
             
-            guard let observation = request.results?.first else {
+            guard let observation = request.results?.first as? VNDominantColorObservation else {
                 return nil
             }
-            
+
             // Get the most dominant color
             guard let dominantColor = observation.dominantColors.first else {
                 return nil
@@ -160,7 +160,7 @@ public actor AppleIntelligenceColorClassifier {
     }
     
     /// Map a Vision dominant color observation to a CubeColor
-    private func mapToCubeColor(_ colorInfo: VNDominantColors.DominantColor) -> CubeColor {
+    private func mapToCubeColor(_ colorInfo: VNDominantColor) -> CubeColor {
         // Get the CGColor from the observation
         let cgColor = colorInfo.color
         

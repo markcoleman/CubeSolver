@@ -394,6 +394,175 @@ final class CubeCamCapturePipelineTests: XCTestCase {
     }
 }
 
+// MARK: - AppleIntelligenceColorClassifier Tests
+
+final class AppleIntelligenceColorClassifierTests: XCTestCase {
+    
+    var classifier: AppleIntelligenceColorClassifier!
+    
+    /// Valid CubeColor values for assertion validation
+    private let validCubeColors: Set<CubeColor> = [.white, .yellow, .red, .orange, .blue, .green]
+    
+    override func setUp() async throws {
+        classifier = AppleIntelligenceColorClassifier()
+    }
+    
+    override func tearDown() async throws {
+        classifier = nil
+    }
+    
+    // MARK: - Initialization Tests
+    
+    func testClassifierInitialization() {
+        XCTAssertNotNil(classifier, "Classifier should initialize successfully")
+    }
+    
+    // MARK: - classifyStickers Tests
+    
+    func testClassifyStickersReturnsNineColors() async {
+        let pixelBuffer = createDummyPixelBuffer()
+        let faceRect = CGRect(x: 0.1, y: 0.1, width: 0.8, height: 0.8)
+        
+        let colors = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: faceRect)
+        
+        XCTAssertEqual(colors.count, 9, "classifyStickers should return exactly 9 colors")
+    }
+    
+    func testClassifyStickersReturnsValidCubeColors() async {
+        let pixelBuffer = createDummyPixelBuffer()
+        let faceRect = CGRect(x: 0.1, y: 0.1, width: 0.8, height: 0.8)
+        
+        let colors = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: faceRect)
+        
+        for color in colors {
+            XCTAssertTrue(validCubeColors.contains(color), "Color \(color) should be a valid CubeColor")
+        }
+    }
+    
+    func testClassifyStickersWithFullFrameRect() async {
+        let pixelBuffer = createDummyPixelBuffer()
+        let faceRect = CGRect(x: 0.0, y: 0.0, width: 1.0, height: 1.0)
+        
+        let colors = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: faceRect)
+        
+        XCTAssertEqual(colors.count, 9, "Should return 9 colors even with full frame rect")
+    }
+    
+    func testClassifyStickersWithSmallFaceRect() async {
+        let pixelBuffer = createDummyPixelBuffer()
+        let faceRect = CGRect(x: 0.4, y: 0.4, width: 0.2, height: 0.2)
+        
+        let colors = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: faceRect)
+        
+        XCTAssertEqual(colors.count, 9, "Should return 9 colors even with small face rect")
+    }
+    
+    // MARK: - classifyCenterSticker Tests
+    
+    func testClassifyCenterStickerReturnsValidColor() async {
+        let pixelBuffer = createDummyPixelBuffer()
+        let faceRect = CGRect(x: 0.1, y: 0.1, width: 0.8, height: 0.8)
+        
+        let centerColor = await classifier.classifyCenterSticker(buffer: pixelBuffer, faceRect: faceRect)
+        
+        XCTAssertTrue(validCubeColors.contains(centerColor), "Center color \(centerColor) should be a valid CubeColor")
+    }
+    
+    func testClassifyCenterStickerWithFullFrameRect() async {
+        let pixelBuffer = createDummyPixelBuffer()
+        let faceRect = CGRect(x: 0.0, y: 0.0, width: 1.0, height: 1.0)
+        
+        let centerColor = await classifier.classifyCenterSticker(buffer: pixelBuffer, faceRect: faceRect)
+        
+        XCTAssertTrue(validCubeColors.contains(centerColor), "Should return valid color with full frame rect")
+    }
+    
+    func testClassifyCenterStickerWithSmallFaceRect() async {
+        let pixelBuffer = createDummyPixelBuffer()
+        let faceRect = CGRect(x: 0.4, y: 0.4, width: 0.2, height: 0.2)
+        
+        let centerColor = await classifier.classifyCenterSticker(buffer: pixelBuffer, faceRect: faceRect)
+        
+        XCTAssertTrue(validCubeColors.contains(centerColor), "Should return valid color with small face rect")
+    }
+    
+    // MARK: - Fallback Behavior Tests
+    
+    func testFallbackBehaviorReturnsValidColors() async {
+        // When Vision framework fails (which can happen with a dummy pixel buffer),
+        // the classifier should fall back to StickerColorClassifier and still return valid colors
+        let pixelBuffer = createDummyPixelBuffer()
+        let faceRect = CGRect(x: 0.1, y: 0.1, width: 0.8, height: 0.8)
+        
+        let colors = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: faceRect)
+        
+        // Verify we get 9 colors (fallback should still work)
+        XCTAssertEqual(colors.count, 9, "Fallback should return 9 colors")
+        
+        // Verify all colors are valid CubeColor values
+        for color in colors {
+            XCTAssertTrue(validCubeColors.contains(color), "Fallback color \(color) should be valid")
+        }
+    }
+    
+    func testFallbackCenterStickerReturnsValidColor() async {
+        // When Vision framework fails for center sticker detection,
+        // the classifier should fall back to StickerColorClassifier
+        let pixelBuffer = createDummyPixelBuffer()
+        let faceRect = CGRect(x: 0.1, y: 0.1, width: 0.8, height: 0.8)
+        
+        let centerColor = await classifier.classifyCenterSticker(buffer: pixelBuffer, faceRect: faceRect)
+        
+        XCTAssertTrue(validCubeColors.contains(centerColor), "Fallback center color should be valid")
+    }
+    
+    // MARK: - Multiple Calls Tests
+    
+    func testMultipleClassificationCallsAreConsistent() async {
+        let pixelBuffer = createDummyPixelBuffer()
+        let faceRect = CGRect(x: 0.2, y: 0.2, width: 0.6, height: 0.6)
+        
+        let colors1 = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: faceRect)
+        let colors2 = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: faceRect)
+        
+        // With the same input, results should be consistent
+        XCTAssertEqual(colors1.count, colors2.count, "Multiple calls should return same count")
+        XCTAssertEqual(colors1, colors2, "Multiple calls with same input should return same colors")
+    }
+    
+    func testMultipleCenterStickerCallsAreConsistent() async {
+        let pixelBuffer = createDummyPixelBuffer()
+        let faceRect = CGRect(x: 0.2, y: 0.2, width: 0.6, height: 0.6)
+        
+        let centerColor1 = await classifier.classifyCenterSticker(buffer: pixelBuffer, faceRect: faceRect)
+        let centerColor2 = await classifier.classifyCenterSticker(buffer: pixelBuffer, faceRect: faceRect)
+        
+        // With the same input, results should be consistent
+        XCTAssertEqual(centerColor1, centerColor2, "Multiple calls with same input should return same center color")
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func createDummyPixelBuffer() -> CVPixelBuffer {
+        var pixelBuffer: CVPixelBuffer?
+        let attributes: [String: Any] = [
+            kCVPixelBufferCGImageCompatibilityKey as String: true,
+            kCVPixelBufferCGBitmapContextCompatibilityKey as String: true
+        ]
+        
+        CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            100,
+            100,
+            kCVPixelFormatType_32BGRA,
+            attributes as CFDictionary,
+            &pixelBuffer
+        )
+        
+        return pixelBuffer!
+    }
+}
+
 #else
 
 // Placeholder tests for platforms without AVFoundation/Vision
@@ -404,6 +573,12 @@ final class CubeScannerTests: XCTestCase {
 }
 
 final class CubeCamCapturePipelineTests: XCTestCase {
+    func testPlaceholder() {
+        XCTAssertTrue(true, "Platform does not support AVFoundation/Vision")
+    }
+}
+
+final class AppleIntelligenceColorClassifierTests: XCTestCase {
     func testPlaceholder() {
         XCTAssertTrue(true, "Platform does not support AVFoundation/Vision")
     }

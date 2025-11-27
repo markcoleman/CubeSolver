@@ -119,6 +119,11 @@ public class CameraSession: NSObject, ObservableObject {
     // MARK: - Private Methods
     
     private func setupSession() async throws {
+        // Capture session configuration must be done on the session queue
+        // but captureSession is @MainActor isolated, so we use @unchecked Sendable wrapper
+        let session = captureSession
+        let enableDepth = enableDepthCapture
+        
         return try await withCheckedThrowingContinuation { continuation in
             sessionQueue.async { [weak self] in
                 guard let self = self else {
@@ -127,35 +132,35 @@ public class CameraSession: NSObject, ObservableObject {
                 }
                 
                 do {
-                    self.captureSession.beginConfiguration()
+                    session.beginConfiguration()
                     
                     // Set session preset for high quality
-                    if self.captureSession.canSetSessionPreset(.photo) {
-                        self.captureSession.sessionPreset = .photo
+                    if session.canSetSessionPreset(.photo) {
+                        session.sessionPreset = .photo
                     }
                     
                     // Add video input
-                    try self.addVideoInput()
+                    try self.addVideoInput(to: session)
                     
                     // Add video output
-                    try self.addVideoOutput()
+                    try self.addVideoOutput(to: session)
                     
                     // Add depth output if available and enabled
-                    if self.enableDepthCapture {
-                        self.tryAddDepthOutput()
+                    if enableDepth {
+                        self.tryAddDepthOutput(to: session)
                     }
                     
-                    self.captureSession.commitConfiguration()
+                    session.commitConfiguration()
                     continuation.resume()
                 } catch {
-                    self.captureSession.commitConfiguration()
+                    session.commitConfiguration()
                     continuation.resume(throwing: error)
                 }
             }
         }
     }
     
-    private func addVideoInput() throws {
+    private nonisolated func addVideoInput(to session: AVCaptureSession) throws {
         guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
             throw CameraSessionError.noVideoDevice
         }
@@ -186,15 +191,18 @@ public class CameraSession: NSObject, ObservableObject {
         
         let videoInput = try AVCaptureDeviceInput(device: videoDevice)
         
-        guard captureSession.canAddInput(videoInput) else {
+        guard session.canAddInput(videoInput) else {
             throw CameraSessionError.cannotAddInput
         }
         
-        captureSession.addInput(videoInput)
-        videoDeviceInput = videoInput
+        session.addInput(videoInput)
+        
+        Task { @MainActor [weak self] in
+            self?.videoDeviceInput = videoInput
+        }
     }
     
-    private func addVideoOutput() throws {
+    private nonisolated func addVideoOutput(to session: AVCaptureSession) throws {
         let output = AVCaptureVideoDataOutput()
         output.alwaysDiscardsLateVideoFrames = true
         output.setSampleBufferDelegate(self, queue: sessionQueue)
@@ -204,24 +212,36 @@ public class CameraSession: NSObject, ObservableObject {
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
         ]
         
-        guard captureSession.canAddOutput(output) else {
+        guard session.canAddOutput(output) else {
             throw CameraSessionError.cannotAddOutput
         }
         
-        captureSession.addOutput(output)
-        videoOutput = output
+        session.addOutput(output)
         
-        // Set video orientation
+        Task { @MainActor [weak self] in
+            self?.videoOutput = output
+        }
+        
+        // Set video orientation using modern API
         if let connection = output.connection(with: .video) {
-            if connection.isVideoOrientationSupported {
-                connection.videoOrientation = .portrait
+            #if os(iOS)
+            if connection.isVideoRotationAngleSupported(90) {
+                connection.videoRotationAngle = 90 // Portrait orientation
             }
+            #else
+            // macOS uses different rotation handling
+            if connection.isVideoRotationAngleSupported(0) {
+                connection.videoRotationAngle = 0
+            }
+            #endif
         }
     }
     
-    private func tryAddDepthOutput() {
+    private nonisolated func tryAddDepthOutput(to session: AVCaptureSession) {
         #if os(iOS)
-        guard let videoDevice = videoDeviceInput?.device else { return }
+        // Need to get video device info from session inputs
+        guard let videoInput = session.inputs.first as? AVCaptureDeviceInput else { return }
+        let videoDevice = videoInput.device
         
         // Check if depth data is supported
         let formats = videoDevice.activeFormat.supportedDepthDataFormats
@@ -234,15 +254,18 @@ public class CameraSession: NSObject, ObservableObject {
         output.isFilteringEnabled = true
         output.setDelegate(self, callbackQueue: sessionQueue)
         
-        guard captureSession.canAddOutput(output) else {
+        guard session.canAddOutput(output) else {
             return
         }
         
-        captureSession.addOutput(output)
-        depthOutput = output
+        session.addOutput(output)
+        
+        Task { @MainActor [weak self] in
+            self?.depthOutput = output
+        }
         
         // Configure depth/video synchronization
-        if let videoOutput = videoOutput,
+        if let videoOutput = session.outputs.first(where: { $0 is AVCaptureVideoDataOutput }) as? AVCaptureVideoDataOutput,
            let depthConnection = output.connection(with: .depthData),
            let videoConnection = videoOutput.connection(with: .video) {
             depthConnection.isEnabled = true

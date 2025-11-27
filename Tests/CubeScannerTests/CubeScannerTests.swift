@@ -572,6 +572,49 @@ final class StickerColorClassifierTests: XCTestCase {
         XCTAssertEqual(centerColor, .red, "Center sticker should be red")
     }
     
+    // MARK: - Real Cube Face Test
+    
+    /// Test based on actual cube face image provided by user:
+    /// Row 0: Yellow, Blue, Blue
+    /// Row 1: Red, Blue, Red  
+    /// Row 2: Green, White, Orange
+    func testRealCubeFaceColorDetection() async {
+        // RGB values approximating the colors in the user's image
+        let colors: [(r: UInt8, g: UInt8, b: UInt8)] = [
+            // Row 0: Yellow, Blue, Blue
+            (r: 230, g: 210, b: 40),   // Yellow (top-left)
+            (r: 30, g: 90, b: 200),    // Blue (top-center)
+            (r: 30, g: 90, b: 200),    // Blue (top-right)
+            // Row 1: Red, Blue, Red
+            (r: 200, g: 30, b: 30),    // Red (middle-left)
+            (r: 30, g: 90, b: 200),    // Blue (center)
+            (r: 200, g: 30, b: 30),    // Red (middle-right)
+            // Row 2: Green, White, Orange
+            (r: 80, g: 190, b: 50),    // Green (bottom-left)
+            (r: 240, g: 240, b: 235),  // White (bottom-center)
+            (r: 230, g: 120, b: 40)    // Orange (bottom-right)
+        ]
+        
+        let expectedColors: [CubeColor] = [
+            .yellow, .blue, .blue,
+            .red, .blue, .red,
+            .green, .white, .orange
+        ]
+        
+        let pixelBuffer = create3x3GridPixelBuffer(width: 300, height: 300, colors: colors)
+        await classifier.setFlipYCoordinates(false)
+        
+        let faceRect = CGRect(x: 0.0, y: 0.0, width: 1.0, height: 1.0)
+        let detectedColors = await classifier.classifyStickers(buffer: pixelBuffer, faceRect: faceRect)
+        
+        XCTAssertEqual(detectedColors.count, 9, "Should detect 9 stickers")
+        
+        for (index, expectedColor) in expectedColors.enumerated() {
+            XCTAssertEqual(detectedColors[index], expectedColor, 
+                "Sticker \(index) should be \(expectedColor) but was \(detectedColors[index])")
+        }
+    }
+    
     // MARK: - Y-Flip Tests
     
     func testYFlipAffectsColorDetection() async {
@@ -673,6 +716,64 @@ final class StickerColorClassifierTests: XCTestCase {
         for y in 0..<height {
             let color = y < midY ? topColor : bottomColor
             for x in 0..<width {
+                let offset = y * bytesPerRow + x * 4
+                let pixel = baseAddress.advanced(by: offset).assumingMemoryBound(to: UInt8.self)
+                pixel[0] = color.b  // Blue
+                pixel[1] = color.g  // Green
+                pixel[2] = color.r  // Red
+                pixel[3] = 255      // Alpha
+            }
+        }
+        
+        CVPixelBufferUnlockBaseAddress(buffer, [])
+        return buffer
+    }
+    
+    /// Creates a 3x3 grid pixel buffer with different colors for each cell
+    /// - Parameters:
+    ///   - width: Width of the buffer
+    ///   - height: Height of the buffer
+    ///   - colors: Array of 9 colors in row-major order (top-left to bottom-right)
+    private func create3x3GridPixelBuffer(
+        width: Int, height: Int,
+        colors: [(r: UInt8, g: UInt8, b: UInt8)]
+    ) -> CVPixelBuffer {
+        precondition(colors.count == 9, "Must provide exactly 9 colors for 3x3 grid")
+        
+        var pixelBuffer: CVPixelBuffer?
+        let attributes: [String: Any] = [
+            kCVPixelBufferCGImageCompatibilityKey as String: true,
+            kCVPixelBufferCGBitmapContextCompatibilityKey as String: true
+        ]
+        
+        CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            width,
+            height,
+            kCVPixelFormatType_32BGRA,
+            attributes as CFDictionary,
+            &pixelBuffer
+        )
+        
+        guard let buffer = pixelBuffer else {
+            fatalError("Failed to create test pixel buffer")
+        }
+        
+        CVPixelBufferLockBaseAddress(buffer, [])
+        let baseAddress = CVPixelBufferGetBaseAddress(buffer)!
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
+        
+        let cellWidth = width / 3
+        let cellHeight = height / 3
+        
+        for y in 0..<height {
+            for x in 0..<width {
+                // Determine which cell this pixel belongs to
+                let cellCol = min(x / cellWidth, 2)
+                let cellRow = min(y / cellHeight, 2)
+                let colorIndex = cellRow * 3 + cellCol
+                let color = colors[colorIndex]
+                
                 let offset = y * bytesPerRow + x * 4
                 let pixel = baseAddress.advanced(by: offset).assumingMemoryBound(to: UInt8.self)
                 pixel[0] = color.b  // Blue

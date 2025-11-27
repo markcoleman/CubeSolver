@@ -506,6 +506,216 @@ final class ModernColorClassifierTests: XCTestCase {
     }
 }
 
+// MARK: - Manual Capture Image Tests
+
+/// Tests using real cube images from the test resources
+@MainActor
+final class ManualCaptureImageTests: XCTestCase {
+    
+    var classifier: ModernColorClassifier!
+    
+    override func setUp() async throws {
+        classifier = ModernColorClassifier()
+    }
+    
+    override func tearDown() async throws {
+        classifier = nil
+    }
+    
+    // MARK: - Real Image Classification Tests
+    
+    /// Test color classification using the cube.jpeg test image.
+    ///
+    /// The expected colors in the image (row-major order, top-left to bottom-right):
+    /// - Row 0: Yellow, Blue, Blue
+    /// - Row 1: Red, Blue, Red
+    /// - Row 2: Green, White, Orange
+    func testCubeImageColorClassification() async throws {
+        // Load the test image
+        guard let pixelBuffer = loadCubeTestImage() else {
+            XCTFail("Failed to load cube.jpeg test image")
+            return
+        }
+        
+        // The cube face is approximately centered in the image
+        // Based on the image, the cube occupies roughly the center portion
+        let faceRect = CGRect(x: 0.15, y: 0.18, width: 0.70, height: 0.52)
+        
+        // Classify the stickers
+        let result: ModernColorClassifier.ClassificationResult = await classifier.classifyStickers(
+            buffer: pixelBuffer,
+            faceRect: faceRect
+        )
+        
+        // Expected colors based on visual inspection of cube.jpeg:
+        // Row 0: Yellow, Blue, Blue
+        // Row 1: Red, Blue, Red  
+        // Row 2: Green, White, Orange
+        let expectedColors: [CubeColor] = [
+            .yellow, .blue, .blue,
+            .red, .blue, .red,
+            .green, .white, .orange
+        ]
+        
+        XCTAssertEqual(result.colors.count, 9, "Should detect 9 sticker colors")
+        
+        // Verify each detected color matches the expected color
+        for (index, (detected, expected)) in zip(result.colors, expectedColors).enumerated() {
+            let row = index / 3
+            let col = index % 3
+            XCTAssertEqual(
+                detected, expected,
+                "Sticker at row \(row), col \(col) should be \(expected) but was \(detected)"
+            )
+        }
+        
+        // Verify image quality score is reasonable (not a utility image)
+        if let qualityScore = result.imageQualityScore {
+            XCTAssertGreaterThan(qualityScore, -0.8, "Image quality should be acceptable")
+        }
+        
+        // Verify confidence scores are reasonable
+        for (index, score) in result.confidenceScores.enumerated() {
+            XCTAssertGreaterThan(score, 0.3, "Confidence for sticker \(index) should be reasonable")
+        }
+    }
+    
+    /// Test that center sticker detection works correctly with real image
+    func testCubeImageCenterStickerDetection() async throws {
+        guard let pixelBuffer = loadCubeTestImage() else {
+            XCTFail("Failed to load cube.jpeg test image")
+            return
+        }
+        
+        // The cube face region
+        let faceRect = CGRect(x: 0.15, y: 0.18, width: 0.70, height: 0.52)
+        
+        // Center sticker should be Blue
+        let centerColor = await classifier.classifyCenterSticker(
+            buffer: pixelBuffer,
+            faceRect: faceRect
+        )
+        
+        XCTAssertEqual(centerColor, .blue, "Center sticker should be blue")
+    }
+    
+    /// Test image quality assessment on real cube image
+    func testCubeImageQualityAssessment() async throws {
+        guard let pixelBuffer = loadCubeTestImage() else {
+            XCTFail("Failed to load cube.jpeg test image")
+            return
+        }
+        
+        let faceRect = CGRect(x: 0.15, y: 0.18, width: 0.70, height: 0.52)
+        
+        let result: ModernColorClassifier.ClassificationResult = await classifier.classifyStickers(
+            buffer: pixelBuffer,
+            faceRect: faceRect
+        )
+        
+        // The cube.jpeg is a real photo, not a utility image
+        XCTAssertFalse(result.isUtilityImage, "Cube photo should not be classified as utility image")
+        
+        // Quality score should be provided
+        XCTAssertNotNil(result.imageQualityScore, "Image quality score should be available")
+    }
+    
+    // MARK: - Helper Methods
+    
+    /// Load the cube.jpeg test image and convert to CVPixelBuffer
+    private func loadCubeTestImage() -> CVPixelBuffer? {
+        // Get the path to the test image
+        // The image is at Tests/cube.jpeg relative to the package root
+        let testBundle = Bundle(for: type(of: self))
+        
+        // Try multiple paths to find the image
+        var imagePath: String?
+        
+        // Try bundle resource path first
+        if let bundlePath = testBundle.path(forResource: "cube", ofType: "jpeg") {
+            imagePath = bundlePath
+        }
+        
+        // Try relative path from current directory
+        if imagePath == nil {
+            let fileManager = FileManager.default
+            let possiblePaths = [
+                "Tests/cube.jpeg",
+                "../Tests/cube.jpeg",
+                "../../Tests/cube.jpeg",
+                "./Tests/cube.jpeg"
+            ]
+            
+            for path in possiblePaths {
+                if fileManager.fileExists(atPath: path) {
+                    imagePath = path
+                    break
+                }
+            }
+        }
+        
+        // Try using #file to find relative path
+        if imagePath == nil {
+            let currentFile = #file
+            let currentDir = (currentFile as NSString).deletingLastPathComponent
+            let testsDir = (currentDir as NSString).deletingLastPathComponent
+            let cubeImagePath = (testsDir as NSString).appendingPathComponent("cube.jpeg")
+            if FileManager.default.fileExists(atPath: cubeImagePath) {
+                imagePath = cubeImagePath
+            }
+        }
+        
+        guard let finalPath = imagePath else {
+            print("Could not find cube.jpeg in test resources")
+            return nil
+        }
+        
+        guard let imageData = FileManager.default.contents(atPath: finalPath) else {
+            print("Could not read cube.jpeg data")
+            return nil
+        }
+        
+        return createPixelBuffer(from: imageData)
+    }
+    
+    /// Create a CVPixelBuffer from image data
+    private func createPixelBuffer(from imageData: Data) -> CVPixelBuffer? {
+        guard let ciImage = CIImage(data: imageData) else {
+            print("Could not create CIImage from data")
+            return nil
+        }
+        
+        let context = CIContext()
+        let width = Int(ciImage.extent.width)
+        let height = Int(ciImage.extent.height)
+        
+        var pixelBuffer: CVPixelBuffer?
+        let attributes: [String: Any] = [
+            kCVPixelBufferCGImageCompatibilityKey as String: true,
+            kCVPixelBufferCGBitmapContextCompatibilityKey as String: true,
+            kCVPixelBufferWidthKey as String: width,
+            kCVPixelBufferHeightKey as String: height
+        ]
+        
+        let status = CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            width,
+            height,
+            kCVPixelFormatType_32BGRA,
+            attributes as CFDictionary,
+            &pixelBuffer
+        )
+        
+        guard status == kCVReturnSuccess, let buffer = pixelBuffer else {
+            print("Could not create pixel buffer")
+            return nil
+        }
+        
+        context.render(ciImage, to: buffer)
+        return buffer
+    }
+}
+
 #else
 
 // Placeholder tests for platforms without AVFoundation/Vision
@@ -522,6 +732,12 @@ final class CubeCamCapturePipelineTests: XCTestCase {
 }
 
 final class ModernColorClassifierTests: XCTestCase {
+    func testPlaceholder() {
+        XCTAssertTrue(true, "Platform does not support AVFoundation/Vision")
+    }
+}
+
+final class ManualCaptureImageTests: XCTestCase {
     func testPlaceholder() {
         XCTAssertTrue(true, "Platform does not support AVFoundation/Vision")
     }

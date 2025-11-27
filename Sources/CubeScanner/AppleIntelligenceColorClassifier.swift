@@ -5,13 +5,14 @@
 //  Created by GitHub Copilot
 //
 
-#if canImport(Vision) && canImport(CoreVideo)
-
 import Foundation
-import Vision
 import CoreVideo
 import CoreGraphics
 import CubeCore
+
+#if canImport(Vision) && canImport(CoreVideo) && swift(>=5.9)
+
+import Vision
 
 /// Color classifier that uses Vision framework's on-device capabilities for enhanced color detection.
 ///
@@ -250,6 +251,26 @@ public actor AppleIntelligenceColorClassifier {
         
         // Default to white for ambiguous cases
         return .white
+    }
+}
+
+#else
+
+// Fallback implementation for platforms or toolchains that do not include
+// `VNGenerateDominantColorsRequest` (iOS 17+ / macOS 14+ SDKs). This simply
+// delegates to the HSB-based `StickerColorClassifier` so callers can keep
+// using the same API surface without conditional compilation.
+public actor AppleIntelligenceColorClassifier {
+    private let fallbackClassifier = StickerColorClassifier()
+
+    public init() {}
+
+    public func classifyStickers(buffer: CVPixelBuffer, faceRect: CGRect) async -> [CubeColor] {
+        await fallbackClassifier.classifyStickers(buffer: buffer, faceRect: faceRect)
+    }
+
+    public func classifyCenterSticker(buffer: CVPixelBuffer, faceRect: CGRect) async -> CubeColor {
+        await fallbackClassifier.classifyCenterSticker(buffer: buffer, faceRect: faceRect)
     }
 }
 

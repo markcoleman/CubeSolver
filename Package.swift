@@ -45,7 +45,7 @@ let package = Package(
         // MARK: - UI Module
         .target(
             name: "CubeUI",
-            dependencies: ["CubeCore", "CubeScanner"],
+            dependencies: ["CubeCore", "CubeScanner", "CubeAR"],
             path: "Sources/CubeUI"
         ),
         

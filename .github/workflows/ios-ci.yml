@@ -70,10 +70,24 @@ jobs:
       run: swift package resolve
       
     - name: Build Swift package
-      run: swift build
+      id: build
+      run: |
+        START_TIME=$(date +%s)
+        swift build
+        END_TIME=$(date +%s)
+        BUILD_TIME=$((END_TIME - START_TIME))
+        echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
+        echo "Build completed in $BUILD_TIME seconds"
       
     - name: Run tests
-      run: swift test --enable-code-coverage --parallel
+      id: test
+      run: |
+        START_TIME=$(date +%s)
+        swift test --enable-code-coverage --parallel
+        END_TIME=$(date +%s)
+        TEST_TIME=$((END_TIME - START_TIME))
+        echo "test_time=$TEST_TIME" >> $GITHUB_OUTPUT
+        echo "Tests completed in $TEST_TIME seconds"
       
     - name: Generate code coverage report
       if: matrix.xcode == '26.0'
@@ -105,3 +119,54 @@ jobs:
         else
           echo "Warning: No coverage report generated"
         fi
+    
+    - name: Comment build performance on PR
+      if: github.event_name == 'pull_request' && matrix.xcode == '26.0'
+      uses: actions/github-script@v8
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const buildTime = '${{ steps.build.outputs.build_time }}';
+          const testTime = '${{ steps.test.outputs.test_time }}';
+          const totalTime = parseInt(buildTime) + parseInt(testTime);
+          
+          const body = `## ⏱️ Build Performance Report
+          
+          | Metric | Time |
+          |--------|------|
+          | **Build** | ${buildTime}s |
+          | **Test** | ${testTime}s |
+          | **Total** | ${totalTime}s |
+          
+          *Measured with SPM caching enabled.*`;
+          
+          // Find existing performance comment
+          const comments = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            per_page: 100
+          });
+          
+          const botComment = comments.data.find(comment => 
+            comment.user.login === 'github-actions[bot]' && 
+            comment.body.includes('## ⏱️ Build Performance Report')
+          );
+          
+          if (botComment) {
+            // Update existing comment
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: body
+            });
+          } else {
+            // Create new comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+          }

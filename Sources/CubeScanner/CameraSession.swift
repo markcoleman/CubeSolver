@@ -47,11 +47,6 @@ public class CameraSession: NSObject, ObservableObject {
     
     private let captureSession = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "com.cubesolver.camera.session")
-    private var videoOutput: AVCaptureVideoDataOutput?
-    #if os(iOS)
-    private var depthOutput: AVCaptureDepthDataOutput?
-    #endif
-    private var videoDeviceInput: AVCaptureDeviceInput?
     
     // MARK: - Initialization
     
@@ -197,9 +192,6 @@ public class CameraSession: NSObject, ObservableObject {
         
         session.addInput(videoInput)
         
-        Task { @MainActor [weak self] in
-            self?.videoDeviceInput = videoInput
-        }
     }
     
     private nonisolated func addVideoOutput(to session: AVCaptureSession) throws {
@@ -217,10 +209,6 @@ public class CameraSession: NSObject, ObservableObject {
         }
         
         session.addOutput(output)
-        
-        Task { @MainActor [weak self] in
-            self?.videoOutput = output
-        }
         
         // Set video orientation using modern API
         if let connection = output.connection(with: .video) {
@@ -259,10 +247,6 @@ public class CameraSession: NSObject, ObservableObject {
         }
         
         session.addOutput(output)
-        
-        Task { @MainActor [weak self] in
-            self?.depthOutput = output
-        }
         
         // Configure depth/video synchronization
         if let videoOutput = session.outputs.first(where: { $0 is AVCaptureVideoDataOutput }) as? AVCaptureVideoDataOutput,

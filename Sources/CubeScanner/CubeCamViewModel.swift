@@ -375,11 +375,14 @@ public class CubeCamViewModel: ObservableObject {
     }
     
     deinit {
+        isProcessingFrames = false
+        frameProcessingTask?.cancel()
+        frameProcessingTask = nil
+        let session = cameraSession
         Task { @MainActor in
-            self.stop()
+            session.stop()
         }
     }
 }
 
 #endif
-

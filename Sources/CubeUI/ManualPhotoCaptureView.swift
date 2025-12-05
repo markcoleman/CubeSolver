@@ -199,6 +199,25 @@ private struct DebugReviewView: View {
                         if isDebugExpanded {
                             Divider()
                             
+                            // Auto-detection status
+                            HStack(spacing: 8) {
+                                Image(systemName: viewModel.wasAutoDetected ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                    .foregroundColor(viewModel.wasAutoDetected ? .green : .orange)
+                                
+                                Text(viewModel.wasAutoDetected ? "Cube auto-detected" : "Using fixed region")
+                                    .font(.caption)
+                                    .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
+                                
+                                Spacer()
+                                
+                                Text("Confidence: \(Int(viewModel.detectionConfidence * 100))%")
+                                    .font(.caption)
+                                    .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
+                            }
+                            .padding(.vertical, 4)
+                            
+                            Divider()
+                            
                             // Detected colors grid
                             Text("Detected Colors (tap to correct):")
                                 .font(.subheadline)
@@ -488,12 +507,24 @@ final class ManualPhotoCaptureViewModel: ObservableObject {
     @Published var showError = false
     @Published var errorMessage = ""
     
+    /// Whether automatic cube detection was used (true) or fallback region (false)
+    @Published var wasAutoDetected = false
+    
+    /// Detection confidence (0-1)
+    @Published var detectionConfidence: Float = 0
+    
     // MARK: - Internal Properties
     
     let cameraSession = CameraSession()
     private let colorClassifier = ModernColorClassifier()
+    private let imageAnalyzer = CubeImageAnalyzer()
     private var capturedPixelBuffer: CVPixelBuffer?
     private var lastQualityScore: Float?
+    
+    /// Whether to use automatic cube detection (Vision rectangle detection)
+    /// When true, uses CubeImageAnalyzer for auto-detection and cropping
+    /// When false, uses fixed grid region with ModernColorClassifier
+    var useAutoCubeDetection = true
     
     // MARK: - Lifecycle
     
@@ -532,42 +563,69 @@ final class ManualPhotoCaptureViewModel: ObservableObject {
         isProcessing = true
         capturedPixelBuffer = pixelBuffer
         
-        // Convert pixel buffer to UIImage on a background thread
-        let image = await Task.detached { () -> UIImage? in
+        // Convert pixel buffer to UIImage and CGImage on a background thread
+        let (uiImage, cgImage) = await Task.detached { () -> (UIImage?, CGImage?) in
             let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
             let context = CIContext()
             
             if let cgImage = context.createCGImage(ciImage, from: ciImage.extent) {
-                return UIImage(cgImage: cgImage)
+                return (UIImage(cgImage: cgImage), cgImage)
             }
-            return nil
+            return (nil, nil)
         }.value
         
-        capturedImage = image
+        capturedImage = uiImage
         
-        // Classify colors using the modern Vision + Core Image classifier
-        // ModernColorClassifier uses CalculateImageAestheticsScoresRequest and CIFilter
+        if useAutoCubeDetection, let cgImage = cgImage {
+            // Use CubeImageAnalyzer for automatic cube detection and color classification
+            // This uses Vision rectangle detection to locate the cube face first
+            if let analysisResult = await imageAnalyzer.analyzeImage(cgImage) {
+                detectedColors = analysisResult.colors
+                wasAutoDetected = analysisResult.wasAutoDetected
+                detectionConfidence = analysisResult.confidence
+                
+                #if DEBUG
+                print("[ManualCapture] Auto-detection: \(analysisResult.wasAutoDetected), confidence: \(analysisResult.confidence)")
+                print("[ManualCapture] Detected rect: \(analysisResult.detectedRect)")
+                print("[ManualCapture] Colors: \(analysisResult.colors.map { $0.rawValue })")
+                #endif
+            } else {
+                // Fallback to fixed region classifier if image analysis fails
+                await classifyWithFixedRegion(pixelBuffer: pixelBuffer)
+            }
+        } else {
+            // Use fixed region classifier (legacy behavior)
+            await classifyWithFixedRegion(pixelBuffer: pixelBuffer)
+        }
+        
+        isProcessing = false
+    }
+    
+    /// Classify colors using fixed grid region (fallback method)
+    private func classifyWithFixedRegion(pixelBuffer: CVPixelBuffer) async {
         let result: ModernColorClassifier.ClassificationResult = await colorClassifier.classifyStickers(
             buffer: pixelBuffer,
             faceRect: Self.defaultFaceDetectionRegion
         )
         
         detectedColors = result.colors
+        wasAutoDetected = false
+        detectionConfidence = 0.5
         lastQualityScore = result.imageQualityScore
         
         #if DEBUG
         if let score = result.imageQualityScore {
-            print("Image quality score: \(score), isUtility: \(result.isUtilityImage)")
+            print("[ManualCapture] Fixed region - quality: \(score), isUtility: \(result.isUtilityImage)")
         }
         #endif
-        
-        isProcessing = false
     }
     
     func retakePhoto() {
         capturedImage = nil
         capturedPixelBuffer = nil
         detectedColors = Array(repeating: .white, count: 9)
+        wasAutoDetected = false
+        detectionConfidence = 0
     }
     
     /// Confirms the detected (and possibly manually corrected) colors.

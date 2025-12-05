@@ -564,7 +564,7 @@ final class ManualPhotoCaptureViewModel: ObservableObject {
         capturedPixelBuffer = pixelBuffer
         
         // Convert pixel buffer to UIImage and CGImage on a background thread
-        let (uiImage, cgImage) = await Task.detached { () -> (UIImage?, CGImage?) in
+        let (convertedUIImage, convertedCGImage) = await Task.detached { () -> (UIImage?, CGImage?) in
             let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
             let context = CIContext()
             
@@ -574,9 +574,9 @@ final class ManualPhotoCaptureViewModel: ObservableObject {
             return (nil, nil)
         }.value
         
-        capturedImage = uiImage
+        capturedImage = convertedUIImage
         
-        if useAutoCubeDetection, let cgImage = cgImage {
+        if useAutoCubeDetection, let cgImage = convertedCGImage {
             // Use CubeImageAnalyzer for automatic cube detection and color classification
             // This uses Vision rectangle detection to locate the cube face first
             if let analysisResult = await imageAnalyzer.analyzeImage(cgImage) {

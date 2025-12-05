@@ -9,8 +9,6 @@
 //  Logic adapted from Tests/CubeReader.swift to provide automatic cube
 //  detection and accurate color classification for the capture features.
 //
-//  Created by GitHub Copilot
-//
 
 #if canImport(Vision) && canImport(CoreGraphics)
 
@@ -249,15 +247,15 @@ public actor CubeImageAnalyzer {
                 height: side
             )
             
-            // Clamp to image bounds
+            // Constrain to image bounds
             let imageBounds = CGRect(origin: .zero, size: CGSize(width: width, height: height))
-            let clamped = square.intersection(imageBounds)
+            let boundedRect = square.intersection(imageBounds)
             
-            guard !clamped.isNull else {
+            guard !boundedRect.isNull else {
                 return nil
             }
             
-            return DetectionResult(rect: clamped, confidence: best.confidence)
+            return DetectionResult(rect: boundedRect, confidence: best.confidence)
             
         } catch {
             return nil

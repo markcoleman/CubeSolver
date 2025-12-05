@@ -105,7 +105,7 @@ final class CubeARTests: XCTestCase {
             set: { stepIndex = $0 }
         )
         
-        let arView = CubeARView(moves: moves, currentStepIndex: binding)
+        _ = CubeARView(moves: moves, currentStepIndex: binding)
         
         XCTAssertEqual(stepIndex, 0, "Initial step should be 0")
         
@@ -142,7 +142,6 @@ final class CubeARTests: XCTestCase {
     
     // MARK: - Tracking State Tests
     
-    #if canImport(ARKit)
     func testTrackingStateTypes() {
         let arState = ARState()
         
@@ -150,7 +149,11 @@ final class CubeARTests: XCTestCase {
         arState.trackingState = .normal
         XCTAssertEqual(arState.trackingState, .normal)
         
+        #if canImport(ARKit) && os(iOS)
         arState.trackingState = .limited(.initializing)
+        #else
+        arState.trackingState = .limited
+        #endif
         if case .limited = arState.trackingState {
             XCTAssertTrue(true, "Tracking state should be limited")
         } else {
@@ -160,7 +163,6 @@ final class CubeARTests: XCTestCase {
         arState.trackingState = .notAvailable
         XCTAssertEqual(arState.trackingState, .notAvailable)
     }
-    #endif
     
     // MARK: - Integration Tests
     

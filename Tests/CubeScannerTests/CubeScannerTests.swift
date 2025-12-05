@@ -549,7 +549,7 @@ final class ManualCaptureImageTests: XCTestCase {
         
         // Expected colors based on visual inspection of cube.jpeg:
         // Row 0: Yellow, Blue, Blue
-        // Row 1: Red, Blue, Red  
+        // Row 1: Red, Blue, Red
         // Row 2: Green, White, Orange
         let expectedColors: [CubeColor] = [
             .yellow, .blue, .blue,
@@ -624,57 +624,42 @@ final class ManualCaptureImageTests: XCTestCase {
     
     /// Load the cube.jpeg test image and convert to CVPixelBuffer
     private func loadCubeTestImage() -> CVPixelBuffer? {
-        // Get the path to the test image
-        // The image is at Tests/cube.jpeg relative to the package root
+        // First try to locate via the test bundle (Xcode case)
         let testBundle = Bundle(for: type(of: self))
-        
-        // Try multiple paths to find the image
-        var imagePath: String?
-        
-        // Try bundle resource path first
-        if let bundlePath = testBundle.path(forResource: "cube", ofType: "jpeg") {
-            imagePath = bundlePath
+        var data: Data?
+
+        if let url = testBundle.url(forResource: "cube", withExtension: "jpeg") {
+            data = try? Data(contentsOf: url)
         }
-        
-        // Try relative path from current directory
-        if imagePath == nil {
-            let fileManager = FileManager.default
-            let possiblePaths = [
-                "Tests/cube.jpeg",
-                "../Tests/cube.jpeg",
-                "../../Tests/cube.jpeg",
-                "./Tests/cube.jpeg"
+
+        // If that fails, fall back to well-known filesystem locations (SwiftPM `swift test` case)
+        if data == nil {
+            let fm = FileManager.default
+
+            // 1. If current directory is the package root, Tests/cube.jpeg
+            let cwdURL = URL(fileURLWithPath: fm.currentDirectoryPath)
+            let candidateURLs: [URL] = [
+                cwdURL.appendingPathComponent("Tests/cube.jpeg"),
+                cwdURL.appendingPathComponent("cube.jpeg"),
+                // 2. Relative to this source file location
+                URL(fileURLWithPath: #file)
+                    .deletingLastPathComponent()       // .../Tests/CubeScannerTests
+                    .deletingLastPathComponent()       // .../Tests
+                    .appendingPathComponent("cube.jpeg")
             ]
-            
-            for path in possiblePaths {
-                if fileManager.fileExists(atPath: path) {
-                    imagePath = path
-                    break
+
+            for url in candidateURLs where data == nil {
+                if fm.fileExists(atPath: url.path) {
+                    data = try? Data(contentsOf: url)
                 }
             }
         }
-        
-        // Try using #file to find relative path
-        if imagePath == nil {
-            let currentFile = #file
-            let currentDir = (currentFile as NSString).deletingLastPathComponent
-            let testsDir = (currentDir as NSString).deletingLastPathComponent
-            let cubeImagePath = (testsDir as NSString).appendingPathComponent("cube.jpeg")
-            if FileManager.default.fileExists(atPath: cubeImagePath) {
-                imagePath = cubeImagePath
-            }
-        }
-        
-        guard let finalPath = imagePath else {
-            print("Could not find cube.jpeg in test resources")
+
+        guard let imageData = data else {
+            XCTFail("Could not locate cube.jpeg test resource in bundle or filesystem search paths")
             return nil
         }
-        
-        guard let imageData = FileManager.default.contents(atPath: finalPath) else {
-            print("Could not read cube.jpeg data")
-            return nil
-        }
-        
+
         return createPixelBuffer(from: imageData)
     }
     

@@ -394,6 +394,119 @@ final class CubeCamCapturePipelineTests: XCTestCase {
     }
 }
 
+// MARK: - ModernColorClassifier Tests
+
+@MainActor
+final class ModernColorClassifierTests: XCTestCase {
+    
+    var classifier: ModernColorClassifier!
+    
+    override func setUp() async throws {
+        classifier = ModernColorClassifier()
+    }
+    
+    override func tearDown() async throws {
+        classifier = nil
+    }
+    
+    // MARK: - Initialization Tests
+    
+    func testClassifierInitialization() async {
+        XCTAssertNotNil(classifier, "Classifier should initialize successfully")
+        
+        // Verify default configuration
+        let minimumQualityScore = await classifier.minimumQualityScore
+        let samplesPerSticker = await classifier.samplesPerSticker
+        let enableQualityAssessment = await classifier.enableQualityAssessment
+        
+        XCTAssertEqual(minimumQualityScore, -0.5, "Default minimum quality score should be -0.5")
+        XCTAssertEqual(samplesPerSticker, 9, "Default samples per sticker should be 9")
+        XCTAssertTrue(enableQualityAssessment, "Quality assessment should be enabled by default")
+    }
+    
+    func testClassifierConfiguration() async {
+        await classifier.setMinimumQualityScore(0.0)
+        await classifier.setSamplesPerSticker(16)
+        await classifier.setEnableQualityAssessment(false)
+        
+        let minimumQualityScore = await classifier.minimumQualityScore
+        let samplesPerSticker = await classifier.samplesPerSticker
+        let enableQualityAssessment = await classifier.enableQualityAssessment
+        
+        XCTAssertEqual(minimumQualityScore, 0.0)
+        XCTAssertEqual(samplesPerSticker, 16)
+        XCTAssertFalse(enableQualityAssessment)
+    }
+    
+    // MARK: - Classification Result Tests
+    
+    func testClassificationResultStructure() async {
+        let pixelBuffer = createDummyPixelBuffer()
+        let faceRect = CGRect(x: 0.1, y: 0.1, width: 0.8, height: 0.8)
+        
+        let result: ModernColorClassifier.ClassificationResult = await classifier.classifyStickers(
+            buffer: pixelBuffer,
+            faceRect: faceRect
+        )
+        
+        XCTAssertEqual(result.colors.count, 9, "Should return 9 colors")
+        XCTAssertEqual(result.confidenceScores.count, 9, "Should return 9 confidence scores")
+        
+        // All confidence scores should be between 0 and 1
+        for score in result.confidenceScores {
+            XCTAssertGreaterThanOrEqual(score, 0.0, "Confidence should be >= 0")
+            XCTAssertLessThanOrEqual(score, 1.0, "Confidence should be <= 1")
+        }
+    }
+    
+    func testClassifyStickersReturnsNineColors() async {
+        let pixelBuffer = createDummyPixelBuffer()
+        let faceRect = CGRect(x: 0.2, y: 0.2, width: 0.6, height: 0.6)
+        
+        let colors: [CubeColor] = await classifier.classifyStickers(
+            buffer: pixelBuffer,
+            faceRect: faceRect
+        )
+        
+        XCTAssertEqual(colors.count, 9, "Should return exactly 9 colors")
+    }
+    
+    func testClassifyCenterStickerReturnsValidColor() async {
+        let pixelBuffer = createDummyPixelBuffer()
+        let faceRect = CGRect(x: 0.2, y: 0.2, width: 0.6, height: 0.6)
+        
+        let centerColor = await classifier.classifyCenterSticker(
+            buffer: pixelBuffer,
+            faceRect: faceRect
+        )
+        
+        let validColors: Set<CubeColor> = [.white, .yellow, .red, .orange, .blue, .green]
+        XCTAssertTrue(validColors.contains(centerColor), "Center color should be a valid cube color")
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func createDummyPixelBuffer() -> CVPixelBuffer {
+        var pixelBuffer: CVPixelBuffer?
+        let attributes: [String: Any] = [
+            kCVPixelBufferCGImageCompatibilityKey as String: true,
+            kCVPixelBufferCGBitmapContextCompatibilityKey as String: true
+        ]
+        
+        CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            100,
+            100,
+            kCVPixelFormatType_32BGRA,
+            attributes as CFDictionary,
+            &pixelBuffer
+        )
+        
+        return pixelBuffer!
+    }
+}
+
+
 #else
 
 // Placeholder tests for platforms without AVFoundation/Vision
@@ -404,6 +517,18 @@ final class CubeScannerTests: XCTestCase {
 }
 
 final class CubeCamCapturePipelineTests: XCTestCase {
+    func testPlaceholder() {
+        XCTAssertTrue(true, "Platform does not support AVFoundation/Vision")
+    }
+}
+
+final class ModernColorClassifierTests: XCTestCase {
+    func testPlaceholder() {
+        XCTAssertTrue(true, "Platform does not support AVFoundation/Vision")
+    }
+}
+
+final class ManualCaptureImageTests: XCTestCase {
     func testPlaceholder() {
         XCTAssertTrue(true, "Platform does not support AVFoundation/Vision")
     }

@@ -491,8 +491,9 @@ final class ManualPhotoCaptureViewModel: ObservableObject {
     // MARK: - Internal Properties
     
     let cameraSession = CameraSession()
-    private let colorClassifier = StickerColorClassifier()
+    private let colorClassifier = ModernColorClassifier()
     private var capturedPixelBuffer: CVPixelBuffer?
+    private var lastQualityScore: Float?
     
     // MARK: - Lifecycle
     
@@ -544,14 +545,22 @@ final class ManualPhotoCaptureViewModel: ObservableObject {
         
         capturedImage = image
         
-        // Classify colors using the center region where the alignment grid is displayed
-        // StickerColorClassifier is an actor, so this work runs on its own executor
-        let colors = await colorClassifier.classifyStickers(
+        // Classify colors using the modern Vision + Core Image classifier
+        // ModernColorClassifier uses CalculateImageAestheticsScoresRequest and CIFilter
+        let result: ModernColorClassifier.ClassificationResult = await colorClassifier.classifyStickers(
             buffer: pixelBuffer,
             faceRect: Self.defaultFaceDetectionRegion
         )
         
-        detectedColors = colors
+        detectedColors = result.colors
+        lastQualityScore = result.imageQualityScore
+        
+        #if DEBUG
+        if let score = result.imageQualityScore {
+            print("Image quality score: \(score), isUtility: \(result.isUtilityImage)")
+        }
+        #endif
+        
         isProcessing = false
     }
     

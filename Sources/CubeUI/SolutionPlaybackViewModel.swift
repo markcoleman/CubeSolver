@@ -179,8 +179,10 @@ public class SolutionPlaybackViewModel: ObservableObject {
     
     /// Clean up resources
     deinit {
-        playbackTimer?.invalidate()
-        playbackTimer = nil
+        MainActor.assumeIsolated {
+            playbackTimer?.invalidate()
+            playbackTimer = nil
+        }
     }
 }
 

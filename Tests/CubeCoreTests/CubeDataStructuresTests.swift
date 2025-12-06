@@ -204,4 +204,157 @@ final class CubeDataStructuresTests: XCTestCase {
         
         XCTAssertEqual(originalState, convertedState)
     }
+    
+    // MARK: - CubeState Hashable Tests
+    
+    func testCubeStateHashable() {
+        let state1 = CubeState()
+        let state2 = CubeState()
+        
+        // Can be used in Set - equal states should be treated as same
+        var stateSet = Set<CubeState>()
+        stateSet.insert(state1)
+        XCTAssertTrue(stateSet.contains(state2), "Equal states should hash to same bucket")
+        XCTAssertEqual(stateSet.count, 1, "Set should contain only one element for equal states")
+    }
+    
+    func testCubeStateHashDifferentStates() {
+        let state1 = CubeState()
+        var state2 = CubeState()
+        state2.setSticker(face: .front, index: 0, color: .blue)
+        
+        // Different states should be distinguishable in Set
+        var stateSet = Set<CubeState>()
+        stateSet.insert(state1)
+        stateSet.insert(state2)
+        XCTAssertEqual(stateSet.count, 2)
+    }
+    
+    func testCubeStateIsSolved() {
+        let solvedState = CubeState()
+        XCTAssertTrue(solvedState.isSolved)
+        
+        var scrambledState = CubeState()
+        scrambledState.setSticker(face: .front, index: 0, color: .blue)
+        XCTAssertFalse(scrambledState.isSolved)
+    }
+    
+    func testCubeStateMisplacedStickerCount() {
+        let solvedState = CubeState()
+        XCTAssertEqual(solvedState.misplacedStickerCount, 0)
+        
+        var modifiedState = CubeState()
+        // Change one non-center sticker
+        modifiedState.setSticker(face: .front, index: 0, color: .blue)
+        XCTAssertEqual(modifiedState.misplacedStickerCount, 1)
+    }
+    
+    // MARK: - Move Extension Tests
+    
+    func testMoveAllMoves() {
+        let allMoves = Move.allMoves
+        // 6 turns × 3 amounts = 18 moves
+        XCTAssertEqual(allMoves.count, 18)
+        
+        // Check all turns are present
+        for turn in Turn.allCases {
+            let movesWithTurn = allMoves.filter { $0.turn == turn }
+            XCTAssertEqual(movesWithTurn.count, 3, "Should have 3 moves for turn \(turn)")
+        }
+    }
+    
+    func testMoveInverse() {
+        let clockwise = Move(turn: .R, amount: .clockwise)
+        XCTAssertEqual(clockwise.inverse.amount, .counter)
+        XCTAssertEqual(clockwise.inverse.turn, .R)
+        
+        let counter = Move(turn: .U, amount: .counter)
+        XCTAssertEqual(counter.inverse.amount, .clockwise)
+        XCTAssertEqual(counter.inverse.turn, .U)
+        
+        let double = Move(turn: .F, amount: .double)
+        XCTAssertEqual(double.inverse.amount, .double)
+        XCTAssertEqual(double.inverse.turn, .F)
+    }
+    
+    func testMoveCanCombine() {
+        let r1 = Move(turn: .R, amount: .clockwise)
+        let r2 = Move(turn: .R, amount: .counter)
+        let u1 = Move(turn: .U, amount: .clockwise)
+        
+        XCTAssertTrue(r1.canCombine(with: r2))
+        XCTAssertFalse(r1.canCombine(with: u1))
+    }
+    
+    func testMoveCombined() {
+        // R + R = R2
+        let r1 = Move(turn: .R, amount: .clockwise)
+        let combined = r1.combined(with: r1)
+        XCTAssertNotNil(combined)
+        XCTAssertEqual(combined?.turn, .R)
+        XCTAssertEqual(combined?.amount, .double)
+        
+        // R + R' = nothing (cancel out)
+        let rPrime = Move(turn: .R, amount: .counter)
+        let cancelled = r1.combined(with: rPrime)
+        XCTAssertNil(cancelled, "R + R' should cancel out")
+        
+        // R2 + R = R'
+        let r2 = Move(turn: .R, amount: .double)
+        let combined2 = r2.combined(with: r1)
+        XCTAssertNotNil(combined2)
+        XCTAssertEqual(combined2?.amount, .counter)
+        
+        // Cannot combine different turns
+        let u1 = Move(turn: .U, amount: .clockwise)
+        XCTAssertNil(r1.combined(with: u1))
+    }
+    
+    // MARK: - Move Sequence Optimization Tests
+    
+    func testMoveSequenceOptimized() {
+        // R R should become R2
+        let moves1 = [Move(turn: .R, amount: .clockwise), Move(turn: .R, amount: .clockwise)]
+        let optimized1 = moves1.optimized()
+        XCTAssertEqual(optimized1.count, 1)
+        XCTAssertEqual(optimized1.first?.amount, .double)
+        
+        // R R' should cancel out
+        let moves2 = [Move(turn: .R, amount: .clockwise), Move(turn: .R, amount: .counter)]
+        let optimized2 = moves2.optimized()
+        XCTAssertEqual(optimized2.count, 0)
+        
+        // R U R should not change (different turns in between)
+        let moves3 = [
+            Move(turn: .R, amount: .clockwise),
+            Move(turn: .U, amount: .clockwise),
+            Move(turn: .R, amount: .clockwise)
+        ]
+        let optimized3 = moves3.optimized()
+        XCTAssertEqual(optimized3.count, 3)
+    }
+    
+    func testMoveSequenceUniqueMoves() {
+        let moves = [
+            Move(turn: .R, amount: .clockwise),
+            Move(turn: .U, amount: .clockwise),
+            Move(turn: .R, amount: .clockwise),  // Duplicate
+            Move(turn: .F, amount: .clockwise)
+        ]
+        let unique = moves.uniqueMoves()
+        XCTAssertEqual(unique.count, 3)
+    }
+    
+    func testMoveSequenceTurnCounts() {
+        let moves = [
+            Move(turn: .R, amount: .clockwise),
+            Move(turn: .R, amount: .counter),
+            Move(turn: .U, amount: .clockwise),
+            Move(turn: .R, amount: .double)
+        ]
+        let counts = moves.turnCounts()
+        XCTAssertEqual(counts[.R], 3)
+        XCTAssertEqual(counts[.U], 1)
+        XCTAssertNil(counts[.F])
+    }
 }

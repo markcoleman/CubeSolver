@@ -13,6 +13,7 @@
 //
 
 import Foundation
+import Algorithms
 
 // MARK: - Color Definitions
 
@@ -84,7 +85,7 @@ public enum Face: String, CaseIterable, Codable, Equatable, Sendable {
 ///
 /// This type is the primary representation for cube states in the solver.
 /// Use `CubeState(from:)` to convert from `RubiksCube` representation.
-public struct CubeState: Equatable, Codable, Sendable {
+public struct CubeState: Equatable, Hashable, Codable, Sendable {
     /// Dictionary mapping each face to its 9 sticker colors.
     /// Stickers are ordered from top-left to bottom-right (row by row).
     public var faces: [Face: [CubeColor]]
@@ -129,6 +130,51 @@ public struct CubeState: Equatable, Codable, Sendable {
     /// Get the center color of a face
     public func centerColor(of face: Face) -> CubeColor? {
         return faces[face]?[4] // Center is always at index 4
+    }
+    
+    /// Hash function for use in sets and dictionaries (required for A* search)
+    public func hash(into hasher: inout Hasher) {
+        // Hash faces in a consistent order for deterministic hashing
+        for face in Face.allCases.sorted(by: { $0.rawValue < $1.rawValue }) {
+            if let colors = faces[face] {
+                hasher.combine(face)
+                for color in colors {
+                    hasher.combine(color)
+                }
+            }
+        }
+    }
+    
+    /// Count the number of misplaced stickers (stickers not matching their face's center color)
+    /// Used as a heuristic for search algorithms
+    public var misplacedStickerCount: Int {
+        var count = 0
+        for face in Face.allCases {
+            guard let colors = faces[face],
+                  let centerColor = centerColor(of: face) else { continue }
+            
+            for (index, color) in colors.enumerated() {
+                // Skip center sticker (index 4)
+                if index != 4 && color != centerColor {
+                    count += 1
+                }
+            }
+        }
+        return count
+    }
+    
+    /// Check if the cube is in a solved state
+    public var isSolved: Bool {
+        for face in Face.allCases {
+            guard let colors = faces[face] else { return false }
+            let firstColor = colors[0]
+            for color in colors {
+                if color != firstColor {
+                    return false
+                }
+            }
+        }
+        return true
     }
 }
 
@@ -185,7 +231,7 @@ public enum Amount: String, CaseIterable, Codable, Equatable, Sendable {
 }
 
 /// Represents a single move in a cube solution
-public struct Move: Equatable, Codable, Sendable {
+public struct Move: Equatable, Hashable, Codable, Sendable {
     /// The face to turn
     public let turn: Turn
     
@@ -408,5 +454,110 @@ public extension CubeState {
         case .blue: return .blue
         case .green: return .green
         }
+    }
+}
+
+// MARK: - Move Generation Utilities
+
+/// Extension providing move generation utilities using swift-algorithms
+public extension Move {
+    /// Generate all possible single moves (18 moves total: 6 faces × 3 amounts)
+    static var allMoves: [Move] {
+        Turn.allCases.flatMap { turn in
+            Amount.allCases.map { amount in
+                Move(turn: turn, amount: amount)
+            }
+        }
+    }
+    
+    /// Returns the inverse of this move
+    var inverse: Move {
+        switch amount {
+        case .clockwise:
+            return Move(turn: turn, amount: .counter)
+        case .counter:
+            return Move(turn: turn, amount: .clockwise)
+        case .double:
+            return Move(turn: turn, amount: .double)
+        }
+    }
+    
+    /// Check if this move can cancel with another move
+    /// Two moves on the same face can be combined or cancelled
+    func canCombine(with other: Move) -> Bool {
+        return turn == other.turn
+    }
+    
+    /// Combine two moves on the same face into a single move (if possible)
+    /// Returns nil if the moves cancel out completely
+    func combined(with other: Move) -> Move? {
+        guard turn == other.turn else { return nil }
+        
+        // Sum of quarters ranges from 2 to 6 (1+1 to 3+3), modulo 4 gives 0-3
+        // 0 = cancel out, 1 = clockwise, 2 = double, 3 = counter
+        let totalQuarters = (amount.quarters + other.amount.quarters) % 4
+        
+        switch totalQuarters {
+        case 0:
+            return nil // Moves cancel out
+        case 1:
+            return Move(turn: turn, amount: .clockwise)
+        case 2:
+            return Move(turn: turn, amount: .double)
+        case 3:
+            return Move(turn: turn, amount: .counter)
+        default:
+            return nil
+        }
+    }
+}
+
+// MARK: - Move Sequence Utilities
+
+/// Extension providing move sequence optimization utilities
+public extension Array where Element == Move {
+    /// Optimize a move sequence by combining consecutive moves on the same face
+    func optimized() -> [Move] {
+        guard count > 1 else { return self }
+        
+        var result: [Move] = []
+        var index = 0
+        
+        while index < count {
+            let current = self[index]
+            
+            // Look ahead for moves on the same face
+            if index + 1 < count && current.canCombine(with: self[index + 1]) {
+                if let combined = current.combined(with: self[index + 1]) {
+                    result.append(combined)
+                }
+                // Skip both moves as they've been combined
+                index += 2
+            } else {
+                result.append(current)
+                index += 1
+            }
+        }
+        
+        // Recursively optimize if we made changes (to handle chains of same-face moves)
+        if result.count < count {
+            return result.optimized()
+        }
+        
+        return result
+    }
+    
+    /// Get unique moves in the sequence (using swift-algorithms' uniqued)
+    func uniqueMoves() -> [Move] {
+        return Array(uniqued())
+    }
+    
+    /// Count occurrences of each turn type
+    func turnCounts() -> [Turn: Int] {
+        var counts: [Turn: Int] = [:]
+        for move in self {
+            counts[move.turn, default: 0] += 1
+        }
+        return counts
     }
 }

@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![GitHub release](https://img.shields.io/github/release/markcoleman/CubeSolver.svg)](https://github.com/markcoleman/CubeSolver/releases)
 
-A next-generation, modular iOS/iPadOS/macOS/watchOS application for solving Rubik's Cubes with camera scanning, AR visualization, and a stunning glassmorphic interface.
+A next-generation, modular iOS/iPadOS/macOS/watchOS application for solving Rubik's Cubes with camera scanning and a stunning glassmorphic interface.
 
 ![CubeSolver](docs/images/screenshot.png)
 
@@ -34,12 +34,6 @@ A next-generation, modular iOS/iPadOS/macOS/watchOS application for solving Rubi
 - **Move Optimization**: Efficient solution generation
 - **Standard Notation**: R, U', F2, etc.
 - **Step-by-Step Solutions**: Interactive playback with controls
-
-### 🎬 AR Solving Assistant
-- **ARKit Integration**: Virtual 3D cube overlay
-- **Animated Moves**: Visual turn guidance
-- **Dual Modes**: Toggle between Standard and AR views
-- **Session Persistence**: Resume AR from where you left off
 
 ### 📱 Multi-Device Support
 - **Modern Navigation**: SwiftUI NavigationStack
@@ -138,7 +132,8 @@ Core business logic and models (platform-independent)
 SwiftUI views and view models
 - **HomeView**: Modern navigation hub
 - **CubeViewModel**: Main view model with async solving
-- **ScannerCameraView**: Camera scanning interface
+- **CubeCamView**: Camera-based auto-scan with video
+- **ManualPhotoCaptureView**: Manual single-shot camera mode
 - **ManualInputView**: Manual cube input
 - **SolutionPlaybackView**: Step-by-step playback
 - **SolveHistoryManager**: Persistence layer
@@ -156,7 +151,6 @@ Vision and Core ML integration (iOS only)
 ARKit and RealityKit integration (iOS only)
 - **CubeARView**: AR cube visualization
 - **Virtual Cube**: 3D animated cube model
-- **AR Session Management**: Scene coordination
 
 ### 🎯 Design Patterns
 - **MVVM**: Clear separation of UI and logic

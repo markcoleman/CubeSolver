@@ -12,6 +12,23 @@ import AVFoundation
 import CubeCore
 import CubeScanner
 
+// MARK: - CubeColor + SwiftUI Color Mapping
+
+private extension CubeColor {
+    var swiftUIColor: Color {
+        switch self {
+        case .white: return .white
+        case .yellow: return .yellow
+        case .red: return .red
+        case .orange: return .orange
+        case .blue: return .blue
+        case .green: return .green
+        // Fallback for any unknown/extended cases
+        default: return .gray
+        }
+    }
+}
+
 // MARK: - ManualPhotoCaptureView
 
 /// A view for manually capturing a photo of a cube face and extracting sticker colors
@@ -148,153 +165,171 @@ private struct DebugReviewView: View {
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var viewModel: ManualPhotoCaptureViewModel
     @State private var isDebugExpanded = true
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Header
-                Text("Detected Colors")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
-                    .padding(.top, 20)
-                
-                // Captured image with color overlay
-                if let image = viewModel.capturedImage {
-                    ZStack {
-                        Image(uiImage: image)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .cornerRadius(16)
-                        
-                        // Color grid overlay
-                        ColorGridOverlay(colors: viewModel.detectedColors)
-                            .opacity(0.7)
-                    }
-                    .frame(maxWidth: 350, maxHeight: 350)
-                    .padding(.horizontal)
-                }
-                
-                // Debug panel
-                GlassmorphicCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        // Toggle header
-                        Button(action: { withAnimation { isDebugExpanded.toggle() } }) {
-                            HStack {
-                                Image(systemName: "ladybug.fill")
-                                    .foregroundColor(.green)
-                                
-                                Text("Debug Info")
-                                    .font(.headline)
-                                    .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
-                                
-                                Spacer()
-                                
-                                Image(systemName: isDebugExpanded ? "chevron.up" : "chevron.down")
-                                    .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        
-                        if isDebugExpanded {
-                            Divider()
-                            
-                            // Auto-detection status
-                            HStack(spacing: 8) {
-                                Image(systemName: viewModel.wasAutoDetected ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                    .foregroundColor(viewModel.wasAutoDetected ? .green : .orange)
-                                
-                                Text(viewModel.wasAutoDetected ? "Cube auto-detected" : "Using fixed region")
-                                    .font(.caption)
-                                    .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
-                                
-                                Spacer()
-                                
-                                Text("Confidence: \(Int(viewModel.detectionConfidence * 100))%")
-                                    .font(.caption)
-                                    .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
-                            }
-                            .padding(.vertical, 4)
-                            
-                            Divider()
-                            
-                            // Detected colors grid
-                            Text("Detected Colors (tap to correct):")
-                                .font(.subheadline)
-                                .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
-                            
-                            EditableColorGrid(
-                                colors: $viewModel.detectedColors,
-                                selectedCorrectionColor: viewModel.selectedCorrectionColor
-                            ) { index in
-                                viewModel.correctColor(at: index, to: viewModel.selectedCorrectionColor)
-                            }
-                            
-                            // Color labels
-                            VStack(alignment: .leading, spacing: 4) {
-                                ForEach(0..<3, id: \.self) { row in
-                                    HStack {
-                                        ForEach(0..<3, id: \.self) { col in
-                                            let index = row * 3 + col
-                                            let color = viewModel.detectedColors[index]
-                                            
-                                            Text(color.rawValue)
-                                                .font(.caption)
-                                                .fontWeight(.medium)
-                                                .foregroundColor(.white)
-                                                .frame(width: 30, height: 20)
-                                                .background(color.swiftUIColor)
-                                                .cornerRadius(4)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding()
-                }
-                .padding(.horizontal)
-                
-                // Color selection for correction
-                GlassmorphicCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Select Color to Correct")
-                            .font(.headline)
-                            .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
-                        
-                        HStack(spacing: 12) {
-                            ForEach(CubeColor.allCases, id: \.self) { color in
-                                ColorCorrectionButton(
-                                    color: color,
-                                    isSelected: viewModel.selectedCorrectionColor == color
-                                ) {
-                                    viewModel.selectedCorrectionColor = color
-                                }
-                            }
-                        }
-                        
-                        Text("Tap a cell above to apply selected color")
-                            .font(.caption)
-                            .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
-                    }
-                    .padding()
-                }
-                .padding(.horizontal)
-                
-                // Action buttons
-                HStack(spacing: 16) {
-                    GlassmorphicButton(title: "Retake", icon: "camera.fill") {
-                        viewModel.retakePhoto()
-                    }
-                    
-                    GlassmorphicButton(title: "Use Colors", icon: "checkmark") {
-                        viewModel.confirmColors()
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.bottom, 32)
+                header
+                capturedImageSection
+                debugPanel
+                colorSelectionSection
+                actionButtons
             }
         }
+    }
+
+    // MARK: - Sections
+
+    private var header: some View {
+        Text("Detected Colors")
+            .font(.title2)
+            .fontWeight(.bold)
+            .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
+            .padding(.top, 20)
+    }
+
+    @ViewBuilder
+    private var capturedImageSection: some View {
+        if let image = viewModel.capturedImage {
+            ZStack {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .cornerRadius(16)
+
+                ColorGridOverlay(colors: viewModel.detectedColors)
+                    .opacity(0.7)
+            }
+            .frame(maxWidth: 350, maxHeight: 350)
+            .padding(.horizontal)
+        }
+    }
+
+    private var debugPanel: some View {
+        GlassmorphicCard {
+            VStack(alignment: .leading, spacing: 12) {
+                debugToggle
+                if isDebugExpanded {
+                    Divider()
+                    autoDetectionStatus
+                    Divider()
+                    detectedColorsEditor
+                    colorLabels
+                }
+            }
+            .padding()
+        }
+        .padding(.horizontal)
+    }
+
+    private var debugToggle: some View {
+        Button(action: { withAnimation { isDebugExpanded.toggle() } }) {
+            HStack {
+                Image(systemName: "ladybug.fill")
+                    .foregroundColor(.green)
+                Text("Debug Info")
+                    .font(.headline)
+                    .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
+                Spacer()
+                Image(systemName: isDebugExpanded ? "chevron.up" : "chevron.down")
+                    .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var autoDetectionStatus: some View {
+        HStack(spacing: 8) {
+            Image(systemName: viewModel.wasAutoDetected ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .foregroundColor(viewModel.wasAutoDetected ? .green : .orange)
+            Text(viewModel.wasAutoDetected ? "Cube auto-detected" : "Using fixed region")
+                .font(.caption)
+                .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
+            Spacer()
+            Text("Confidence: \(Int(viewModel.detectionConfidence * 100))%")
+                .font(.caption)
+                .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var detectedColorsEditor: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Detected Colors (tap to correct):")
+                .font(.subheadline)
+                .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
+            EditableColorGrid(
+                colors: $viewModel.detectedColors,
+                selectedCorrectionColor: viewModel.selectedCorrectionColor
+            ) { index in
+                viewModel.correctColor(at: index, to: viewModel.selectedCorrectionColor)
+            }
+        }
+    }
+
+    private var colorLabels: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(0..<3, id: \.self) { row in
+                HStack {
+                    ForEach(0..<3, id: \.self) { col in
+                        let idx = row * 3 + col
+                        ColorLabelView(color: viewModel.detectedColors[idx])
+                    }
+                }
+            }
+        }
+    }
+
+    private var colorSelectionSection: some View {
+        GlassmorphicCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Select Color to Correct")
+                    .font(.headline)
+                    .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
+                HStack(spacing: 12) {
+                    ForEach(CubeColor.allCases, id: \.self) { color in
+                        ColorCorrectionButton(
+                            color: color,
+                            isSelected: viewModel.selectedCorrectionColor == color
+                        ) {
+                            viewModel.selectedCorrectionColor = color
+                        }
+                    }
+                }
+                Text("Tap a cell above to apply selected color")
+                    .font(.caption)
+                    .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
+            }
+            .padding()
+        }
+        .padding(.horizontal)
+    }
+
+    private var actionButtons: some View {
+        HStack(spacing: 16) {
+            GlassmorphicButton(title: "Retake", icon: "camera.fill") {
+                viewModel.retakePhoto()
+            }
+            GlassmorphicButton(title: "Use Colors", icon: "checkmark") {
+                viewModel.confirmColors()
+            }
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 32)
+    }
+}
+
+private struct ColorLabelView: View {
+    let color: CubeColor
+
+    var body: some View {
+        Text(color.rawValue)
+            .font(.caption)
+            .fontWeight(.medium)
+            .foregroundColor(.white)
+            .frame(width: 30, height: 20)
+            .background(color.swiftUIColor)
+            .cornerRadius(4)
     }
 }
 
@@ -658,3 +693,4 @@ final class ManualPhotoCaptureViewModel: ObservableObject {
 }
 
 #endif
+

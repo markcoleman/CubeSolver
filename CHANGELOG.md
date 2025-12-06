@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Scan Cube (ScannerCameraView)**: Removed from home screen; replaced by Cube Cam and Photo Capture modes
+- **AR Coach Mode**: Removed AR-guided solving assistant (ARCoachView, ARCoachViewModel, ARCoachModels)
+- **Quick Solve (SolveView)**: Removed from home screen
+- **Practice Mode (PracticeView)**: Removed from home screen
+- **VisionCubeDetectionService**: Removed AR-specific cube detection service
+- **BasicCubeSolver**: Removed AR-specific solver implementation
+
 ### Added
 
 #### CubeCam Scanning UX Improvements (10 Major Enhancements)

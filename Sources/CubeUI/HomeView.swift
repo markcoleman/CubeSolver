@@ -4,20 +4,17 @@
 //  CubeSolver - Home Screen
 //
 //  Main navigation hub for the CubeSolver app. This view provides access to:
-//  - Cube scanning (camera-based)
+//  - Cube camera scanning (auto-scan)
+//  - Photo capture for cube detection
 //  - Manual cube input
-//  - Quick solve functionality
-//  - Practice mode
 //  - Solve history and statistics
+//  - Settings
 //
 //  Created by GitHub Copilot
 //
 
 import SwiftUI
 import CubeCore
-#if canImport(CubeAR)
-import CubeAR
-#endif
 
 /// Home view showing recent solves and main navigation
 public struct HomeView: View {
@@ -26,8 +23,6 @@ public struct HomeView: View {
     @StateObject private var historyManager = SolveHistoryManager()
     @StateObject private var cubeViewModel = CubeViewModel()
     @StateObject private var sessionViewModel = CubeSessionViewModel()
-    @State private var showARCoachMode = false
-    @State private var showNoCubeAlert = false
     
     public init() {}
     
@@ -62,18 +57,6 @@ public struct HomeView: View {
                 }
             }
         }
-        #if canImport(CubeAR) && os(iOS)
-        .sheet(isPresented: $showARCoachMode) {
-            if let cubeState = sessionViewModel.currentCubeState {
-                ARCoachView(initialState: cubeState)
-            }
-        }
-        .alert("No Cube State", isPresented: $showNoCubeAlert) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Please scan a cube or enter a cube pattern manually before using AR Coach Mode.")
-        }
-        #endif
     }
     
     // MARK: - View Sections
@@ -134,15 +117,6 @@ public struct HomeView: View {
             }
             #endif
             
-            NavigationLink(destination: ScannerCameraView()) {
-                ActionCard(
-                    icon: "camera.fill",
-                    title: "Scan Cube",
-                    subtitle: "Use camera to detect cube",
-                    color: .blue
-                )
-            }
-            
             // Photo Capture - Manual single-shot mode with debug
             #if os(iOS)
             NavigationLink(destination: ManualPhotoCaptureView()) {
@@ -161,48 +135,6 @@ public struct HomeView: View {
                     title: "Manual Input",
                     subtitle: "Enter cube pattern manually",
                     color: .green
-                )
-            }
-            
-            // AR Coach Mode entry point
-            #if canImport(CubeAR) && os(iOS)
-            Button(action: {
-                if sessionViewModel.hasCubeState {
-                    showARCoachMode = true
-                } else {
-                    // Try to use current cube from cubeViewModel
-                    if !cubeViewModel.cube.isSolved {
-                        sessionViewModel.setCubeState(from: cubeViewModel.cube)
-                        showARCoachMode = true
-                    } else {
-                        showNoCubeAlert = true
-                    }
-                }
-            }) {
-                ActionCard(
-                    icon: "arkit",
-                    title: "AR Coach Mode",
-                    subtitle: "Step-by-step AR guidance",
-                    color: .cyan
-                )
-            }
-            #endif
-            
-            NavigationLink(destination: SolveView(cubeViewModel: cubeViewModel)) {
-                ActionCard(
-                    icon: "wand.and.stars",
-                    title: "Quick Solve",
-                    subtitle: "Solve a scrambled cube",
-                    color: .purple
-                )
-            }
-            
-            NavigationLink(destination: PracticeView(cubeViewModel: cubeViewModel)) {
-                ActionCard(
-                    icon: "figure.run",
-                    title: "Practice",
-                    subtitle: "Improve your solving skills",
-                    color: .orange
                 )
             }
         }

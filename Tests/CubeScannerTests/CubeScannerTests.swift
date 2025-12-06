@@ -286,24 +286,21 @@ final class CubeCamCapturePipelineTests: XCTestCase {
         let state2 = CubeCamCapturePipeline.CaptureState.stabilizing(progress: 0.5)
         let state3 = CubeCamCapturePipeline.CaptureState.stabilizing(progress: 1.0)
         
-        switch state1 {
-        case .stabilizing(let progress):
+        if case .stabilizing(let progress) = state1 {
             XCTAssertEqual(progress, 0.0, accuracy: 0.01)
-        default:
+        } else {
             XCTFail("Should be stabilizing state")
         }
         
-        switch state2 {
-        case .stabilizing(let progress):
+        if case .stabilizing(let progress) = state2 {
             XCTAssertEqual(progress, 0.5, accuracy: 0.01)
-        default:
+        } else {
             XCTFail("Should be stabilizing state")
         }
         
-        switch state3 {
-        case .stabilizing(let progress):
+        if case .stabilizing(let progress) = state3 {
             XCTAssertEqual(progress, 1.0, accuracy: 0.01)
-        default:
+        } else {
             XCTFail("Should be stabilizing state")
         }
     }
@@ -506,6 +503,184 @@ final class ModernColorClassifierTests: XCTestCase {
     }
 }
 
+// MARK: - CubeImageAnalyzer Tests
+
+final class CubeImageAnalyzerTests: XCTestCase {
+    
+    var analyzer: CubeImageAnalyzer!
+    
+    override func setUp() async throws {
+        analyzer = CubeImageAnalyzer()
+    }
+    
+    override func tearDown() async throws {
+        analyzer = nil
+    }
+    
+    // MARK: - Initialization Tests
+    
+    func testAnalyzerInitialization() async {
+        XCTAssertNotNil(analyzer, "Analyzer should initialize successfully")
+        
+        // Verify default configuration
+        let minimumAspectRatio = await analyzer.minimumAspectRatio
+        let maximumAspectRatio = await analyzer.maximumAspectRatio
+        let minimumSize = await analyzer.minimumSize
+        let maximumObservations = await analyzer.maximumObservations
+        let minimumConfidence = await analyzer.minimumConfidence
+        
+        XCTAssertEqual(minimumAspectRatio, 0.8, "Default min aspect ratio should be 0.8")
+        XCTAssertEqual(maximumAspectRatio, 1.2, "Default max aspect ratio should be 1.2")
+        XCTAssertEqual(minimumSize, 0.2, "Default min size should be 0.2")
+        XCTAssertEqual(maximumObservations, 3, "Default max observations should be 3")
+        XCTAssertEqual(minimumConfidence, 0.5, "Default min confidence should be 0.5")
+    }
+    
+    // MARK: - Analysis Tests
+    
+    func testAnalyzeImageReturnsNineColors() async {
+        let cgImage = createTestImage(width: 300, height: 300, color: (255, 255, 255, 255))
+        
+        let result = await analyzer.analyzeImage(cgImage)
+        
+        XCTAssertNotNil(result, "Should return analysis result")
+        XCTAssertEqual(result?.colors.count, 9, "Should return exactly 9 colors")
+    }
+    
+    func testAnalyzeImageResultContainsValidColors() async {
+        let cgImage = createTestImage(width: 300, height: 300, color: (255, 255, 255, 255))
+        
+        let result = await analyzer.analyzeImage(cgImage)
+        
+        XCTAssertNotNil(result)
+        
+        let validColors: Set<CubeColor> = [.white, .yellow, .red, .orange, .blue, .green]
+        for color in result?.colors ?? [] {
+            XCTAssertTrue(validColors.contains(color), "Color \(color) should be a valid cube color")
+        }
+    }
+    
+    func testAnalyzeImageDetectsWhiteImage() async {
+        // Create a fully white image - should detect mostly white
+        let cgImage = createTestImage(width: 300, height: 300, color: (255, 255, 255, 255))
+        
+        let result = await analyzer.analyzeImage(cgImage)
+        
+        XCTAssertNotNil(result)
+        
+        // Most colors should be white for a white image
+        let whiteCount = result?.colors.filter { $0 == .white }.count ?? 0
+        XCTAssertGreaterThan(whiteCount, 0, "Should detect at least some white")
+    }
+    
+    func testAnalyzeImageDetectsRedImage() async {
+        // Create a fully red image
+        let cgImage = createTestImage(width: 300, height: 300, color: (200, 25, 25, 255))
+        
+        let result = await analyzer.analyzeImage(cgImage)
+        
+        XCTAssertNotNil(result)
+        
+        // Most colors should be red for a red image
+        let redCount = result?.colors.filter { $0 == .red }.count ?? 0
+        XCTAssertGreaterThan(redCount, 0, "Should detect at least some red")
+    }
+    
+    func testAnalyzeRegion() async {
+        let cgImage = createTestImage(width: 300, height: 300, color: (255, 255, 255, 255))
+        let region = CGRect(x: 50, y: 50, width: 200, height: 200)
+        
+        let result = await analyzer.analyzeRegion(cgImage, region: region)
+        
+        XCTAssertNotNil(result, "Should return analysis result for region")
+        XCTAssertEqual(result?.colors.count, 9, "Should return 9 colors")
+        XCTAssertFalse(result?.wasAutoDetected ?? true, "Region analysis should not be auto-detected")
+        if let confidence = result?.confidence {
+            XCTAssertEqual(Double(confidence), 0.7, accuracy: 0.01, "Region analysis confidence should be 0.7")
+        } else {
+            XCTFail("Expected non-nil confidence for region analysis")
+        }
+    }
+    
+    func testAnalysisResultStructure() async {
+        let cgImage = createTestImage(width: 300, height: 300, color: (255, 255, 255, 255))
+        
+        let result = await analyzer.analyzeImage(cgImage)
+        
+        XCTAssertNotNil(result)
+        XCTAssertFalse(result!.detectedRect.isEmpty, "Detected rect should not be empty")
+        XCTAssertGreaterThanOrEqual(result!.confidence, 0.0, "Confidence should be >= 0")
+        XCTAssertLessThanOrEqual(result!.confidence, 1.0, "Confidence should be <= 1")
+    }
+    
+    func testAnalyzeSmallImage() async {
+        // Test with a very small image
+        let cgImage = createTestImage(width: 30, height: 30, color: (255, 255, 255, 255))
+        
+        let result = await analyzer.analyzeImage(cgImage)
+        
+        // Should still return result even for small images
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.colors.count, 9)
+    }
+    
+    // MARK: - Configuration Tests
+    
+    func testConfigurationChanges() async {
+        await analyzer.setMinimumAspectRatio(0.7)
+        await analyzer.setMaximumAspectRatio(1.3)
+        await analyzer.setMinimumSize(0.3)
+        await analyzer.setMaximumObservations(5)
+        await analyzer.setMinimumConfidence(0.6)
+        
+        let minAspect = await analyzer.minimumAspectRatio
+        let maxAspect = await analyzer.maximumAspectRatio
+        let minSize = await analyzer.minimumSize
+        let maxObs = await analyzer.maximumObservations
+        let minConf = await analyzer.minimumConfidence
+        
+        XCTAssertEqual(minAspect, 0.7)
+        XCTAssertEqual(maxAspect, 1.3)
+        XCTAssertEqual(minSize, 0.3)
+        XCTAssertEqual(maxObs, 5)
+        XCTAssertEqual(Double(minConf), 0.6, accuracy: 0.0001)
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func createTestImage(width: Int, height: Int, color: (UInt8, UInt8, UInt8, UInt8)) -> CGImage {
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue)
+        
+        guard let context = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: width * 4,
+            space: colorSpace,
+            bitmapInfo: bitmapInfo.rawValue
+        ) else {
+            fatalError("Unable to create CGContext")
+        }
+        
+        // Fill with specified color
+        let cgColor = CGColor(
+            colorSpace: colorSpace,
+            components: [
+                CGFloat(color.0) / 255.0,
+                CGFloat(color.1) / 255.0,
+                CGFloat(color.2) / 255.0,
+                CGFloat(color.3) / 255.0
+            ]
+        )!
+        context.setFillColor(cgColor)
+        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        
+        return context.makeImage()!
+    }
+}
+
 
 #else
 
@@ -529,6 +704,12 @@ final class ModernColorClassifierTests: XCTestCase {
 }
 
 final class ManualCaptureImageTests: XCTestCase {
+    func testPlaceholder() {
+        XCTAssertTrue(true, "Platform does not support AVFoundation/Vision")
+    }
+}
+
+final class CubeImageAnalyzerTests: XCTestCase {
     func testPlaceholder() {
         XCTAssertTrue(true, "Platform does not support AVFoundation/Vision")
     }

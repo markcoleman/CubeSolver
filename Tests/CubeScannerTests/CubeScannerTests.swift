@@ -286,24 +286,21 @@ final class CubeCamCapturePipelineTests: XCTestCase {
         let state2 = CubeCamCapturePipeline.CaptureState.stabilizing(progress: 0.5)
         let state3 = CubeCamCapturePipeline.CaptureState.stabilizing(progress: 1.0)
         
-        switch state1 {
-        case .stabilizing(let progress):
+        if case .stabilizing(let progress) = state1 {
             XCTAssertEqual(progress, 0.0, accuracy: 0.01)
-        default:
+        } else {
             XCTFail("Should be stabilizing state")
         }
         
-        switch state2 {
-        case .stabilizing(let progress):
+        if case .stabilizing(let progress) = state2 {
             XCTAssertEqual(progress, 0.5, accuracy: 0.01)
-        default:
+        } else {
             XCTFail("Should be stabilizing state")
         }
         
-        switch state3 {
-        case .stabilizing(let progress):
+        if case .stabilizing(let progress) = state3 {
             XCTAssertEqual(progress, 1.0, accuracy: 0.01)
-        default:
+        } else {
             XCTFail("Should be stabilizing state")
         }
     }
@@ -598,7 +595,11 @@ final class CubeImageAnalyzerTests: XCTestCase {
         XCTAssertNotNil(result, "Should return analysis result for region")
         XCTAssertEqual(result?.colors.count, 9, "Should return 9 colors")
         XCTAssertFalse(result?.wasAutoDetected ?? true, "Region analysis should not be auto-detected")
-        XCTAssertEqual(result?.confidence, 0.7, accuracy: 0.01, "Region analysis confidence should be 0.7")
+        if let confidence = result?.confidence {
+            XCTAssertEqual(Double(confidence), 0.7, accuracy: 0.01, "Region analysis confidence should be 0.7")
+        } else {
+            XCTFail("Expected non-nil confidence for region analysis")
+        }
     }
     
     func testAnalysisResultStructure() async {
@@ -642,7 +643,7 @@ final class CubeImageAnalyzerTests: XCTestCase {
         XCTAssertEqual(maxAspect, 1.3)
         XCTAssertEqual(minSize, 0.3)
         XCTAssertEqual(maxObs, 5)
-        XCTAssertEqual(minConf, 0.6)
+        XCTAssertEqual(Double(minConf), 0.6, accuracy: 0.0001)
     }
     
     // MARK: - Helper Methods

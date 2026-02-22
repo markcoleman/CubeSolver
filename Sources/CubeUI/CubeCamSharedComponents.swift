@@ -66,46 +66,147 @@ class CameraPreviewUIView: UIView {
 struct DetectionOverlay: View {
     let detection: CubeFaceDetectionResult
     let stability: Float
+    let sourceImageSize: CGSize
+    var showsPreciseBounds: Bool = false
     
     var body: some View {
         GeometryReader { geometry in
-            let rect = convertNormalizedRect(detection.boundingBox, in: geometry.size)
-            
-            Rectangle()
-                .stroke(
-                    stability > 0.7 ? Color.green : Color.yellow,
-                    lineWidth: 3
-                )
-                .frame(width: rect.width, height: rect.height)
-                .position(x: rect.midX, y: rect.midY)
-            
-            // Corner markers
-            ForEach(0..<4, id: \.self) { index in
-                let corner = detection.corners[index]
-                let point = convertNormalizedPoint(corner, in: geometry.size)
-                
+            let guideRect = framingRect(in: geometry.size)
+            let detectionRect = convertNormalizedRect(detection.boundingBox, in: geometry.size)
+            let overlap = overlapRatio(between: guideRect, and: detectionRect)
+            let isAligned = overlap >= 0.45 && stability >= 0.7
+
+            ZStack {
+                // Primary user-facing guide. This remains stable and avoids the "jumping box" UX.
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(
+                        isAligned ? Color.green : Color.white.opacity(0.75),
+                        style: StrokeStyle(lineWidth: 3, dash: [10, 6])
+                    )
+                    .frame(width: guideRect.width, height: guideRect.height)
+                    .position(x: guideRect.midX, y: guideRect.midY)
+
                 Circle()
-                    .fill(stability > 0.7 ? Color.green : Color.yellow)
-                    .frame(width: 12, height: 12)
-                    .position(point)
+                    .fill(isAligned ? Color.green.opacity(0.35) : Color.white.opacity(0.2))
+                    .frame(width: 16, height: 16)
+                    .position(x: guideRect.midX, y: guideRect.midY)
+
+                // Optional precise bounds for debug sessions.
+                if showsPreciseBounds {
+                    Rectangle()
+                        .stroke(
+                            isAligned ? Color.green : Color.yellow,
+                            lineWidth: 2
+                        )
+                        .frame(width: detectionRect.width, height: detectionRect.height)
+                        .position(x: detectionRect.midX, y: detectionRect.midY)
+
+                    ForEach(Array(detection.corners.enumerated()), id: \.offset) { _, corner in
+                        let point = convertNormalizedPoint(corner, in: geometry.size)
+
+                        Circle()
+                            .fill(isAligned ? Color.green : Color.yellow)
+                            .frame(width: 10, height: 10)
+                            .position(point)
+                    }
+                }
             }
         }
+        .allowsHitTesting(false)
     }
     
     private func convertNormalizedRect(_ rect: CGRect, in size: CGSize) -> CGRect {
+        guard sourceImageSize.width > 0, sourceImageSize.height > 0 else {
+            return CGRect(
+                x: rect.minX * size.width,
+                y: (1 - rect.maxY) * size.height,
+                width: rect.width * size.width,
+                height: rect.height * size.height
+            )
+        }
+
+        // Vision uses a bottom-left origin; UI uses top-left.
+        let normalizedRect = CGRect(
+            x: rect.minX,
+            y: 1 - rect.maxY,
+            width: rect.width,
+            height: rect.height
+        )
+
+        let source = normalizedSourceSize(for: size)
+        let scale = max(size.width / source.width, size.height / source.height)
+        let scaledWidth = source.width * scale
+        let scaledHeight = source.height * scale
+        let xInset = (scaledWidth - size.width) / 2
+        let yInset = (scaledHeight - size.height) / 2
+
         return CGRect(
-            x: rect.minX * size.width,
-            y: (1 - rect.maxY) * size.height,
-            width: rect.width * size.width,
-            height: rect.height * size.height
+            x: (normalizedRect.minX * scaledWidth) - xInset,
+            y: (normalizedRect.minY * scaledHeight) - yInset,
+            width: normalizedRect.width * scaledWidth,
+            height: normalizedRect.height * scaledHeight
         )
     }
     
     private func convertNormalizedPoint(_ point: CGPoint, in size: CGSize) -> CGPoint {
+        guard sourceImageSize.width > 0, sourceImageSize.height > 0 else {
+            return CGPoint(
+                x: point.x * size.width,
+                y: (1 - point.y) * size.height
+            )
+        }
+
+        let source = normalizedSourceSize(for: size)
+        let scale = max(size.width / source.width, size.height / source.height)
+        let scaledWidth = source.width * scale
+        let scaledHeight = source.height * scale
+        let xInset = (scaledWidth - size.width) / 2
+        let yInset = (scaledHeight - size.height) / 2
+
         return CGPoint(
-            x: point.x * size.width,
-            y: (1 - point.y) * size.height
+            x: (point.x * scaledWidth) - xInset,
+            y: ((1 - point.y) * scaledHeight) - yInset
         )
+    }
+
+    private func framingRect(in size: CGSize) -> CGRect {
+        let side = min(size.width, size.height) * 0.62
+        return CGRect(
+            x: (size.width - side) / 2,
+            y: (size.height - side) / 2,
+            width: side,
+            height: side
+        )
+    }
+
+    private func overlapRatio(between lhs: CGRect, and rhs: CGRect) -> CGFloat {
+        guard !lhs.isEmpty, !rhs.isEmpty else {
+            return 0
+        }
+
+        let intersection = lhs.intersection(rhs)
+        guard !intersection.isNull else {
+            return 0
+        }
+
+        let lhsArea = lhs.width * lhs.height
+        guard lhsArea > 0 else {
+            return 0
+        }
+
+        return (intersection.width * intersection.height) / lhsArea
+    }
+
+    private func normalizedSourceSize(for viewSize: CGSize) -> CGSize {
+        // If frame orientation disagrees with the view orientation, swap dimensions.
+        let sourceIsPortrait = sourceImageSize.height >= sourceImageSize.width
+        let viewIsPortrait = viewSize.height >= viewSize.width
+
+        if sourceIsPortrait == viewIsPortrait {
+            return sourceImageSize
+        }
+
+        return CGSize(width: sourceImageSize.height, height: sourceImageSize.width)
     }
 }
 

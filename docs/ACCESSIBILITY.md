@@ -270,6 +270,22 @@ For automated testing, all elements have accessibility identifiers:
 - `resetButton`
 - `solutionStepsView`
 
+**Scan Wizard Screen**
+- `scanWizardTitle`
+- `scanWizardCameraPreview`
+- `liveCameraPreview`
+- `scanWizardProgress`
+- `scanFaceGuidanceCard`
+- `scanFaceStatusRow`
+- `scanFaceBadge_[face]` (e.g., `scanFaceBadge_F`)
+- `scanCurrentFaceButton`
+- `capturedFacePreview`
+- `confirmPendingFaceButton`
+- `rescanPendingFaceButton`
+- `openManualEditButton`
+- `solveCubeButton`
+- `viewStepByStepButton`
+
 **Manual Input Screen**
 - `manualInputTitle`
 - `faceSelector`

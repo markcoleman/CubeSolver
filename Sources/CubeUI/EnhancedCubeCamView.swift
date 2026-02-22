@@ -35,7 +35,11 @@ public struct EnhancedCubeCamView: View {
             
             // Detection overlay (bounding box and corners)
             if let detection = viewModel.detectionResult {
-                DetectionOverlay(detection: detection, stability: viewModel.stability)
+                DetectionOverlay(
+                    detection: detection,
+                    stability: viewModel.stability,
+                    sourceImageSize: viewModel.videoFrameSize
+                )
             }
             
             // Main UI overlay
@@ -130,6 +134,18 @@ public struct EnhancedCubeCamView: View {
                 ScanSuccessFeedback(face: result.face) {
                     viewModel.lastScanResult = nil
                 }
+            }
+
+            if let warning = viewModel.duplicateFaceWarning {
+                VStack {
+                    DuplicateFaceWarning(message: warning) {
+                        viewModel.duplicateFaceWarning = nil
+                    }
+                    .padding(.top, 100)
+
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
             
             // Error overlay

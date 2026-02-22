@@ -63,6 +63,9 @@ public final class CubeCamCapturePipeline: ObservableObject {
     
     /// Current face being tracked/captured
     @Published public var pendingFace: Face?
+
+    /// Face currently estimated as visible in the camera feed.
+    @Published public private(set) var visibleFaceEstimate: Face?
     
     /// Stability indicator (0-1, 1 = fully stable)
     @Published public var stability: Float = 0
@@ -72,6 +75,9 @@ public final class CubeCamCapturePipeline: ObservableObject {
     
     /// PROMPT 8: Current scan error (if any)
     @Published public var currentError: CubeScanErrorDetector.ScanError?
+
+    /// Warning message shown when a face appears to be a duplicate of one already captured.
+    @Published public var duplicateFaceWarning: String?
     
     /// Single source of truth for capture state
     @Published public var captureState: CaptureState = .idle
@@ -98,6 +104,12 @@ public final class CubeCamCapturePipeline: ObservableObject {
     
     /// Delay before resetting state after successful capture (seconds)
     public var captureResetDelay: TimeInterval = 0.5
+
+    /// Stability threshold used to count a frame toward capture readiness.
+    public var stableFrameThreshold: Float = 0.7
+
+    /// Whether capture order is mandatory (`true`) or only used as guidance (`false`).
+    public var enforceCaptureOrder: Bool = false
     
     // MARK: - Private Properties
     
@@ -283,6 +295,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
             lastEstimatedFace = nil
             consistentFaceEstimateCount = 0
             smoothedFaceEstimateConfidence = 0
+            visibleFaceEstimate = nil
             pendingFace = getNextFaceToCapture()
             
             // Reset to idle or detecting
@@ -317,9 +330,13 @@ public final class CubeCamCapturePipeline: ObservableObject {
     public func reset() {
         logDebug("[CubeCam] 🔄 Resetting pipeline")
         capturedFaces = [:]
+        capturedPatterns = [:]
         pendingFace = nil
+        visibleFaceEstimate = nil
         stability = 0
         lastDetection = nil
+        currentError = nil
+        duplicateFaceWarning = nil
         detectionHistory = []
         currentFaceEstimate = nil
         faceEstimateConfidence = 0
@@ -348,8 +365,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
         let oldState = captureState
         
         // PROMPT 1: Track consecutive stable frames
-        // Threshold aligned with auto-capture threshold to ensure frames counted as stable will trigger capture
-        if stability >= 0.85 && lightingStable {
+        if stability >= stableFrameThreshold && lightingStable {
             consecutiveStableFrames += 1
             isScanning = consecutiveStableFrames >= requiredStableFrames
             
@@ -528,6 +544,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
         
         // Map center color to expected face (Rubik's cube centers are fixed)
         let expectedFace = faceFromCenterColor(centerColor)
+        visibleFaceEstimate = expectedFace
         updateSmoothedFaceConfidence(face: expectedFace, detectionConfidence: detection.confidence)
 
         let targetFace = getNextFaceToCapture()
@@ -581,7 +598,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
             logDebug("[CubeCam] ⏭️ No capture: No pending face")
             return false
         }
-        guard face == targetFace else {
+        guard !enforceCaptureOrder || face == targetFace else {
             logDebug("[CubeCam] ⏭️ No capture: Waiting for \(targetFace), currently seeing \(face)")
             return false
         }
@@ -615,9 +632,9 @@ public final class CubeCamCapturePipeline: ObservableObject {
             return false
         }
         
-        // Check stability - lowered threshold to match consecutive frame threshold
-        guard stability >= 0.85 else {
-            logDebug("[CubeCam] ⏭️ No capture: Stability too low (\(stability) < 0.85)")
+        // Check stability against configured frame threshold.
+        guard stability >= stableFrameThreshold else {
+            logDebug("[CubeCam] ⏭️ No capture: Stability too low (\(stability) < \(stableFrameThreshold))")
             return false
         }
         
@@ -673,6 +690,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
         // Mark as capturing to prevent duplicates
         hasCapturedThisCycle = true
         captureState = .capturing
+        duplicateFaceWarning = nil
         
         // PROMPT 8: Validate lighting
         let brightness = detectionHistory.last?.brightness ?? 0.5
@@ -710,6 +728,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
         // PROMPT 2: Check for duplicate patterns
         if let duplicateFace = findDuplicatePattern(colors: colors, excluding: face) {
             logWarning("[CubeCam] Duplicate pattern detected - matches face: \(duplicateFace)")
+            duplicateFaceWarning = "That looks like the \(faceDisplayName(duplicateFace)) face you already scanned. Rotate to a different side."
             // This pattern was already scanned for a different face
             // Skip this capture and reset
             resetAfterFailedCapture(face: face, timestamp: timestamp)
@@ -726,6 +745,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
         
         // Clear any errors
         currentError = nil
+        duplicateFaceWarning = nil
         
         // Update state to captured
         captureState = .captured
@@ -753,6 +773,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
     private func resetForNextFace() {
         logDebug("[CubeCam] 🔄 Resetting for next face")
         currentFaceEstimate = nil
+        visibleFaceEstimate = nil
         pendingFace = getNextFaceToCapture()
         detectionHistory = []
         consecutiveStableFrames = 0
@@ -760,15 +781,23 @@ public final class CubeCamCapturePipeline: ObservableObject {
         lastDetection = nil
         hasCapturedThisCycle = false
         captureState = .idle
+        duplicateFaceWarning = nil
     }
     
     /// PROMPT 2: Find if this color pattern matches an already-captured face
     /// Returns the face that has this pattern, or nil if unique
     private func findDuplicatePattern(colors: [CubeColor], excluding: Face) -> Face? {
-        let tolerance = 2 // Allow up to 2 sticker differences for tolerance
+        guard colors.count == 9 else {
+            return nil
+        }
+
+        // Require center sticker match and near-identical full pattern to avoid false positives.
+        let tolerance = 1
         
         for (face, pattern) in capturedPatterns {
             guard face != excluding else { continue }
+            guard pattern.count == colors.count else { continue }
+            guard pattern[4] == colors[4] else { continue }
             
             // Count differences
             var differences = 0
@@ -785,6 +814,17 @@ public final class CubeCamCapturePipeline: ObservableObject {
         }
         
         return nil
+    }
+
+    private func faceDisplayName(_ face: Face) -> String {
+        switch face {
+        case .up: return "top"
+        case .down: return "bottom"
+        case .left: return "left"
+        case .right: return "right"
+        case .front: return "front"
+        case .back: return "back"
+        }
     }
 
     private static func normalizedCaptureOrder(from order: [Face]) -> [Face] {

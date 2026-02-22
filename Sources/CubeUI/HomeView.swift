@@ -103,7 +103,7 @@ public struct HomeView: View {
         VStack(spacing: 16) {
             // Cube Cam - Auto-scan with video
             #if canImport(AVFoundation) && os(iOS)
-            NavigationLink(destination: CubeCamView { cubeState in
+            NavigationLink(destination: EnhancedCubeCamView { cubeState in
                 // Handle completed cube state
                 sessionViewModel.setCubeStateFromScan(cubeState)
                 cubeViewModel.cube = cubeState.toRubiksCube()
@@ -113,6 +113,17 @@ public struct HomeView: View {
                     title: "Cube Cam",
                     subtitle: "Auto-scan with guided capture",
                     color: .cyan
+                )
+            }
+            #endif
+
+            #if canImport(AVFoundation) && os(iOS)
+            NavigationLink(destination: LiveScanWizardContainerView()) {
+                ActionCard(
+                    icon: "square.grid.3x3.fill",
+                    title: "Scan Wizard",
+                    subtitle: "Scan -> validate -> edit -> solve",
+                    color: .indigo
                 )
             }
             #endif

@@ -193,7 +193,7 @@ swift test --filter CubeCoreTests
 ### Prerequisites
 
 - Xcode 15.0+
-- Swift 5.9+
+- Swift 6.2+
 - SwiftLint (optional but recommended)
 
 ### Setup

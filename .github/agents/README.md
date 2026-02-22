@@ -217,7 +217,7 @@ To create a new specialized agent for the project:
 All agents are configured with specific knowledge about CubeSolver:
 
 - **Architecture**: Modular Swift Package structure (CubeCore, CubeUI, CubeScanner, CubeAR)
-- **Platforms**: iOS 17+, iPadOS 17+, macOS 14+, watchOS 10+
+- **Platforms**: iOS 26+, iPadOS 26+, macOS 26+, watchOS 26+
 - **Framework**: SwiftUI with MVVM pattern
 - **Design**: Glassmorphic Mac-style UI
 - **Testing**: XCTest with comprehensive test coverage

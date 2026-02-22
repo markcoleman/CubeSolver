@@ -34,7 +34,7 @@ You are a GitHub Copilot agent acting as a senior iOS/macOS developer with deep 
 - Follow the repository's established MVVM patterns
 
 ### Platform-Specific Development
-- Handle iOS 17.0+, iPadOS 17.0+, macOS 14.0+, and watchOS 10.0+ requirements
+- Handle iOS 26.0+, iPadOS 26.0+, macOS 26.0+, and watchOS 26.0+ requirements
 - Use appropriate platform-specific modifiers (`#if os(iOS)`, `#if os(macOS)`)
 - Optimize layouts for different screen sizes (iPhone, iPad, Mac)
 - Implement adaptive layouts that respond to size classes
@@ -57,7 +57,7 @@ You are a GitHub Copilot agent acting as a senior iOS/macOS developer with deep 
 - Prefer value types (struct) over reference types (class) unless reference semantics are required
 - Add documentation comments for public APIs
 - Ensure type safety and leverage Swift's strong type system
-- Use Swift 5.9+ features including async/await and Sendable conformance
+- Use Swift 6.2+ features including async/await and Sendable conformance
 
 ### Performance
 - Minimize view updates by using appropriate property wrappers

@@ -3,6 +3,10 @@ name: "Dependency Review"
 on:
   pull_request:
     branches: [ main, develop ]
+    paths:
+      - 'Package.swift'
+      - 'Package.resolved'
+      - '.github/workflows/dependency-review.yml'
 
 # Prevent duplicate runs for the same PR
 concurrency:
@@ -11,7 +15,6 @@ concurrency:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   dependency-review:
@@ -29,5 +32,3 @@ jobs:
         fail-on-severity: high
         # Allow GPL licenses but warn on others
         deny-licenses: LGPL-2.0, LGPL-2.1, LGPL-3.0
-        # Only comment on PRs when vulnerabilities are found
-        comment-summary-in-pr: on-failure

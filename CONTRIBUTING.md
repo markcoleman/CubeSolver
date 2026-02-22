@@ -60,9 +60,9 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 ### Environment Requirements
 
 **Essential:**
-- **Xcode**: 16.1 or later (must match CI environment)
-- **macOS**: 14.0 or later (Sonoma)
-- **Swift**: 5.9 or later (included with Xcode)
+- **Xcode**: 26.0 or later (must match CI environment)
+- **macOS**: 26.0 or later
+- **Swift**: 6.2 or later (included with Xcode)
 - **SwiftLint**: For code quality (`brew install swiftlint`)
 
 **Optional but Recommended:**

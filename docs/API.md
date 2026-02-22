@@ -305,12 +305,12 @@ GlassmorphicCard {
 ## Platform Support
 
 ### iOS/iPadOS
-- Minimum version: iOS 17.0
+- Minimum version: iOS 26.0
 - Supports all iPhone and iPad models
 - Optimized layouts for different screen sizes
 
 ### macOS
-- Minimum version: macOS 14.0
+- Minimum version: macOS 26.0
 - Native macOS app with Mac Catalyst
 - Glassmorphic design optimized for macOS
 

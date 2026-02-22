@@ -10,10 +10,14 @@
 import Foundation
 import CoreVideo
 import CubeCore
+#if canImport(OSLog)
+import OSLog
+#endif
 
 /// Pipeline for automatic cube face capture with rotation tracking
 @MainActor
-public class CubeCamCapturePipeline: ObservableObject {
+public final class CubeCamCapturePipeline: ObservableObject {
+    private static let defaultCaptureOrder: [Face] = [.up, .front, .right, .back, .left, .down]
     
     // MARK: - Nested Types
     
@@ -100,10 +104,12 @@ public class CubeCamCapturePipeline: ObservableObject {
     private let faceDetectionService = CubeFaceDetectionService()
     private let colorClassifier = StickerColorClassifier()
     private let errorDetector = CubeScanErrorDetector()
+    #if canImport(OSLog)
+    private let logger = Logger(subsystem: "com.cubesolver.scanner", category: "CubeCamCapturePipeline")
+    #endif
     
     private var detectionHistory: [(time: TimeInterval, result: CubeFaceDetectionResult, brightness: Float)] = []
     private var lastCaptureTime: TimeInterval = 0
-    private let minTimeBetweenCaptures: TimeInterval = 1.0
     
     // Face detection state
     private var currentFaceEstimate: Face?
@@ -130,9 +136,69 @@ public class CubeCamCapturePipeline: ObservableObject {
     
     // PROMPT 3: Face orientation detection
     private var detectedCenterColor: CubeColor?
+
+    // Confidence smoothing state
+    private var lastEstimatedFace: Face?
+    private var consistentFaceEstimateCount: Int = 0
+    private var smoothedFaceEstimateConfidence: Float = 0
+
+    // Retry/backoff state
+    private var autoCaptureBackoffUntil: TimeInterval = 0
+    private var autoCaptureSuspendedFaces: Set<Face> = []
     
     // PROMPT 9: Capture mode
     public var autoCaptureEnabled: Bool = true
+
+    /// Enable detailed diagnostics logging for per-frame scanning behavior.
+    public var isVerboseLoggingEnabled: Bool = false
+
+    /// Deterministic order used by auto-capture.
+    public var captureOrder: [Face] = defaultCaptureOrder {
+        didSet {
+            let normalized = Self.normalizedCaptureOrder(from: captureOrder)
+            if normalized != captureOrder {
+                captureOrder = normalized
+            }
+        }
+    }
+
+    /// Exponential moving-average alpha used to smooth face estimate confidence.
+    public var faceConfidenceSmoothingAlpha: Float = 0.35 {
+        didSet {
+            faceConfidenceSmoothingAlpha = min(max(faceConfidenceSmoothingAlpha, 0), 1)
+        }
+    }
+
+    /// Number of consecutive frames required before face confidence reaches full weight.
+    public var minimumConsistentFaceFrames: Int = 3 {
+        didSet {
+            minimumConsistentFaceFrames = max(1, minimumConsistentFaceFrames)
+        }
+    }
+
+    /// Maximum number of auto-capture retries per face before auto mode pauses for that face.
+    public var maxAutoCaptureRetriesPerFace: Int = 3 {
+        didSet {
+            maxAutoCaptureRetriesPerFace = max(1, maxAutoCaptureRetriesPerFace)
+        }
+    }
+
+    /// Base delay (seconds) for exponential retry backoff after failed auto-capture.
+    public var retryBackoffBaseDelay: TimeInterval = 0.35 {
+        didSet {
+            retryBackoffBaseDelay = max(0, retryBackoffBaseDelay)
+        }
+    }
+
+    /// Upper bound (seconds) for retry backoff delay.
+    public var maxRetryBackoffDelay: TimeInterval = 2.0 {
+        didSet {
+            maxRetryBackoffDelay = max(0, maxRetryBackoffDelay)
+        }
+    }
+
+    /// Current retry counts by face for diagnostics and UI hints.
+    @Published public private(set) var retryCountsByFace: [Face: Int] = [:]
     
     // MARK: - Initialization
     
@@ -154,7 +220,7 @@ public class CubeCamCapturePipeline: ObservableObject {
         guard !isProcessingFrame else {
             droppedFrameCount += 1
             if droppedFrameCount % 10 == 0 {
-                print("[CubeCam] ⚠️ Dropped \(droppedFrameCount) frames due to concurrent processing")
+                logWarning("[CubeCam] Dropped \(droppedFrameCount) frames due to concurrent processing")
             }
             return
         }
@@ -164,15 +230,15 @@ public class CubeCamCapturePipeline: ObservableObject {
             isProcessingFrame = false
         }
         
-        print("[CubeCam] 🎥 Processing frame at \(timestamp)")
+        logDebug("[CubeCam] 🎥 Processing frame at \(timestamp)")
         
         // Detect cube face
         if let detection = await faceDetectionService.detectCubeFace(in: videoFrame) {
-            print("[CubeCam] ✓ Cube detected - confidence: \(detection.confidence)")
+            logDebug("[CubeCam] ✓ Cube detected - confidence: \(detection.confidence)")
             lastDetection = detection
             
             // Calculate brightness for this frame - PROMPT 1
-            let brightness = await calculateFrameBrightness(videoFrame)
+            let brightness = calculateFrameBrightness(videoFrame)
             
             // Add to history
             detectionHistory.append((time: timestamp, result: detection, brightness: brightness))
@@ -187,31 +253,42 @@ public class CubeCamCapturePipeline: ObservableObject {
             let positionStability = calculatePositionStability()
             stability = lightingStable ? positionStability : max(0, positionStability - 0.3)
             
-            print("[CubeCam] 📊 Stability: \(stability), Lighting stable: \(lightingStable)")
+            logDebug("[CubeCam] 📊 Stability: \(stability), Lighting stable: \(lightingStable)")
             
             // Determine which face is visible
             await updateFaceEstimate(from: detection, videoFrame: videoFrame)
             
             // STATE MACHINE: Update state based on stability
-            await updateCaptureState(stability: stability, lightingStable: lightingStable, timestamp: timestamp)
+            updateCaptureState(stability: stability, lightingStable: lightingStable)
             
             // PROMPT 1: Auto-capture only if in stabilizing state and conditions met
             if autoCaptureEnabled && shouldAutoCapture(timestamp: timestamp) {
-                print("[CubeCam] 🎯 Auto-capture conditions met - triggering capture")
-                await captureCurrentFace(videoFrame: videoFrame, depthFrame: depthFrame, detection: detection)
+                logDebug("[CubeCam] 🎯 Auto-capture conditions met - triggering capture")
+                await captureCurrentFace(
+                    videoFrame: videoFrame,
+                    depthFrame: depthFrame,
+                    detection: detection,
+                    timestamp: timestamp
+                )
             }
         } else {
-            print("[CubeCam] ❌ No cube detected")
+            logDebug("[CubeCam] ❌ No cube detected")
             // No detection - reduce stability and reset state
             stability = max(0, stability - 0.1)
             lastDetection = nil
             consecutiveStableFrames = 0
             isScanning = false
+            currentFaceEstimate = nil
+            faceEstimateConfidence = 0
+            lastEstimatedFace = nil
+            consistentFaceEstimateCount = 0
+            smoothedFaceEstimateConfidence = 0
+            pendingFace = getNextFaceToCapture()
             
             // Reset to idle or detecting
             if captureState != .captured {
                 captureState = .idle
-                print("[CubeCam] 🔄 State: idle (no detection)")
+                logDebug("[CubeCam] 🔄 State: idle (no detection)")
             }
         }
     }
@@ -226,14 +303,19 @@ public class CubeCamCapturePipeline: ObservableObject {
         depthFrame: CVPixelBuffer?,
         detection: CubeFaceDetectionResult
     ) async {
-        guard let face = currentFaceEstimate else { return }
+        guard currentFaceEstimate != nil else { return }
         
-        await captureCurrentFace(videoFrame: videoFrame, depthFrame: depthFrame, detection: detection)
+        await captureCurrentFace(
+            videoFrame: videoFrame,
+            depthFrame: depthFrame,
+            detection: detection,
+            timestamp: Date().timeIntervalSince1970
+        )
     }
     
     /// Reset the capture pipeline
     public func reset() {
-        print("[CubeCam] 🔄 Resetting pipeline")
+        logDebug("[CubeCam] 🔄 Resetting pipeline")
         capturedFaces = [:]
         pendingFace = nil
         stability = 0
@@ -246,18 +328,23 @@ public class CubeCamCapturePipeline: ObservableObject {
         captureState = .idle
         hasCapturedThisCycle = false
         droppedFrameCount = 0
+        retryCountsByFace = [:]
+        autoCaptureBackoffUntil = 0
+        autoCaptureSuspendedFaces = []
+        lastEstimatedFace = nil
+        consistentFaceEstimateCount = 0
+        smoothedFaceEstimateConfidence = 0
     }
     
     /// Get the next face that needs to be captured
     public func getNextFaceToCapture() -> Face? {
-        let allFaces: [Face] = [.up, .down, .front, .back, .left, .right]
-        return allFaces.first { !capturedFaces.keys.contains($0) }
+        captureOrder.first { !capturedFaces.keys.contains($0) }
     }
     
     // MARK: - Private Methods
     
     /// Update capture state machine based on current conditions
-    private func updateCaptureState(stability: Float, lightingStable: Bool, timestamp: TimeInterval) async {
+    private func updateCaptureState(stability: Float, lightingStable: Bool) {
         let oldState = captureState
         
         // PROMPT 1: Track consecutive stable frames
@@ -273,19 +360,19 @@ public class CubeCamCapturePipeline: ObservableObject {
                 // Ready to capture
                 if !hasCapturedThisCycle {
                     captureState = .stabilizing(progress: 1.0)
-                    print("[CubeCam] ✓ Stabilized! Progress: 100% (\(consecutiveStableFrames)/\(requiredStableFrames) frames)")
+                    logDebug("[CubeCam] ✓ Stabilized! Progress: 100% (\(consecutiveStableFrames)/\(requiredStableFrames) frames)")
                 } else {
                     captureState = .captured
                 }
             } else {
                 // Still stabilizing
                 captureState = .stabilizing(progress: progress)
-                print("[CubeCam] ⏳ Stabilizing... Progress: \(Int(progress * 100))% (\(consecutiveStableFrames)/\(requiredStableFrames) frames)")
+                logDebug("[CubeCam] ⏳ Stabilizing... Progress: \(Int(progress * 100))% (\(consecutiveStableFrames)/\(requiredStableFrames) frames)")
             }
         } else {
             // Not stable - reset
             if consecutiveStableFrames > 0 {
-                print("[CubeCam] ⚠️ Lost stability - resetting (was at \(consecutiveStableFrames) frames)")
+                logDebug("[CubeCam] ⚠️ Lost stability - resetting (was at \(consecutiveStableFrames) frames)")
             }
             consecutiveStableFrames = 0
             isScanning = false
@@ -298,7 +385,7 @@ public class CubeCamCapturePipeline: ObservableObject {
         
         // Log state transitions
         if oldState != captureState {
-            print("[CubeCam] 🔄 State transition: \(oldState) → \(captureState)")
+            logDebug("[CubeCam] 🔄 State transition: \(oldState) → \(captureState)")
         }
     }
     
@@ -325,7 +412,7 @@ public class CubeCamCapturePipeline: ObservableObject {
         let variance = calculatePositionVariance(positions)
         
         // Convert variance to stability (inverse relationship)
-        let maxVariance: Float = 0.05 // 5% of frame
+        let maxVariance: Float = max(stabilityMovementThreshold, 0.0001)
         let normalizedVariance = min(1.0, variance / maxVariance)
         let stability = 1.0 - normalizedVariance
         
@@ -357,7 +444,7 @@ public class CubeCamCapturePipeline: ObservableObject {
     }
     
     /// PROMPT 1: Calculate frame brightness with cached sample coordinates
-    private func calculateFrameBrightness(_ buffer: CVPixelBuffer) async -> Float {
+    private func calculateFrameBrightness(_ buffer: CVPixelBuffer) -> Float {
         // Simple approximation: sample center region
         CVPixelBufferLockBaseAddress(buffer, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
@@ -441,26 +528,26 @@ public class CubeCamCapturePipeline: ObservableObject {
         
         // Map center color to expected face (Rubik's cube centers are fixed)
         let expectedFace = faceFromCenterColor(centerColor)
-        
-        // If we haven't captured any faces yet, start with the detected face
-        if capturedFaces.isEmpty {
-            currentFaceEstimate = expectedFace
-            faceEstimateConfidence = detection.confidence
-            pendingFace = expectedFace
+        updateSmoothedFaceConfidence(face: expectedFace, detectionConfidence: detection.confidence)
+
+        let targetFace = getNextFaceToCapture()
+        pendingFace = targetFace
+
+        guard targetFace != nil else {
+            currentFaceEstimate = nil
+            faceEstimateConfidence = 0
             return
         }
-        
-        // Check if this face is already captured - PROMPT 2
-        if capturedFaces.keys.contains(expectedFace) {
-            // Already captured this face, suggest next one
+
+        // If this face is already captured, clear estimate and wait for the pending face.
+        guard !capturedFaces.keys.contains(expectedFace) else {
             currentFaceEstimate = nil
-            pendingFace = getNextFaceToCapture()
             faceEstimateConfidence = 0
-        } else {
-            currentFaceEstimate = expectedFace
-            faceEstimateConfidence = detection.confidence
-            pendingFace = expectedFace
+            return
         }
+
+        currentFaceEstimate = expectedFace
+        faceEstimateConfidence = smoothedFaceEstimateConfidence
     }
     
     /// PROMPT 3: Map center color to face
@@ -485,81 +572,103 @@ public class CubeCamCapturePipeline: ObservableObject {
     /// Check if auto-capture should trigger - PROMPT 1: Enhanced with debounce
     private func shouldAutoCapture(timestamp: TimeInterval) -> Bool {
         guard let face = currentFaceEstimate else {
-            print("[CubeCam] ⏭️ No capture: No face estimate")
+            logDebug("[CubeCam] ⏭️ No capture: No face estimate")
+            return false
+        }
+
+        // Auto-capture follows a deterministic face order.
+        guard let targetFace = getNextFaceToCapture() else {
+            logDebug("[CubeCam] ⏭️ No capture: No pending face")
+            return false
+        }
+        guard face == targetFace else {
+            logDebug("[CubeCam] ⏭️ No capture: Waiting for \(targetFace), currently seeing \(face)")
             return false
         }
         
         // Don't capture if already captured this face
         guard !capturedFaces.keys.contains(face) else {
-            print("[CubeCam] ⏭️ No capture: Face \(face) already captured")
+            logDebug("[CubeCam] ⏭️ No capture: Face \(face) already captured")
+            return false
+        }
+
+        guard !autoCaptureSuspendedFaces.contains(face) else {
+            logDebug("[CubeCam] ⏭️ No capture: Auto-capture paused for \(face) after repeated failures")
+            return false
+        }
+
+        guard timestamp >= autoCaptureBackoffUntil else {
+            let remaining = autoCaptureBackoffUntil - timestamp
+            logDebug("[CubeCam] ⏭️ No capture: Retry backoff active (\(remaining)s remaining)")
             return false
         }
         
         // GUARD: Only capture once per stabilization cycle
         guard !hasCapturedThisCycle else {
-            print("[CubeCam] ⏭️ No capture: Already captured this cycle")
+            logDebug("[CubeCam] ⏭️ No capture: Already captured this cycle")
             return false
         }
         
         // PROMPT 1: Check consecutive stable frames requirement
         guard consecutiveStableFrames >= requiredStableFrames else {
-            print("[CubeCam] ⏭️ No capture: Only \(consecutiveStableFrames)/\(requiredStableFrames) stable frames")
+            logDebug("[CubeCam] ⏭️ No capture: Only \(consecutiveStableFrames)/\(requiredStableFrames) stable frames")
             return false
         }
         
         // Check stability - lowered threshold to match consecutive frame threshold
         guard stability >= 0.85 else {
-            print("[CubeCam] ⏭️ No capture: Stability too low (\(stability) < 0.85)")
+            logDebug("[CubeCam] ⏭️ No capture: Stability too low (\(stability) < 0.85)")
             return false
         }
         
         // Check confidence
         guard faceEstimateConfidence >= autoCaptureThreshold else {
-            print("[CubeCam] ⏭️ No capture: Confidence too low (\(faceEstimateConfidence) < \(autoCaptureThreshold))")
+            logDebug("[CubeCam] ⏭️ No capture: Confidence too low (\(faceEstimateConfidence) < \(autoCaptureThreshold))")
             return false
         }
         
         // PROMPT 1: Check debounce delay
         guard timestamp - lastCaptureTime >= debounceDelay else {
             let remaining = debounceDelay - (timestamp - lastCaptureTime)
-            print("[CubeCam] ⏭️ No capture: Debounce delay (\(remaining)s remaining)")
+            logDebug("[CubeCam] ⏭️ No capture: Debounce delay (\(remaining)s remaining)")
             return false
         }
         
         // PROMPT 1: Must be in scanning state
         guard isScanning else {
-            print("[CubeCam] ⏭️ No capture: Not in scanning state")
+            logDebug("[CubeCam] ⏭️ No capture: Not in scanning state")
             return false
         }
         
         // Check state machine
         guard case .stabilizing(let progress) = captureState, progress >= 1.0 else {
-            print("[CubeCam] ⏭️ No capture: Not in stabilizing(1.0) state - current: \(captureState)")
+            logDebug("[CubeCam] ⏭️ No capture: Not in stabilizing(1.0) state - current: \(captureState)")
             return false
         }
         
-        print("[CubeCam] ✅ All capture conditions met!")
+        logDebug("[CubeCam] ✅ All capture conditions met!")
         return true
     }
     
     /// Capture the current face - PROMPT 2: Enhanced with duplicate detection, PROMPT 8: Error validation
     private func captureCurrentFace(
         videoFrame: CVPixelBuffer,
-        depthFrame: CVPixelBuffer?,
-        detection: CubeFaceDetectionResult
+        depthFrame _: CVPixelBuffer?,
+        detection: CubeFaceDetectionResult,
+        timestamp: TimeInterval
     ) async {
         guard let face = currentFaceEstimate else {
-            print("[CubeCam] ❌ Cannot capture: No face estimate")
+            logWarning("[CubeCam] Cannot capture: No face estimate")
             return
         }
         
         // GUARD: Prevent multiple captures in same cycle
         guard !hasCapturedThisCycle else {
-            print("[CubeCam] ⚠️ Already captured this cycle - skipping")
+            logDebug("[CubeCam] ⚠️ Already captured this cycle - skipping")
             return
         }
         
-        print("[CubeCam] 📸 Starting capture for face: \(face)")
+        logDebug("[CubeCam] 📸 Starting capture for face: \(face)")
         
         // Mark as capturing to prevent duplicates
         hasCapturedThisCycle = true
@@ -568,9 +677,9 @@ public class CubeCamCapturePipeline: ObservableObject {
         // PROMPT 8: Validate lighting
         let brightness = detectionHistory.last?.brightness ?? 0.5
         if let lightingError = await errorDetector.validateLighting(brightness: brightness) {
-            print("[CubeCam] ❌ Lighting validation failed: \(lightingError)")
+            logWarning("[CubeCam] Lighting validation failed: \(lightingError)")
             currentError = lightingError
-            resetAfterFailedCapture()
+            resetAfterFailedCapture(face: face, timestamp: timestamp)
             return
         }
         
@@ -580,39 +689,40 @@ public class CubeCamCapturePipeline: ObservableObject {
             faceRect: detection.boundingBox
         )
         
-        print("[CubeCam] 🎨 Classified \(colors.count) stickers")
+        logDebug("[CubeCam] 🎨 Classified \(colors.count) stickers")
         
         // PROMPT 8: Validate colors are readable
         if let colorError = await errorDetector.validateColors(colors) {
-            print("[CubeCam] ❌ Color validation failed: \(colorError)")
+            logWarning("[CubeCam] Color validation failed: \(colorError)")
             currentError = colorError
-            resetAfterFailedCapture()
+            resetAfterFailedCapture(face: face, timestamp: timestamp)
             return
         }
         
         // PROMPT 8: Validate face layout
         if let layoutError = await errorDetector.validateFaceLayout(colors) {
-            print("[CubeCam] ❌ Layout validation failed: \(layoutError)")
+            logWarning("[CubeCam] Face layout validation failed: \(layoutError)")
             currentError = layoutError
-            resetAfterFailedCapture()
+            resetAfterFailedCapture(face: face, timestamp: timestamp)
             return
         }
         
         // PROMPT 2: Check for duplicate patterns
         if let duplicateFace = findDuplicatePattern(colors: colors, excluding: face) {
-            print("[CubeCam] ⚠️ Duplicate pattern detected - matches face: \(duplicateFace)")
+            logWarning("[CubeCam] Duplicate pattern detected - matches face: \(duplicateFace)")
             // This pattern was already scanned for a different face
             // Skip this capture and reset
-            resetAfterFailedCapture()
+            resetAfterFailedCapture(face: face, timestamp: timestamp)
             return
         }
         
         // Store captured face
         capturedFaces[face] = colors
         capturedPatterns[face] = colors
-        lastCaptureTime = Date().timeIntervalSince1970
+        lastCaptureTime = timestamp
+        clearCaptureRetryState(for: face)
         
-        print("[CubeCam] ✅ Successfully captured face: \(face) (\(capturedFaces.count)/6)")
+        logNotice("[CubeCam] Successfully captured face: \(face) (\(capturedFaces.count)/6)")
         
         // Clear any errors
         currentError = nil
@@ -621,15 +731,17 @@ public class CubeCamCapturePipeline: ObservableObject {
         captureState = .captured
         
         // Reset for next face after a brief delay
-        Task {
-            try? await Task.sleep(nanoseconds: UInt64(captureResetDelay * 1_000_000_000))
-            await resetForNextFace()
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(nanoseconds: UInt64(self.captureResetDelay * 1_000_000_000))
+            self.resetForNextFace()
         }
     }
     
     /// Reset state after a failed capture attempt
-    private func resetAfterFailedCapture() {
-        print("[CubeCam] 🔄 Resetting after failed capture")
+    private func resetAfterFailedCapture(face: Face, timestamp: TimeInterval) {
+        logWarning("[CubeCam] Resetting after failed capture")
+        recordCaptureFailure(for: face, timestamp: timestamp)
         hasCapturedThisCycle = false
         consecutiveStableFrames = 0
         stability = 0
@@ -639,7 +751,7 @@ public class CubeCamCapturePipeline: ObservableObject {
     
     /// Reset for next face after successful capture
     private func resetForNextFace() {
-        print("[CubeCam] 🔄 Resetting for next face")
+        logDebug("[CubeCam] 🔄 Resetting for next face")
         currentFaceEstimate = nil
         pendingFace = getNextFaceToCapture()
         detectionHistory = []
@@ -673,6 +785,95 @@ public class CubeCamCapturePipeline: ObservableObject {
         }
         
         return nil
+    }
+
+    private static func normalizedCaptureOrder(from order: [Face]) -> [Face] {
+        var seen: Set<Face> = []
+        var normalized: [Face] = []
+
+        for face in order where !seen.contains(face) {
+            seen.insert(face)
+            normalized.append(face)
+        }
+
+        for face in defaultCaptureOrder where !seen.contains(face) {
+            seen.insert(face)
+            normalized.append(face)
+        }
+
+        return normalized
+    }
+
+    private func updateSmoothedFaceConfidence(face: Face, detectionConfidence: Float) {
+        let clamped = min(max(detectionConfidence, 0), 1)
+
+        if lastEstimatedFace == face {
+            consistentFaceEstimateCount += 1
+        } else {
+            lastEstimatedFace = face
+            consistentFaceEstimateCount = 1
+            smoothedFaceEstimateConfidence = clamped
+        }
+
+        let consistencyWeight = min(
+            1.0,
+            Float(consistentFaceEstimateCount) / Float(max(1, minimumConsistentFaceFrames))
+        )
+        let weightedConfidence = clamped * consistencyWeight
+        let alpha = min(max(faceConfidenceSmoothingAlpha, 0), 1)
+
+        smoothedFaceEstimateConfidence =
+            (alpha * weightedConfidence) + ((1 - alpha) * smoothedFaceEstimateConfidence)
+    }
+
+    private func recordCaptureFailure(for face: Face, timestamp: TimeInterval) {
+        let newCount = retryCountsByFace[face, default: 0] + 1
+        retryCountsByFace[face] = newCount
+
+        let exponent = max(0, newCount - 1)
+        let rawBackoff = retryBackoffBaseDelay * pow(2.0, Double(exponent))
+        let cappedBackoff = min(maxRetryBackoffDelay, rawBackoff)
+        autoCaptureBackoffUntil = max(autoCaptureBackoffUntil, timestamp + cappedBackoff)
+
+        if newCount >= maxAutoCaptureRetriesPerFace {
+            autoCaptureSuspendedFaces.insert(face)
+            logWarning("[CubeCam] Auto-capture paused for \(face) after \(newCount) failed attempts")
+        } else {
+            logWarning("[CubeCam] Auto-capture retry \(newCount)/\(maxAutoCaptureRetriesPerFace) for \(face)")
+        }
+    }
+
+    private func clearCaptureRetryState(for face: Face) {
+        retryCountsByFace[face] = nil
+        autoCaptureSuspendedFaces.remove(face)
+        if retryCountsByFace.isEmpty {
+            autoCaptureBackoffUntil = 0
+        }
+    }
+
+    private func logDebug(_ message: String) {
+        guard isVerboseLoggingEnabled else { return }
+        #if canImport(OSLog)
+        logger.debug("\(message, privacy: .public)")
+        #else
+        print(message)
+        #endif
+    }
+
+    private func logNotice(_ message: String) {
+        #if canImport(OSLog)
+        logger.notice("\(message, privacy: .public)")
+        #else
+        print(message)
+        #endif
+    }
+
+    private func logWarning(_ message: String) {
+        #if canImport(OSLog)
+        logger.warning("\(message, privacy: .public)")
+        #else
+        print("WARNING: \(message)")
+        #endif
     }
 }
 

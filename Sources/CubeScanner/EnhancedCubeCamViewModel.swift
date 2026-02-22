@@ -16,7 +16,7 @@ import AVFoundation
 
 /// Enhanced view model for CubeCam with improved UX and step-by-step guidance
 @MainActor
-public class EnhancedCubeCamViewModel: ObservableObject {
+public final class EnhancedCubeCamViewModel: ObservableObject {
     
     // MARK: - Published Properties
     
@@ -191,7 +191,9 @@ public class EnhancedCubeCamViewModel: ObservableObject {
                             self.lastScanResult = .success(face: face)
                             
                             // Update guidance for next face
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            Task { @MainActor [weak self] in
+                                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                                guard let self else { return }
                                 self.lastScanResult = nil
                                 self.updateGuidance()
                             }
@@ -314,7 +316,8 @@ public class EnhancedCubeCamViewModel: ObservableObject {
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 200_000_000)
                 generator.notificationOccurred(.success)
             }
             
@@ -327,8 +330,9 @@ public class EnhancedCubeCamViewModel: ObservableObject {
             generator.notificationOccurred(.error)
             
             // Reset after delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                self.reset()
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                self?.reset()
             }
         }
     }
@@ -345,4 +349,3 @@ public class EnhancedCubeCamViewModel: ObservableObject {
 }
 
 #endif
-

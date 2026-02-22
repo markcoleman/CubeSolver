@@ -258,6 +258,11 @@ final class CubeCamCapturePipelineTests: XCTestCase {
         XCTAssertEqual(pipeline.debounceDelay, 0.4, "Default debounce delay should be 0.4s")
         XCTAssertEqual(pipeline.requiredStableFrames, 8, "Default required frames should be 8")
         XCTAssertEqual(pipeline.autoCaptureThreshold, 0.8, "Default auto-capture threshold should be 0.8")
+        XCTAssertEqual(pipeline.captureOrder, [.up, .front, .right, .back, .left, .down])
+        XCTAssertEqual(pipeline.maxAutoCaptureRetriesPerFace, 3)
+        XCTAssertEqual(pipeline.retryBackoffBaseDelay, 0.35, accuracy: 0.001)
+        XCTAssertEqual(pipeline.maxRetryBackoffDelay, 2.0, accuracy: 0.001)
+        XCTAssertTrue(pipeline.retryCountsByFace.isEmpty)
     }
     
     // MARK: - CaptureState Tests
@@ -349,6 +354,28 @@ final class CubeCamCapturePipelineTests: XCTestCase {
         XCTAssertNotNil(nextFace)
         XCTAssertNotEqual(nextFace, .front, "Should not return already captured front face")
         XCTAssertNotEqual(nextFace, .back, "Should not return already captured back face")
+    }
+
+    func testGetNextFaceUsesDeterministicCaptureOrder() {
+        XCTAssertEqual(pipeline.getNextFaceToCapture(), .up)
+
+        pipeline.capturedFaces[.up] = Array(repeating: .white, count: 9)
+        pipeline.capturedFaces[.right] = Array(repeating: .blue, count: 9)
+
+        // Right is skipped because front comes earlier in deterministic order.
+        XCTAssertEqual(pipeline.getNextFaceToCapture(), .front)
+    }
+
+    func testCustomCaptureOrderIsRespectedAndNormalized() {
+        pipeline.captureOrder = [.front, .front, .up]
+
+        XCTAssertEqual(pipeline.captureOrder.count, 6, "Capture order should always include all six unique faces")
+        XCTAssertEqual(Set(pipeline.captureOrder), Set(Face.allCases))
+        XCTAssertEqual(Array(pipeline.captureOrder.prefix(2)), [.front, .up])
+
+        XCTAssertEqual(pipeline.getNextFaceToCapture(), .front)
+        pipeline.capturedFaces[.front] = Array(repeating: .red, count: 9)
+        XCTAssertEqual(pipeline.getNextFaceToCapture(), .up)
     }
     
     // MARK: - State Transitions

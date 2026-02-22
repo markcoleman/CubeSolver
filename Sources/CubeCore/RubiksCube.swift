@@ -183,7 +183,7 @@ public struct RubiksCube: Equatable {
         }
         
         for i in 0..<3 {
-            bottom.colors[2][i] = left.colors[2 - i][0]
+            bottom.colors[2][i] = left.colors[i][0]
         }
         
         for i in 0..<3 {

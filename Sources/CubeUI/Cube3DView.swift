@@ -281,6 +281,7 @@ private func colorForFaceColor(_ faceColor: FaceColor) -> Any {
     }
 }
 
+@MainActor
 private func startAutoRotation(for sceneView: SCNView) {
     guard let cubeContainer = sceneView.scene?.rootNode.childNode(withName: "cubeContainer", recursively: false) else {
         return
@@ -310,4 +311,3 @@ private typealias platformColor = UIColor
 
 #endif // canImport(SceneKit)
 #endif // canImport(SwiftUI)
-

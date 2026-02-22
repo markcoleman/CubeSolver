@@ -8,7 +8,7 @@
 #if canImport(AVFoundation) && canImport(Combine)
 
 import Foundation
-import AVFoundation
+@preconcurrency import AVFoundation
 import Combine
 #if canImport(CoreVideo)
 import CoreVideo
@@ -16,7 +16,7 @@ import CoreVideo
 
 /// Camera session for Cube Cam with video and depth capture
 @MainActor
-public class CameraSession: NSObject, ObservableObject {
+public final class CameraSession: NSObject, ObservableObject {
     
     // MARK: - Published Properties
     
@@ -47,14 +47,16 @@ public class CameraSession: NSObject, ObservableObject {
     
     private let captureSession = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "com.cubesolver.camera.session")
+
+    private struct UncheckedCaptureSession: @unchecked Sendable {
+        let value: AVCaptureSession
+    }
     
     // MARK: - Initialization
     
     public override init() {
         super.init()
-        Task { @MainActor in
-            self.authorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
-        }
+        authorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
     }
     
     // MARK: - Public Methods
@@ -69,9 +71,7 @@ public class CameraSession: NSObject, ObservableObject {
             isAuthorized = await AVCaptureDevice.requestAccess(for: .video)
         }
         
-        await MainActor.run {
-            self.authorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
-        }
+        authorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
         
         return isAuthorized
     }
@@ -83,25 +83,24 @@ public class CameraSession: NSObject, ObservableObject {
         }
         
         try await setupSession()
+        let session = UncheckedCaptureSession(value: captureSession)
         
-        sessionQueue.async { [weak self] in
-            self?.captureSession.startRunning()
+        sessionQueue.async {
+            session.value.startRunning()
         }
         
-        await MainActor.run {
-            self.isRunning = true
-        }
+        isRunning = true
     }
     
     /// Stop the camera session
     public func stop() {
-        sessionQueue.async { [weak self] in
-            self?.captureSession.stopRunning()
+        let session = UncheckedCaptureSession(value: captureSession)
+
+        sessionQueue.async {
+            session.value.stopRunning()
         }
         
-        Task { @MainActor in
-            self.isRunning = false
-        }
+        isRunning = false
     }
     
     /// Get the preview layer for displaying camera feed
@@ -114,9 +113,8 @@ public class CameraSession: NSObject, ObservableObject {
     // MARK: - Private Methods
     
     private func setupSession() async throws {
-        // Capture session configuration must be done on the session queue
-        // but captureSession is @MainActor isolated, so we use @unchecked Sendable wrapper
-        let session = captureSession
+        // Capture session configuration must be done on the session queue.
+        let captureSessionBox = UncheckedCaptureSession(value: captureSession)
         let enableDepth = enableDepthCapture
         
         return try await withCheckedThrowingContinuation { continuation in
@@ -125,7 +123,8 @@ public class CameraSession: NSObject, ObservableObject {
                     continuation.resume(throwing: CameraSessionError.sessionSetupFailed)
                     return
                 }
-                
+                let session = captureSessionBox.value
+
                 do {
                     session.beginConfiguration()
                     
@@ -285,7 +284,7 @@ extension CameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
         
         // Get orientation from metadata if available
         var orientation: CGImagePropertyOrientation = .right
-        if let metadata = CMGetAttachment(sampleBuffer, key: kCMSampleBufferAttachmentKey_CameraIntrinsicMatrix, attachmentModeOut: nil) {
+        if CMGetAttachment(sampleBuffer, key: kCMSampleBufferAttachmentKey_CameraIntrinsicMatrix, attachmentModeOut: nil) != nil {
             // Extract actual orientation if available
             orientation = .right
         }

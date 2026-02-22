@@ -7,7 +7,7 @@ public struct ScanWizardView: View {
     @StateObject private var viewModel: CubeScanSolveFlowViewModel
     private let cameraPreview: AnyView?
     @State private var showingManualEdit = false
-    @State private var showingSteps = false
+    @State private var showingSolveMode = false
     @State private var manualEditInitialFace: FaceId = .up
 
     public init(viewModel: CubeScanSolveFlowViewModel, cameraPreview: AnyView? = nil) {
@@ -67,7 +67,7 @@ public struct ScanWizardView: View {
                         Button {
                             Task {
                                 await viewModel.solve()
-                                showingSteps = viewModel.state == .solved
+                                showingSolveMode = viewModel.state == .solved
                             }
                         } label: {
                             Label(viewModel.isBusy ? "Solving..." : "Solve Cube", systemImage: "wand.and.stars")
@@ -84,8 +84,8 @@ public struct ScanWizardView: View {
                     }
 
                     if !viewModel.solvedMoves.isEmpty {
-                        Button("View Step-by-step", systemImage: "list.number") {
-                            showingSteps = true
+                        Button("Open Solve Mode", systemImage: "list.number") {
+                            showingSolveMode = true
                         }
                         .buttonStyle(.bordered)
                         .accessibilityIdentifier("viewStepByStepButton")
@@ -103,12 +103,24 @@ public struct ScanWizardView: View {
         }) {
             CubeManualEditView(viewModel: viewModel, initialFace: manualEditInitialFace)
         }
-        .navigationDestination(isPresented: $showingSteps) {
-            SolveStepsView(viewModel: viewModel)
+        .navigationDestination(isPresented: $showingSolveMode) {
+            if let solvedInitialState = viewModel.solvedInitialState {
+                SolveModeView(
+                    state: solvedInitialState,
+                    solution: viewModel.solvedMoves,
+                    requireOrientationConfirmation: false
+                )
+            } else {
+                ContentUnavailableView(
+                    "Solve data unavailable",
+                    systemImage: "exclamationmark.triangle",
+                    description: Text("Re-run solve to open guided solve mode.")
+                )
+            }
         }
         .onChange(of: viewModel.state) { _, newState in
             if newState == .solved {
-                showingSteps = true
+                showingSolveMode = true
             }
         }
     }

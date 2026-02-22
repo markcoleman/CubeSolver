@@ -281,9 +281,13 @@ private func updateCubeState(in sceneView: SCNView, cube: RubiksCube, currentMov
         }
     }
     
-    // Write back any changes from locals to inout parameters
-    currentMove = currentMoveLocal
-    isAnimating = isAnimatingLocal
+    // Avoid rebinding unchanged values to prevent update feedback loops.
+    if currentMove != currentMoveLocal {
+        currentMove = currentMoveLocal
+    }
+    if isAnimating != isAnimatingLocal {
+        isAnimating = isAnimatingLocal
+    }
 }
 
 private func updateCubeColors(in scene: SCNScene, with cube: RubiksCube) {
@@ -357,7 +361,7 @@ private func animateMove(in scene: SCNScene, move: Move, coordinator: AnimationC
     }
     
     // Determine which layer to rotate based on the move
-    let (axis, _, angle) = getMoveAnimation(for: move)
+    let (axis, angle) = getMoveAnimation(for: move)
     
     // Get cubies to rotate
     let cubiesToRotate = getCubiesForMove(containerNode, move: move)
@@ -422,46 +426,28 @@ private func animateMove(in scene: SCNScene, move: Move, coordinator: AnimationC
     SCNTransaction.commit()
 }
 
-private func getMoveAnimation(for move: Move) -> (SCNVector3, CGFloat, CGFloat) {
-    // Parse from textual description to avoid relying on specific API
-    let text = String(describing: move).uppercased()
+private func getMoveAnimation(for move: Move) -> (SCNVector3, CGFloat) {
+    let baseAngle: CGFloat = move.amount == .double ? .pi : (.pi / 2)
+    let sign: CGFloat = move.amount == .counter ? -1 : 1
 
-    // Determine face letter
-    let faceChar: Character? = ["R","L","U","D","F","B"].first { text.contains(String($0)) }
-
-    // Determine amount (single or double)
-    let isDouble = text.contains("2")
-    let baseAngle: CGFloat = isDouble ? .pi : (.pi / 2)
-
-    // Determine direction (prime/counterclockwise)
-    let isPrime = text.contains("'") || text.contains("CCW") || text.contains("COUNTER") || text.contains("PRIME")
-    let sign: CGFloat = isPrime ? -1 : 1
-
-    // Map face to axis; L/D/B invert direction relative to R/U/F
-    switch faceChar {
-    case "R":
-        return (SCNVector3(1, 0, 0), sign, sign * baseAngle)
-    case "L":
-        return (SCNVector3(1, 0, 0), -sign, -sign * baseAngle)
-    case "U":
-        return (SCNVector3(0, 1, 0), sign, sign * baseAngle)
-    case "D":
-        return (SCNVector3(0, 1, 0), -sign, -sign * baseAngle)
-    case "F":
-        return (SCNVector3(0, 0, 1), sign, sign * baseAngle)
-    case "B":
-        return (SCNVector3(0, 0, 1), -sign, -sign * baseAngle)
-    default:
-        // Fallback: rotate front layer CW quarter-turn
-        return (SCNVector3(0, 0, 1), 1, .pi / 2)
+    switch move.turn {
+    case .R:
+        return (SCNVector3(1, 0, 0), sign * baseAngle)
+    case .L:
+        return (SCNVector3(1, 0, 0), -sign * baseAngle)
+    case .U:
+        return (SCNVector3(0, 1, 0), sign * baseAngle)
+    case .D:
+        return (SCNVector3(0, 1, 0), -sign * baseAngle)
+    case .F:
+        return (SCNVector3(0, 0, 1), sign * baseAngle)
+    case .B:
+        return (SCNVector3(0, 0, 1), -sign * baseAngle)
     }
 }
 
 private func getCubiesForMove(_ containerNode: SCNNode, move: Move) -> [SCNNode] {
     var cubies: [SCNNode] = []
-
-    let text = String(describing: move).uppercased()
-    let faceChar: Character? = ["R","L","U","D","F","B"].first { text.contains(String($0)) }
 
     for x in 0..<3 {
         for y in 0..<3 {
@@ -469,21 +455,19 @@ private func getCubiesForMove(_ containerNode: SCNNode, move: Move) -> [SCNNode]
                 if x == 1 && y == 1 && z == 1 { continue }
 
                 let shouldInclude: Bool
-                switch faceChar {
-                case "R":
+                switch move.turn {
+                case .R:
                     shouldInclude = x == 2
-                case "L":
+                case .L:
                     shouldInclude = x == 0
-                case "U":
+                case .U:
                     shouldInclude = y == 2
-                case "D":
+                case .D:
                     shouldInclude = y == 0
-                case "F":
+                case .F:
                     shouldInclude = z == 2
-                case "B":
+                case .B:
                     shouldInclude = z == 0
-                default:
-                    shouldInclude = false
                 }
 
                 if shouldInclude,
@@ -525,4 +509,3 @@ struct AnimatedCube3DView_Previews: PreviewProvider {
 
 #endif // canImport(SceneKit)
 #endif // canImport(SwiftUI)
-

@@ -18,7 +18,7 @@ public struct ManualInputView: View {
     
     @State private var selectedFace: CubeFaceType = .front
     @State private var selectedColor: FaceColor = .red
-    @State private var showingSolutionPlayback = false
+    @State private var showingSolveMode = false
     @State private var validationError: String?
     @State private var isSolving = false
     
@@ -179,9 +179,11 @@ public struct ManualInputView: View {
                     .accessibilityIdentifier("closeButton")
                 }
             }
-            .sheet(isPresented: $showingSolutionPlayback) {
-                SolutionPlaybackView(
-                    initialState: CubeState(from: cubeViewModel.cube)
+            .sheet(isPresented: $showingSolveMode) {
+                SolveModeView(
+                    state: CubeState(from: cubeViewModel.cube),
+                    solution: cubeViewModel.solution,
+                    requireOrientationConfirmation: true
                 )
             }
         }
@@ -201,10 +203,14 @@ public struct ManualInputView: View {
             // Try to solve
             await cubeViewModel.solveAsync()
             
-            // If we got here, solving succeeded
             await MainActor.run {
+                if let error = cubeViewModel.errorMessage {
+                    validationError = error
+                    isSolving = false
+                    return
+                }
                 isSolving = false
-                showingSolutionPlayback = true
+                showingSolveMode = true
             }
         } catch {
             await MainActor.run {
@@ -397,4 +403,3 @@ public struct EditableCubeFaceView: View {
     ManualInputView(cubeViewModel: CubeViewModel())
 }
 #endif
-

@@ -22,6 +22,7 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
     @Published public private(set) var pendingFace: ScannedFaceData?
     @Published public private(set) var validationError: ValidationError?
     @Published public private(set) var solvedMoves: [Move] = []
+    @Published public private(set) var solvedInitialState: CubeState?
     @Published public private(set) var currentMoveIndex: Int = 0
     @Published public private(set) var isBusy = false
 
@@ -103,6 +104,9 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
 
         scannedFaces[pendingFace.id] = pendingFace
         self.pendingFace = nil
+        solvedMoves = []
+        solvedInitialState = nil
+        currentMoveIndex = 0
 
         _ = revalidateIfComplete()
 
@@ -134,6 +138,9 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
 
         scanned.grid[index] = color
         scannedFaces[face] = scanned
+        solvedMoves = []
+        solvedInitialState = nil
+        currentMoveIndex = 0
         _ = revalidateIfComplete()
     }
 
@@ -141,6 +148,9 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
         guard let center = defaultCenterColor(for: face) else { return }
         let replacement = CubeFaceGrid(repeating: center)
         scannedFaces[face] = ScannedFaceData(id: face, grid: replacement, confidence: 1)
+        solvedMoves = []
+        solvedInitialState = nil
+        currentMoveIndex = 0
         _ = revalidateIfComplete()
     }
 
@@ -149,6 +159,7 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
         pendingFace = nil
         validationError = nil
         solvedMoves = []
+        solvedInitialState = nil
         currentMoveIndex = 0
         state = .scanning
     }
@@ -166,16 +177,19 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
             switch validator.validate(state: cubeState) {
             case .failure(let validationError):
                 self.validationError = validationError
+                solvedInitialState = nil
                 state = .editing
                 return
             case .success:
                 break
             }
 
+            solvedInitialState = cubeState
             solvedMoves = try await solver.solve(state: cubeState)
             currentMoveIndex = solvedMoves.isEmpty ? 0 : 1
             state = .solved
         } catch {
+            solvedInitialState = nil
             state = .failed(error.localizedDescription)
         }
     }
@@ -186,6 +200,7 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
         pendingFace = nil
         validationError = nil
         solvedMoves = []
+        solvedInitialState = nil
         currentMoveIndex = 0
     }
 

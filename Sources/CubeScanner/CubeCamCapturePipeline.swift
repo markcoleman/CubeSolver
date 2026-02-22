@@ -17,6 +17,7 @@ import OSLog
 /// Pipeline for automatic cube face capture with rotation tracking
 @MainActor
 public final class CubeCamCapturePipeline: ObservableObject {
+    private static let defaultCaptureOrder: [Face] = [.up, .front, .right, .back, .left, .down]
     
     // MARK: - Nested Types
     
@@ -135,12 +136,69 @@ public final class CubeCamCapturePipeline: ObservableObject {
     
     // PROMPT 3: Face orientation detection
     private var detectedCenterColor: CubeColor?
+
+    // Confidence smoothing state
+    private var lastEstimatedFace: Face?
+    private var consistentFaceEstimateCount: Int = 0
+    private var smoothedFaceEstimateConfidence: Float = 0
+
+    // Retry/backoff state
+    private var autoCaptureBackoffUntil: TimeInterval = 0
+    private var autoCaptureSuspendedFaces: Set<Face> = []
     
     // PROMPT 9: Capture mode
     public var autoCaptureEnabled: Bool = true
 
     /// Enable detailed diagnostics logging for per-frame scanning behavior.
     public var isVerboseLoggingEnabled: Bool = false
+
+    /// Deterministic order used by auto-capture.
+    public var captureOrder: [Face] = defaultCaptureOrder {
+        didSet {
+            let normalized = Self.normalizedCaptureOrder(from: captureOrder)
+            if normalized != captureOrder {
+                captureOrder = normalized
+            }
+        }
+    }
+
+    /// Exponential moving-average alpha used to smooth face estimate confidence.
+    public var faceConfidenceSmoothingAlpha: Float = 0.35 {
+        didSet {
+            faceConfidenceSmoothingAlpha = min(max(faceConfidenceSmoothingAlpha, 0), 1)
+        }
+    }
+
+    /// Number of consecutive frames required before face confidence reaches full weight.
+    public var minimumConsistentFaceFrames: Int = 3 {
+        didSet {
+            minimumConsistentFaceFrames = max(1, minimumConsistentFaceFrames)
+        }
+    }
+
+    /// Maximum number of auto-capture retries per face before auto mode pauses for that face.
+    public var maxAutoCaptureRetriesPerFace: Int = 3 {
+        didSet {
+            maxAutoCaptureRetriesPerFace = max(1, maxAutoCaptureRetriesPerFace)
+        }
+    }
+
+    /// Base delay (seconds) for exponential retry backoff after failed auto-capture.
+    public var retryBackoffBaseDelay: TimeInterval = 0.35 {
+        didSet {
+            retryBackoffBaseDelay = max(0, retryBackoffBaseDelay)
+        }
+    }
+
+    /// Upper bound (seconds) for retry backoff delay.
+    public var maxRetryBackoffDelay: TimeInterval = 2.0 {
+        didSet {
+            maxRetryBackoffDelay = max(0, maxRetryBackoffDelay)
+        }
+    }
+
+    /// Current retry counts by face for diagnostics and UI hints.
+    @Published public private(set) var retryCountsByFace: [Face: Int] = [:]
     
     // MARK: - Initialization
     
@@ -220,6 +278,12 @@ public final class CubeCamCapturePipeline: ObservableObject {
             lastDetection = nil
             consecutiveStableFrames = 0
             isScanning = false
+            currentFaceEstimate = nil
+            faceEstimateConfidence = 0
+            lastEstimatedFace = nil
+            consistentFaceEstimateCount = 0
+            smoothedFaceEstimateConfidence = 0
+            pendingFace = getNextFaceToCapture()
             
             // Reset to idle or detecting
             if captureState != .captured {
@@ -264,12 +328,17 @@ public final class CubeCamCapturePipeline: ObservableObject {
         captureState = .idle
         hasCapturedThisCycle = false
         droppedFrameCount = 0
+        retryCountsByFace = [:]
+        autoCaptureBackoffUntil = 0
+        autoCaptureSuspendedFaces = []
+        lastEstimatedFace = nil
+        consistentFaceEstimateCount = 0
+        smoothedFaceEstimateConfidence = 0
     }
     
     /// Get the next face that needs to be captured
     public func getNextFaceToCapture() -> Face? {
-        let allFaces: [Face] = [.up, .down, .front, .back, .left, .right]
-        return allFaces.first { !capturedFaces.keys.contains($0) }
+        captureOrder.first { !capturedFaces.keys.contains($0) }
     }
     
     // MARK: - Private Methods
@@ -459,26 +528,26 @@ public final class CubeCamCapturePipeline: ObservableObject {
         
         // Map center color to expected face (Rubik's cube centers are fixed)
         let expectedFace = faceFromCenterColor(centerColor)
-        
-        // If we haven't captured any faces yet, start with the detected face
-        if capturedFaces.isEmpty {
-            currentFaceEstimate = expectedFace
-            faceEstimateConfidence = detection.confidence
-            pendingFace = expectedFace
+        updateSmoothedFaceConfidence(face: expectedFace, detectionConfidence: detection.confidence)
+
+        let targetFace = getNextFaceToCapture()
+        pendingFace = targetFace
+
+        guard targetFace != nil else {
+            currentFaceEstimate = nil
+            faceEstimateConfidence = 0
             return
         }
-        
-        // Check if this face is already captured - PROMPT 2
-        if capturedFaces.keys.contains(expectedFace) {
-            // Already captured this face, suggest next one
+
+        // If this face is already captured, clear estimate and wait for the pending face.
+        guard !capturedFaces.keys.contains(expectedFace) else {
             currentFaceEstimate = nil
-            pendingFace = getNextFaceToCapture()
             faceEstimateConfidence = 0
-        } else {
-            currentFaceEstimate = expectedFace
-            faceEstimateConfidence = detection.confidence
-            pendingFace = expectedFace
+            return
         }
+
+        currentFaceEstimate = expectedFace
+        faceEstimateConfidence = smoothedFaceEstimateConfidence
     }
     
     /// PROMPT 3: Map center color to face
@@ -506,10 +575,31 @@ public final class CubeCamCapturePipeline: ObservableObject {
             logDebug("[CubeCam] ⏭️ No capture: No face estimate")
             return false
         }
+
+        // Auto-capture follows a deterministic face order.
+        guard let targetFace = getNextFaceToCapture() else {
+            logDebug("[CubeCam] ⏭️ No capture: No pending face")
+            return false
+        }
+        guard face == targetFace else {
+            logDebug("[CubeCam] ⏭️ No capture: Waiting for \(targetFace), currently seeing \(face)")
+            return false
+        }
         
         // Don't capture if already captured this face
         guard !capturedFaces.keys.contains(face) else {
             logDebug("[CubeCam] ⏭️ No capture: Face \(face) already captured")
+            return false
+        }
+
+        guard !autoCaptureSuspendedFaces.contains(face) else {
+            logDebug("[CubeCam] ⏭️ No capture: Auto-capture paused for \(face) after repeated failures")
+            return false
+        }
+
+        guard timestamp >= autoCaptureBackoffUntil else {
+            let remaining = autoCaptureBackoffUntil - timestamp
+            logDebug("[CubeCam] ⏭️ No capture: Retry backoff active (\(remaining)s remaining)")
             return false
         }
         
@@ -589,7 +679,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
         if let lightingError = await errorDetector.validateLighting(brightness: brightness) {
             logWarning("[CubeCam] Lighting validation failed: \(lightingError)")
             currentError = lightingError
-            resetAfterFailedCapture()
+            resetAfterFailedCapture(face: face, timestamp: timestamp)
             return
         }
         
@@ -605,7 +695,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
         if let colorError = await errorDetector.validateColors(colors) {
             logWarning("[CubeCam] Color validation failed: \(colorError)")
             currentError = colorError
-            resetAfterFailedCapture()
+            resetAfterFailedCapture(face: face, timestamp: timestamp)
             return
         }
         
@@ -613,7 +703,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
         if let layoutError = await errorDetector.validateFaceLayout(colors) {
             logWarning("[CubeCam] Face layout validation failed: \(layoutError)")
             currentError = layoutError
-            resetAfterFailedCapture()
+            resetAfterFailedCapture(face: face, timestamp: timestamp)
             return
         }
         
@@ -622,7 +712,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
             logWarning("[CubeCam] Duplicate pattern detected - matches face: \(duplicateFace)")
             // This pattern was already scanned for a different face
             // Skip this capture and reset
-            resetAfterFailedCapture()
+            resetAfterFailedCapture(face: face, timestamp: timestamp)
             return
         }
         
@@ -630,6 +720,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
         capturedFaces[face] = colors
         capturedPatterns[face] = colors
         lastCaptureTime = timestamp
+        clearCaptureRetryState(for: face)
         
         logNotice("[CubeCam] Successfully captured face: \(face) (\(capturedFaces.count)/6)")
         
@@ -648,8 +739,9 @@ public final class CubeCamCapturePipeline: ObservableObject {
     }
     
     /// Reset state after a failed capture attempt
-    private func resetAfterFailedCapture() {
+    private func resetAfterFailedCapture(face: Face, timestamp: TimeInterval) {
         logWarning("[CubeCam] Resetting after failed capture")
+        recordCaptureFailure(for: face, timestamp: timestamp)
         hasCapturedThisCycle = false
         consecutiveStableFrames = 0
         stability = 0
@@ -693,6 +785,70 @@ public final class CubeCamCapturePipeline: ObservableObject {
         }
         
         return nil
+    }
+
+    private static func normalizedCaptureOrder(from order: [Face]) -> [Face] {
+        var seen: Set<Face> = []
+        var normalized: [Face] = []
+
+        for face in order where !seen.contains(face) {
+            seen.insert(face)
+            normalized.append(face)
+        }
+
+        for face in defaultCaptureOrder where !seen.contains(face) {
+            seen.insert(face)
+            normalized.append(face)
+        }
+
+        return normalized
+    }
+
+    private func updateSmoothedFaceConfidence(face: Face, detectionConfidence: Float) {
+        let clamped = min(max(detectionConfidence, 0), 1)
+
+        if lastEstimatedFace == face {
+            consistentFaceEstimateCount += 1
+        } else {
+            lastEstimatedFace = face
+            consistentFaceEstimateCount = 1
+            smoothedFaceEstimateConfidence = clamped
+        }
+
+        let consistencyWeight = min(
+            1.0,
+            Float(consistentFaceEstimateCount) / Float(max(1, minimumConsistentFaceFrames))
+        )
+        let weightedConfidence = clamped * consistencyWeight
+        let alpha = min(max(faceConfidenceSmoothingAlpha, 0), 1)
+
+        smoothedFaceEstimateConfidence =
+            (alpha * weightedConfidence) + ((1 - alpha) * smoothedFaceEstimateConfidence)
+    }
+
+    private func recordCaptureFailure(for face: Face, timestamp: TimeInterval) {
+        let newCount = retryCountsByFace[face, default: 0] + 1
+        retryCountsByFace[face] = newCount
+
+        let exponent = max(0, newCount - 1)
+        let rawBackoff = retryBackoffBaseDelay * pow(2.0, Double(exponent))
+        let cappedBackoff = min(maxRetryBackoffDelay, rawBackoff)
+        autoCaptureBackoffUntil = max(autoCaptureBackoffUntil, timestamp + cappedBackoff)
+
+        if newCount >= maxAutoCaptureRetriesPerFace {
+            autoCaptureSuspendedFaces.insert(face)
+            logWarning("[CubeCam] Auto-capture paused for \(face) after \(newCount) failed attempts")
+        } else {
+            logWarning("[CubeCam] Auto-capture retry \(newCount)/\(maxAutoCaptureRetriesPerFace) for \(face)")
+        }
+    }
+
+    private func clearCaptureRetryState(for face: Face) {
+        retryCountsByFace[face] = nil
+        autoCaptureSuspendedFaces.remove(face)
+        if retryCountsByFace.isEmpty {
+            autoCaptureBackoffUntil = 0
+        }
     }
 
     private func logDebug(_ message: String) {

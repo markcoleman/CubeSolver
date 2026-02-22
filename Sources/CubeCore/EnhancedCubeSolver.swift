@@ -2,234 +2,127 @@
 //  EnhancedCubeSolver.swift
 //  CubeSolver
 //
-//  Primary cube solving algorithm with Two-Phase approach.
-//
-//  This solver validates cube states before solving and provides both
-//  synchronous and asynchronous solving methods. It replaces the legacy
-//  `CubeSolver` class with improved validation and algorithm structure.
-//
-//  ## Usage
-//  ```swift
-//  let state = CubeState(from: cube)
-//  let moves = try EnhancedCubeSolver.solveCube(from: state)
-//  for move in moves {
-//      print(move.notation)  // "R", "U'", "F2", etc.
-//  }
-//  ```
+//  Search-based cube solver used by app flows and playback.
 //
 
 import Foundation
 
-/// Enhanced Rubik's Cube solver with validation and improved algorithm.
+/// Errors that can occur while solving a cube.
+public enum CubeSolverError: Error, LocalizedError, Equatable {
+    case noSolutionFound(maxDepth: Int)
+    case searchLimitReached(maxVisitedStates: Int)
+    case internalConsistencyFailure
+    
+    public var errorDescription: String? {
+        switch self {
+        case .noSolutionFound(let maxDepth):
+            return "No solution found within search depth \(maxDepth)."
+        case .searchLimitReached(let maxVisitedStates):
+            return "Search stopped after visiting \(maxVisitedStates) states."
+        case .internalConsistencyFailure:
+            return "Solver produced an inconsistent solution. Please try again."
+        }
+    }
+}
+
+/// Validation mode used before solving.
+public enum CubeValidationMode: Sendable {
+    case basic
+    case strict
+}
+
+/// Enhanced Rubik's Cube solver with validation and search-based solving.
 ///
-/// This is the primary solver for CubeSolver. It validates cube states before
-/// attempting to solve and provides both sync and async solving methods.
-///
-/// ## Features
-/// - Validates cube state for physical legality (parity, orientation)
-/// - Two-phase solving approach
-/// - Scramble generation with no consecutive repeats
-/// - Swift 6 concurrency support (async/await)
+/// The solver now performs an actual graph search from the current state to
+/// a solved target state based on the current face centers.
 public final class EnhancedCubeSolver {
     
+    private static let defaultSearchConfiguration = CubeSearchConfiguration(
+        maxDepthPerSide: 7,
+        maxVisitedStates: 300_000
+    )
+    
     /// Solve a cube state and return the solution as a sequence of moves.
-    /// - Parameter state: The cube state to solve
+    /// - Parameters:
+    ///   - state: The cube state to solve
+    ///   - validationMode: Basic or strict validation
     /// - Returns: Array of moves that solve the cube
-    /// - Throws: `CubeValidationError` if the cube state is invalid
-    public static func solveCube(from state: CubeState) throws -> [Move] {
-        // First validate the cube state
-        try CubeValidator.validate(state)
+    /// - Throws: `CubeValidationError` or `CubeSolverError`
+    public static func solveCube(
+        from state: CubeState,
+        validationMode: CubeValidationMode = .basic
+    ) throws -> [Move] {
+        switch validationMode {
+        case .basic:
+            try CubeValidator.validateBasic(state)
+        case .strict:
+            try CubeValidator.validate(state)
+        }
         
-        // Convert to internal representation and solve
-        return try solveCubeInternal(state)
+        return try solveCubeInternal(state, searchConfiguration: defaultSearchConfiguration)
     }
     
     /// Asynchronously solve a cube state and return the solution.
-    ///
-    /// This method runs the solving algorithm on a background task,
-    /// keeping the main thread responsive for UI updates.
-    ///
-    /// - Parameter state: The cube state to solve
+    /// - Parameters:
+    ///   - state: The cube state to solve
+    ///   - validationMode: Basic or strict validation
     /// - Returns: Array of moves that solve the cube
-    /// - Throws: `CubeValidationError` if the cube state is invalid
-    public static func solveCubeAsync(from state: CubeState) async throws -> [Move] {
+    /// - Throws: `CubeValidationError` or `CubeSolverError`
+    public static func solveCubeAsync(
+        from state: CubeState,
+        validationMode: CubeValidationMode = .basic
+    ) async throws -> [Move] {
         return try await Task.detached(priority: .userInitiated) {
-            return try solveCube(from: state)
+            try solveCube(from: state, validationMode: validationMode)
         }.value
     }
     
     // MARK: - Internal Solving Logic
     
-    /// Internal solving implementation
-    private static func solveCubeInternal(_ state: CubeState) throws -> [Move] {
-        var moves: [Move] = []
-        var currentState = state
-        
-        // Check if already solved
-        if isSolved(currentState) {
-            return moves
+    private static func solveCubeInternal(
+        _ state: CubeState,
+        searchConfiguration: CubeSearchConfiguration
+    ) throws -> [Move] {
+        if isSolved(state) {
+            return []
         }
         
-        // Phase 1: Reduce to subgroup
-        // In this phase, we orient all edges and corners, and position some pieces
-        let phase1Moves = solvePhase1(&currentState)
-        moves.append(contentsOf: phase1Moves)
+        let goal = solvedStateUsingCurrentCenters(from: state)
+        let solution = try CubeSearchSolver.solve(
+            from: state,
+            to: goal,
+            configuration: searchConfiguration
+        )
         
-        // Phase 2: Complete the solve from subgroup
-        // In this phase, we solve the remaining pieces
-        let phase2Moves = solvePhase2(&currentState)
-        moves.append(contentsOf: phase2Moves)
-        
-        return moves
-    }
-    
-    // MARK: - Phase 1: Reduce to Subgroup
-    
-    /// Phase 1: Orient edges and corners, position some pieces
-    private static func solvePhase1(_ state: inout CubeState) -> [Move] {
-        var moves: [Move] = []
-        
-        // Solve white cross on top (U face)
-        let crossMoves = solveWhiteCross(&state)
-        moves.append(contentsOf: crossMoves)
-        
-        // Solve white corners
-        let cornerMoves = solveWhiteCorners(&state)
-        moves.append(contentsOf: cornerMoves)
-        
-        return moves
-    }
-    
-    /// Solve white cross on top face
-    private static func solveWhiteCross(_ state: inout CubeState) -> [Move] {
-        var moves: [Move] = []
-        
-        // Simplified white cross - in a real implementation,
-        // this would analyze edge positions and orientations
-        if !isSolved(state) {
-            let move = Move(turn: .F, amount: .clockwise)
-            applyMove(&state, move)
-            moves.append(move)
+        // Defensive verification to ensure the returned solution actually solves
+        // under the app's public move application semantics.
+        var verificationState = state
+        applyMoves(to: &verificationState, moves: solution)
+        guard isSolved(verificationState) else {
+            throw CubeSolverError.internalConsistencyFailure
         }
         
-        return moves
+        return solution
     }
     
-    /// Solve white corners on top face
-    private static func solveWhiteCorners(_ state: inout CubeState) -> [Move] {
-        var moves: [Move] = []
+    private static func solvedStateUsingCurrentCenters(from state: CubeState) -> CubeState {
+        var solved = state
         
-        // Simplified corner solving
-        if !isSolved(state) {
-            let move1 = Move(turn: .R, amount: .clockwise)
-            applyMove(&state, move1)
-            moves.append(move1)
-            
-            let move2 = Move(turn: .U, amount: .clockwise)
-            applyMove(&state, move2)
-            moves.append(move2)
+        for face in Face.allCases {
+            guard let centerColor = state.centerColor(of: face) else {
+                continue
+            }
+            solved.faces[face] = Array(repeating: centerColor, count: 9)
         }
         
-        return moves
-    }
-    
-    // MARK: - Phase 2: Complete Solve
-    
-    /// Phase 2: Solve remaining pieces from subgroup state
-    private static func solvePhase2(_ state: inout CubeState) -> [Move] {
-        var moves: [Move] = []
-        
-        // Solve middle layer
-        let middleMoves = solveMiddleLayer(&state)
-        moves.append(contentsOf: middleMoves)
-        
-        // Solve yellow cross (bottom face)
-        let yellowCrossMoves = solveYellowCross(&state)
-        moves.append(contentsOf: yellowCrossMoves)
-        
-        // Position yellow corners
-        let positionMoves = positionYellowCorners(&state)
-        moves.append(contentsOf: positionMoves)
-        
-        // Orient yellow corners
-        let orientMoves = orientYellowCorners(&state)
-        moves.append(contentsOf: orientMoves)
-        
-        return moves
-    }
-    
-    /// Solve middle layer edges
-    private static func solveMiddleLayer(_ state: inout CubeState) -> [Move] {
-        var moves: [Move] = []
-        
-        if !isSolved(state) {
-            let move1 = Move(turn: .L, amount: .clockwise)
-            applyMove(&state, move1)
-            moves.append(move1)
-            
-            let move2 = Move(turn: .D, amount: .clockwise)
-            applyMove(&state, move2)
-            moves.append(move2)
-        }
-        
-        return moves
-    }
-    
-    /// Solve yellow cross on bottom face
-    private static func solveYellowCross(_ state: inout CubeState) -> [Move] {
-        var moves: [Move] = []
-        
-        if !isSolved(state) {
-            let move = Move(turn: .B, amount: .clockwise)
-            applyMove(&state, move)
-            moves.append(move)
-        }
-        
-        return moves
-    }
-    
-    /// Position yellow corners
-    private static func positionYellowCorners(_ state: inout CubeState) -> [Move] {
-        var moves: [Move] = []
-        
-        if !isSolved(state) {
-            let move1 = Move(turn: .U, amount: .clockwise)
-            applyMove(&state, move1)
-            moves.append(move1)
-            
-            let move2 = Move(turn: .R, amount: .clockwise)
-            applyMove(&state, move2)
-            moves.append(move2)
-        }
-        
-        return moves
-    }
-    
-    /// Orient yellow corners
-    private static func orientYellowCorners(_ state: inout CubeState) -> [Move] {
-        var moves: [Move] = []
-        
-        if !isSolved(state) {
-            let move1 = Move(turn: .F, amount: .clockwise)
-            applyMove(&state, move1)
-            moves.append(move1)
-            
-            let move2 = Move(turn: .L, amount: .clockwise)
-            applyMove(&state, move2)
-            moves.append(move2)
-        }
-        
-        return moves
+        return solved
     }
     
     // MARK: - Move Application
     
-    /// Apply a move to a cube state
     private static func applyMove(_ state: inout CubeState, _ move: Move) {
-        // Convert to RubiksCube, apply move, convert back
         var cube = state.toRubiksCube()
         
-        // Apply the move the appropriate number of times
         for _ in 0..<move.amount.quarters {
             switch move.turn {
             case .F: cube.rotateFront()
@@ -246,17 +139,14 @@ public final class EnhancedCubeSolver {
     
     // MARK: - State Checking
     
-    /// Check if a cube state is solved
     private static func isSolved(_ state: CubeState) -> Bool {
-        // Check each face has uniform color
         for face in Face.allCases {
-            guard let stickers = state.faces[face] else { return false }
-            let firstColor = stickers[0]
+            guard let stickers = state.faces[face], let firstColor = stickers.first else {
+                return false
+            }
             
-            for color in stickers {
-                if color != firstColor {
-                    return false
-                }
+            if stickers.contains(where: { $0 != firstColor }) {
+                return false
             }
         }
         
@@ -265,7 +155,7 @@ public final class EnhancedCubeSolver {
     
     // MARK: - Scramble Generation
     
-    /// Generate a random scramble sequence
+    /// Generate a random scramble sequence.
     /// - Parameter moveCount: Number of moves in the scramble (default 20)
     /// - Returns: Array of random moves
     public static func generateScramble(moveCount: Int = 20) -> [Move] {
@@ -275,7 +165,6 @@ public final class EnhancedCubeSolver {
         for _ in 0..<moveCount {
             var turn: Turn
             
-            // Avoid repeating the same turn twice in a row
             repeat {
                 turn = Turn.allCases.randomElement()!
             } while turn == lastTurn
@@ -288,7 +177,7 @@ public final class EnhancedCubeSolver {
         return moves
     }
     
-    /// Apply a sequence of moves to a cube state
+    /// Apply a sequence of moves to a cube state.
     /// - Parameters:
     ///   - state: The cube state to modify
     ///   - moves: The sequence of moves to apply
@@ -296,5 +185,219 @@ public final class EnhancedCubeSolver {
         for move in moves {
             applyMove(&state, move)
         }
+    }
+}
+
+// MARK: - Search Engine
+
+private struct CubeSearchConfiguration {
+    let maxDepthPerSide: Int
+    let maxVisitedStates: Int
+}
+
+private struct FrontierRecord {
+    let state: CubeState
+    let parentKey: String?
+    let moveFromParent: Move?
+    let depth: Int
+    let lastTurn: Turn?
+}
+
+private enum CubeSearchSolver {
+    private static let allMoves: [Move] = Turn.allCases.flatMap { turn in
+        [
+            Move(turn: turn, amount: .clockwise),
+            Move(turn: turn, amount: .counter),
+            Move(turn: turn, amount: .double)
+        ]
+    }
+    
+    static func solve(
+        from start: CubeState,
+        to goal: CubeState,
+        configuration: CubeSearchConfiguration
+    ) throws -> [Move] {
+        let startKey = stateKey(start)
+        let goalKey = stateKey(goal)
+        
+        if startKey == goalKey {
+            return []
+        }
+        
+        var startRecords: [String: FrontierRecord] = [
+            startKey: FrontierRecord(
+                state: start,
+                parentKey: nil,
+                moveFromParent: nil,
+                depth: 0,
+                lastTurn: nil
+            )
+        ]
+        var goalRecords: [String: FrontierRecord] = [
+            goalKey: FrontierRecord(
+                state: goal,
+                parentKey: nil,
+                moveFromParent: nil,
+                depth: 0,
+                lastTurn: nil
+            )
+        ]
+        
+        var startFrontier: Set<String> = [startKey]
+        var goalFrontier: Set<String> = [goalKey]
+        var visitedStates = 2
+        
+        while !startFrontier.isEmpty && !goalFrontier.isEmpty {
+            if startFrontier.count <= goalFrontier.count {
+                var nextFrontier: Set<String> = []
+                
+                for key in startFrontier {
+                    guard let record = startRecords[key] else { continue }
+                    guard record.depth < configuration.maxDepthPerSide else { continue }
+                    
+                    for move in allMoves where move.turn != record.lastTurn {
+                        let nextState = CubeState.apply(move: move, to: record.state)
+                        let nextKey = stateKey(nextState)
+                        
+                        if startRecords[nextKey] != nil {
+                            continue
+                        }
+                        
+                        startRecords[nextKey] = FrontierRecord(
+                            state: nextState,
+                            parentKey: key,
+                            moveFromParent: move,
+                            depth: record.depth + 1,
+                            lastTurn: move.turn
+                        )
+                        nextFrontier.insert(nextKey)
+                        visitedStates += 1
+                        
+                        if visitedStates > configuration.maxVisitedStates {
+                            throw CubeSolverError.searchLimitReached(
+                                maxVisitedStates: configuration.maxVisitedStates
+                            )
+                        }
+                        
+                        if goalRecords[nextKey] != nil {
+                            return reconstructPath(
+                                meetingKey: nextKey,
+                                startRecords: startRecords,
+                                goalRecords: goalRecords
+                            )
+                        }
+                    }
+                }
+                
+                startFrontier = nextFrontier
+            } else {
+                var nextFrontier: Set<String> = []
+                
+                for key in goalFrontier {
+                    guard let record = goalRecords[key] else { continue }
+                    guard record.depth < configuration.maxDepthPerSide else { continue }
+                    
+                    for move in allMoves where move.turn != record.lastTurn {
+                        let nextState = CubeState.apply(move: move, to: record.state)
+                        let nextKey = stateKey(nextState)
+                        
+                        if goalRecords[nextKey] != nil {
+                            continue
+                        }
+                        
+                        goalRecords[nextKey] = FrontierRecord(
+                            state: nextState,
+                            parentKey: key,
+                            moveFromParent: move,
+                            depth: record.depth + 1,
+                            lastTurn: move.turn
+                        )
+                        nextFrontier.insert(nextKey)
+                        visitedStates += 1
+                        
+                        if visitedStates > configuration.maxVisitedStates {
+                            throw CubeSolverError.searchLimitReached(
+                                maxVisitedStates: configuration.maxVisitedStates
+                            )
+                        }
+                        
+                        if startRecords[nextKey] != nil {
+                            return reconstructPath(
+                                meetingKey: nextKey,
+                                startRecords: startRecords,
+                                goalRecords: goalRecords
+                            )
+                        }
+                    }
+                }
+                
+                goalFrontier = nextFrontier
+            }
+        }
+        
+        throw CubeSolverError.noSolutionFound(maxDepth: configuration.maxDepthPerSide * 2)
+    }
+    
+    private static func reconstructPath(
+        meetingKey: String,
+        startRecords: [String: FrontierRecord],
+        goalRecords: [String: FrontierRecord]
+    ) -> [Move] {
+        var prefix: [Move] = []
+        var cursor: String? = meetingKey
+        
+        while let key = cursor,
+              let record = startRecords[key],
+              let parentKey = record.parentKey,
+              let move = record.moveFromParent {
+            prefix.append(move)
+            cursor = parentKey
+        }
+        prefix.reverse()
+        
+        var suffix: [Move] = []
+        cursor = meetingKey
+        
+        while let key = cursor,
+              let record = goalRecords[key],
+              let parentKey = record.parentKey,
+              let move = record.moveFromParent {
+            suffix.append(move.inverse)
+            cursor = parentKey
+        }
+        
+        return prefix + suffix
+    }
+    
+    private static func stateKey(_ state: CubeState) -> String {
+        var key = ""
+        key.reserveCapacity(54)
+        
+        for face in [Face.up, .down, .left, .right, .front, .back] {
+            guard let stickers = state.faces[face], stickers.count == 9 else {
+                key.append(String(repeating: "?", count: 9))
+                continue
+            }
+            for color in stickers {
+                key.append(color.rawValue)
+            }
+        }
+        
+        return key
+    }
+}
+
+private extension Move {
+    var inverse: Move {
+        let inverseAmount: Amount
+        switch amount {
+        case .clockwise:
+            inverseAmount = .counter
+        case .counter:
+            inverseAmount = .clockwise
+        case .double:
+            inverseAmount = .double
+        }
+        return Move(turn: turn, amount: inverseAmount)
     }
 }

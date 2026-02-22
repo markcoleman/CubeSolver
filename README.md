@@ -65,10 +65,10 @@ A next-generation, modular iOS/iPadOS/macOS/watchOS application for solving Rubi
 
 ### Requirements
 
-- **Xcode**: 16.1 or later (matches CI environment)
-- **iOS/iPadOS**: 17.0 or later
-- **macOS**: 14.0 or later (Sonoma)
-- **Swift**: 5.9 or later
+- **Xcode**: 26.0 or later (matches CI environment)
+- **iOS/iPadOS**: 26.0 or later
+- **macOS**: 26.0 or later
+- **Swift**: 6.2 or later
 - **SwiftLint**: For code quality checks (install via `brew install swiftlint`)
 
 ### Quick Setup
@@ -245,7 +245,7 @@ CubeSolver/
 
 ## 🔧 Technologies
 
-- **Language**: Swift 5.9+
+- **Language**: Swift 6.2+
 - **Framework**: SwiftUI
 - **Package Manager**: Swift Package Manager
 - **Testing**: XCTest

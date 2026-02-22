@@ -19,6 +19,7 @@ jobs:
   validate:
     name: Validate Release
     runs-on: macos-26
+    timeout-minutes: 40
     
     steps:
     - name: Checkout code
@@ -40,12 +41,9 @@ jobs:
         swift test --configuration release
         
     - name: Run SwiftLint
-      run: |
-        if command -v swiftlint &> /dev/null; then
-          swiftlint --strict
-        else
-          echo "SwiftLint not installed, skipping..."
-        fi
+      uses: norio-nomura/action-swiftlint@3.2.1
+      with:
+        args: --strict
 
   create-release:
     name: Create GitHub Release

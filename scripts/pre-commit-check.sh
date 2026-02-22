@@ -34,12 +34,13 @@ print_status() {
 
 # 1. Check Xcode version
 echo "📱 Checking Xcode version..."
+REQUIRED_XCODE_VERSION=$(cat .xcode-version 2>/dev/null || echo "unknown")
 if command -v xcodebuild >/dev/null 2>&1; then
     XCODE_VERSION=$(xcodebuild -version 2>/dev/null | head -n 1 | awk '{print $2}' || echo "unknown")
-    if [[ "$XCODE_VERSION" == "16.1" ]]; then
+    if [[ "$XCODE_VERSION" == "$REQUIRED_XCODE_VERSION" ]]; then
         print_status 0 "Xcode version $XCODE_VERSION matches CI"
     else
-        echo -e "${YELLOW}⚠️  Xcode version $XCODE_VERSION differs from CI (16.1)${NC}"
+        echo -e "${YELLOW}⚠️  Xcode version $XCODE_VERSION differs from CI ($REQUIRED_XCODE_VERSION)${NC}"
     fi
 else
     echo -e "${YELLOW}⚠️  xcodebuild not found - unable to verify Xcode version${NC}"
@@ -48,12 +49,15 @@ echo ""
 
 # 2. Check Swift version
 echo "🔨 Checking Swift version..."
+REQUIRED_SWIFT_TOOLS=$(sed -n '1s|// swift-tools-version: ||p' Package.swift | tr -d '[:space:]')
+REQUIRED_SWIFT_MAJOR=$(echo "$REQUIRED_SWIFT_TOOLS" | cut -d. -f1)
 if command -v swift >/dev/null 2>&1; then
     SWIFT_VERSION=$(swift --version 2>/dev/null | head -n 1 || echo "unknown")
-    if [[ "$SWIFT_VERSION" == *"5.9"* ]] || [[ "$SWIFT_VERSION" == *"5.10"* ]] || [[ "$SWIFT_VERSION" == *"6."* ]]; then
-        print_status 0 "Swift version meets minimum requirement (5.9+)"
+    INSTALLED_SWIFT_MAJOR=$(echo "$SWIFT_VERSION" | sed -E 's/.*Swift version ([0-9]+)\..*/\1/' || echo "0")
+    if [[ "$INSTALLED_SWIFT_MAJOR" =~ ^[0-9]+$ ]] && [ "$INSTALLED_SWIFT_MAJOR" -ge "$REQUIRED_SWIFT_MAJOR" ]; then
+        print_status 0 "Swift version matches required major version ($REQUIRED_SWIFT_TOOLS)"
     else
-        print_status 1 "Swift version incompatible - requires 5.9+"
+        print_status 1 "Swift version incompatible - requires Swift $REQUIRED_SWIFT_TOOLS+"
         echo "Current: $SWIFT_VERSION"
     fi
 else

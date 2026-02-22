@@ -21,7 +21,7 @@
 CubeSolver is a next-generation, universal iOS/iPadOS/macOS/watchOS application built with SwiftUI that provides Rubik's Cube solving capabilities with a modern glassmorphic UI design.
 
 ### Key Technologies
-- **Language**: Swift 5.9+ (Swift 6 ready)
+- **Language**: Swift 6.2+ (Swift 6 ready)
 - **UI Framework**: SwiftUI with declarative syntax
 - **Architecture**: MVVM (Model-View-ViewModel)
 - **Package Manager**: Swift Package Manager (SPM)
@@ -92,7 +92,7 @@ CubeSolver/
 ## Code Style and Conventions
 
 ### Swift Style
-- Use Swift 5.9+ features
+- Use Swift 6.2+ features
 - Follow Apple's Swift API Design Guidelines
 - Prefer value types (struct) over reference types (class) unless reference semantics are required
 - Use meaningful, descriptive variable and function names
@@ -220,8 +220,8 @@ func testSolveWithScrambledCubeReturnsValidSolution() {
 - Lazy load resources when possible
 
 ## Platform Support
-- Support iOS 17.0+
-- Support macOS 14.0+
+- Support iOS 26.0+
+- Support macOS 26.0+
 - Test on both iPhone and iPad layouts
 - Ensure proper scaling for different screen sizes
 - Use platform-specific modifiers when needed (#if os(macOS))

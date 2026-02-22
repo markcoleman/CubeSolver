@@ -13,6 +13,7 @@ import Combine
 import CubeCore
 import UIKit
 import AVFoundation
+import CoreVideo
 
 /// View model for Cube Cam auto-scanning experience
 @MainActor
@@ -67,6 +68,9 @@ public class CubeCamViewModel: ObservableObject {
     
     /// Frame metadata for debugging
     @Published public var frameMetadata: FrameMetadata?
+
+    /// Current video frame size used for camera overlay coordinate mapping.
+    @Published public var videoFrameSize: CGSize = .zero
     
     // MARK: - Private Properties
     
@@ -223,6 +227,9 @@ public class CubeCamViewModel: ObservableObject {
         
         capturePipeline.$lastDetection
             .assign(to: &$detectionResult)
+
+        capturePipeline.$duplicateFaceWarning
+            .assign(to: &$duplicateFaceWarning)
     }
     
     private func startFrameProcessing() {
@@ -239,6 +246,11 @@ public class CubeCamViewModel: ObservableObject {
                     continue
                 }
                 
+                self.videoFrameSize = CGSize(
+                    width: CVPixelBufferGetWidth(videoFrame),
+                    height: CVPixelBufferGetHeight(videoFrame)
+                )
+
                 let depthFrame = await self.cameraSession.lastDepthFrame
                 let timestamp = Date().timeIntervalSince1970
                 
@@ -274,17 +286,18 @@ public class CubeCamViewModel: ObservableObject {
     private func updateProgressText() {
         // PROMPT 5: Enhanced step-by-step guidance
         if capturedFaceCount == 0 {
-            captureProgressText = "Step 1: Position cube so a face fills the frame"
+            captureProgressText = "Step 1: Center any face in the guide and hold steady"
         } else if capturedFaceCount < 6 {
             if let nextFace = capturePipeline.getNextFaceToCapture() {
                 let nextFaceDisplayName = faceDisplayName(nextFace)
-                captureProgressText = "Step \(capturedFaceCount + 1): Scan the \(nextFaceDisplayName) face"
+                captureProgressText =
+                    "Step \(capturedFaceCount + 1): Scan any new face (suggested: \(nextFaceDisplayName))"
                 
                 // PROMPT 3: Add wrong face warning if detected
                 if let detectedFace = currentFace,
-                   detectedFace != nextFace,
                    capturedFaces.contains(detectedFace) {
-                    wrongFaceWarning = "This is the \(faceDisplayName(detectedFace)) face (already scanned). Please scan the \(nextFaceDisplayName) face next."
+                    wrongFaceWarning =
+                        "The \(faceDisplayName(detectedFace)) face is already scanned. Rotate to any unscanned side."
                 } else {
                     wrongFaceWarning = nil
                 }

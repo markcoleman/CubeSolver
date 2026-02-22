@@ -103,7 +103,7 @@ public struct HomeView: View {
         VStack(spacing: 16) {
             // Cube Cam - Auto-scan with video
             #if canImport(AVFoundation) && os(iOS)
-            NavigationLink(destination: CubeCamView { cubeState in
+            NavigationLink(destination: EnhancedCubeCamView { cubeState in
                 // Handle completed cube state
                 sessionViewModel.setCubeStateFromScan(cubeState)
                 cubeViewModel.cube = cubeState.toRubiksCube()

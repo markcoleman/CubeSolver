@@ -13,6 +13,7 @@ import Combine
 import CubeCore
 import UIKit
 import AVFoundation
+import CoreVideo
 
 /// Enhanced view model for CubeCam with improved UX and step-by-step guidance
 @MainActor
@@ -49,6 +50,12 @@ public final class EnhancedCubeCamViewModel: ObservableObject {
     
     /// Frame metadata
     @Published public var frameMetadata: FrameMetadata?
+
+    /// Current video frame size used for camera overlay coordinate mapping.
+    @Published public var videoFrameSize: CGSize = .zero
+
+    /// Warning when the detected face likely duplicates one already captured.
+    @Published public var duplicateFaceWarning: String?
     
     // MARK: - Private Properties
     
@@ -108,6 +115,7 @@ public final class EnhancedCubeCamViewModel: ObservableObject {
         isComplete = false
         lastScanResult = nil
         currentError = nil
+        duplicateFaceWarning = nil
         updateGuidance()
     }
     
@@ -227,6 +235,9 @@ public final class EnhancedCubeCamViewModel: ObservableObject {
         // Monitor detection results
         capturePipeline.$lastDetection
             .assign(to: &$detectionResult)
+
+        capturePipeline.$duplicateFaceWarning
+            .assign(to: &$duplicateFaceWarning)
         
         // Monitor errors
         capturePipeline.$currentError
@@ -280,6 +291,11 @@ public final class EnhancedCubeCamViewModel: ObservableObject {
                     continue
                 }
                 
+                self.videoFrameSize = CGSize(
+                    width: CVPixelBufferGetWidth(videoFrame),
+                    height: CVPixelBufferGetHeight(videoFrame)
+                )
+
                 let depthFrame = await self.cameraSession.lastDepthFrame
                 let timestamp = Date().timeIntervalSince1970
                 

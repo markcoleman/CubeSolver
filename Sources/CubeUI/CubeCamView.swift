@@ -33,15 +33,14 @@ public struct CubeCamView: View {
             CubeCamCameraPreviewView(viewModel: viewModel)
                 .ignoresSafeArea()
             
-            // PROMPT 9: Alignment guide (shown in manual mode)
-            if !viewModel.capturePipeline.autoCaptureEnabled {
-                AlignmentGuide(isAligned: viewModel.stability > 0.7)
-                    .allowsHitTesting(false)
-            }
-            
             // Detection overlay
             if let detection = viewModel.detectionResult {
-                DetectionOverlay(detection: detection, stability: viewModel.stability)
+                DetectionOverlay(
+                    detection: detection,
+                    stability: viewModel.stability,
+                    sourceImageSize: viewModel.videoFrameSize,
+                    showsPreciseBounds: viewModel.debugModeEnabled
+                )
             }
             
             // Face capture flash animation

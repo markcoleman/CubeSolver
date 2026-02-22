@@ -83,23 +83,12 @@ public actor CubeScanErrorDetector {
     
     /// Validate that colors are readable
     public func validateColors(_ colors: [CubeColor]) -> ScanError? {
-        // Check if all colors are the same (likely misread)
-        let uniqueColors = Set(colors)
-        if uniqueColors.count == 1 {
-            return .unreadableColors
+        // A face can legitimately be monochrome or color-dominant (for example near-solved cubes),
+        // so we only reject obviously invalid payloads here.
+        guard colors.count == 9 else {
+            return .invalidFaceLayout
         }
-        
-        // Check if we have too many of the same color
-        let colorCounts = colors.reduce(into: [:]) { counts, color in
-            counts[color, default: 0] += 1
-        }
-        
-        // In a valid face, no color should appear more than 9 times
-        // and the center color should appear at least once
-        if let maxCount = colorCounts.values.max(), maxCount > 5 {
-            return .unreadableColors
-        }
-        
+
         return nil
     }
     

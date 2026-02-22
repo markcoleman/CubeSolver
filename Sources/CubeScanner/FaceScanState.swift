@@ -97,16 +97,16 @@ public struct ScanStepGuidance: Equatable {
         
         switch stepNumber {
         case 1:
-            instruction = "Position cube so the \(faceName) face fills the frame"
+            instruction = "Position any face in the frame (suggested: \(faceName))"
             hint = "Hold steady when the outline turns green"
             iconName = "1.circle.fill"
         case 2...5:
-            instruction = "Rotate cube to show the \(faceName) face"
-            hint = "Previous: \(capturedFacesList(upTo: stepNumber - 1))"
+            instruction = "Show any unscanned face (suggested: \(faceName))"
+            hint = "Captured: \(capturedFacesList(upTo: stepNumber - 1))"
             iconName = "\(stepNumber).circle.fill"
         case 6:
-            instruction = "Final face! Scan the \(faceName) face"
-            hint = "Almost done!"
+            instruction = "Final face! Scan the last unscanned side"
+            hint = "Suggested final side: \(faceName)"
             iconName = "6.circle.fill"
         default:
             instruction = "Scan the \(faceName) face"

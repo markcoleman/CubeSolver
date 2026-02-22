@@ -39,7 +39,13 @@ public protocol CubeStateValidating: Sendable {
 }
 
 public struct CubeStateValidator: CubeStateValidating {
-    public init() {}
+    /// Enables orientation/parity checks that may reject states when face orientation metadata is ambiguous.
+    /// Keep this off for user-entered or scanned states to avoid false negatives.
+    public let strictPhysicalChecks: Bool
+
+    public init(strictPhysicalChecks: Bool = false) {
+        self.strictPhysicalChecks = strictPhysicalChecks
+    }
 
     public func validate(state: CubeState) -> Result<Void, ValidationError> {
         if let failure = validateFaceConfiguration(state) {
@@ -167,30 +173,32 @@ public struct CubeStateValidator: CubeStateValidating {
             return error
         }
 
-        guard edgeValidation.orientationSum % 2 == 0 else {
-            return ValidationError(
-                type: .invalidEdgeOrientation,
-                message: "Edge orientation is impossible for a physical 3x3 cube.",
-                suggestedFix: "A flipped edge is likely mis-scanned. Re-scan front/back adjacent edges."
-            )
-        }
+        if strictPhysicalChecks {
+            guard edgeValidation.orientationSum % 2 == 0 else {
+                return ValidationError(
+                    type: .invalidEdgeOrientation,
+                    message: "Edge orientation is impossible for a physical 3x3 cube.",
+                    suggestedFix: "A flipped edge is likely mis-scanned. Re-scan front/back adjacent edges."
+                )
+            }
 
-        guard cornerValidation.orientationSum % 3 == 0 else {
-            return ValidationError(
-                type: .invalidCornerOrientation,
-                message: "Corner orientation is impossible for a physical 3x3 cube.",
-                suggestedFix: "A twisted corner is likely mis-scanned. Re-scan top-layer corners or edit manually."
-            )
-        }
+            guard cornerValidation.orientationSum % 3 == 0 else {
+                return ValidationError(
+                    type: .invalidCornerOrientation,
+                    message: "Corner orientation is impossible for a physical 3x3 cube.",
+                    suggestedFix: "A twisted corner is likely mis-scanned. Re-scan top-layer corners or edit manually."
+                )
+            }
 
-        let edgeParity = parity(of: edgeValidation.permutation)
-        let cornerParity = parity(of: cornerValidation.permutation)
-        guard edgeParity == cornerParity else {
-            return ValidationError(
-                type: .impossibleParity,
-                message: "Piece permutation parity is impossible on a real cube.",
-                suggestedFix: "At least one piece is incorrect. Re-scan the most uncertain face and validate again."
-            )
+            let edgeParity = parity(of: edgeValidation.permutation)
+            let cornerParity = parity(of: cornerValidation.permutation)
+            guard edgeParity == cornerParity else {
+                return ValidationError(
+                    type: .impossibleParity,
+                    message: "Piece permutation parity is impossible on a real cube.",
+                    suggestedFix: "At least one piece is incorrect. Re-scan the most uncertain face and validate again."
+                )
+            }
         }
 
         return nil

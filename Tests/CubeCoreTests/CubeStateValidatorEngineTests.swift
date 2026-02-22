@@ -3,6 +3,7 @@ import XCTest
 
 final class CubeStateValidatorEngineTests: XCTestCase {
     private let validator = CubeStateValidator()
+    private let strictValidator = CubeStateValidator(strictPhysicalChecks: true)
 
     func testSolvedCubePassesValidation() {
         let result = validator.validate(state: CubeState())
@@ -35,7 +36,7 @@ final class CubeStateValidatorEngineTests: XCTestCase {
         // Swap two corners to force odd corner parity while keeping color counts valid.
         swapCorner(&state, (.up, 8), (.right, 0), (.front, 2), with: (.up, 6), (.front, 0), (.left, 2))
 
-        let result = validator.validate(state: state)
+        let result = strictValidator.validate(state: state)
 
         guard case let .failure(error) = result else {
             return XCTFail("Expected validation failure")
@@ -50,13 +51,65 @@ final class CubeStateValidatorEngineTests: XCTestCase {
         // Swap UR and UF edge pieces as whole pieces.
         swapEdge(&state, first: (.up, 5), (.right, 1), second: (.up, 7), (.front, 1))
 
-        let result = validator.validate(state: state)
+        let result = strictValidator.validate(state: state)
 
         guard case let .failure(error) = result else {
             return XCTFail("Expected validation failure")
         }
 
         XCTAssertEqual(error.type, .impossibleParity)
+    }
+
+    func testRandomReachableStatesPassValidation() {
+        let allMoves = Turn.allCases.flatMap { turn in
+            [
+                Move(turn: turn, amount: .clockwise),
+                Move(turn: turn, amount: .counter),
+                Move(turn: turn, amount: .double)
+            ]
+        }
+
+        var generator = LCG(seed: 0xC0FFEE)
+
+        for scrambleIndex in 0..<200 {
+            var state = CubeState()
+            let moveCount = 15 + Int(generator.next() % 30)
+            var lastTurn: Turn?
+            var moves: [Move] = []
+
+            for _ in 0..<moveCount {
+                var move = allMoves[Int(generator.next() % UInt64(allMoves.count))]
+                while move.turn == lastTurn {
+                    move = allMoves[Int(generator.next() % UInt64(allMoves.count))]
+                }
+                state = CubeState.apply(move: move, to: state)
+                moves.append(move)
+                lastTurn = move.turn
+            }
+
+            let result = validator.validate(state: state)
+            if case .failure(let error) = result {
+                let moveString = moves.map(\.notation).joined(separator: " ")
+                XCTFail(
+                    "Reachable scramble #\(scrambleIndex) failed validation with \(error.type): \(error.message). " +
+                    "Moves: \(moveString)"
+                )
+                return
+            }
+        }
+    }
+
+    private struct LCG {
+        private var state: UInt64
+
+        init(seed: UInt64) {
+            self.state = seed
+        }
+
+        mutating func next() -> UInt64 {
+            state = 6364136223846793005 &* state &+ 1442695040888963407
+            return state
+        }
     }
 
     private func swapEdge(

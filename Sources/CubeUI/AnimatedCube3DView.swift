@@ -256,6 +256,7 @@ private func createAnimatedCubie(size: CGFloat) -> SCNNode {
 
 // MARK: - Update and Animation
 
+@MainActor
 private func updateCubeState(in sceneView: SCNView, cube: RubiksCube, currentMove: inout Move?, isAnimating: inout Bool, coordinator: AnimationCoordinator) {
     guard let scene = sceneView.scene else { return }
     
@@ -524,5 +525,4 @@ struct AnimatedCube3DView_Previews: PreviewProvider {
 
 #endif // canImport(SceneKit)
 #endif // canImport(SwiftUI)
-
 

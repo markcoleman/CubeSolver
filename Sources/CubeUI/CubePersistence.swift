@@ -9,6 +9,9 @@
 import Foundation
 import SwiftUI
 import CubeCore
+#if canImport(OSLog)
+import OSLog
+#endif
 
 /// Represents a saved solve session
 struct SavedSolve: Identifiable, Sendable {
@@ -19,7 +22,7 @@ struct SavedSolve: Identifiable, Sendable {
     let moveCount: Int
     let timeToSolve: TimeInterval?
     
-    // Codable surrogate used for persistence so we don't require Move to conform to Codable
+    // Codable surrogate that stores moves as notation strings for stable persistence.
     struct Persisted: Codable {
         let id: UUID
         let date: Date
@@ -73,20 +76,73 @@ struct SavedSolve: Identifiable, Sendable {
 
     // MARK: - Move <-> String helpers
     static func string(from move: Move) -> String {
-        // Prefer rawValue if available via CustomStringConvertible or a known property; fallback to `"\(move)"`.
-        return String(describing: move)
+        move.notation
     }
 
     static func move(from string: String) -> Move? {
-        // If CubeCore exposes an initializer from string, use it here.
-        // TODO: Implement actual parsing from string to Move according to CubeCore API.
-        return nil as Move?
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        if let move = Move(notation: trimmed) {
+            return move
+        }
+
+        if let move = Move(notation: trimmed.uppercased()) {
+            return move
+        }
+
+        // Backward compatibility for older persisted values that used `String(describing:)`.
+        return parseLegacyMoveDescription(trimmed)
+    }
+
+    private static func parseLegacyMoveDescription(_ string: String) -> Move? {
+        let normalized = string.replacingOccurrences(of: " ", with: "").lowercased()
+        guard normalized.contains("move(") else { return nil }
+
+        let turn = Turn.allCases.first { turn in
+            let value = turn.rawValue.lowercased()
+            return normalized.contains("turn:\(value)") ||
+                normalized.contains("turn:turn.\(value)") ||
+                normalized.contains("turn:cubecore.turn.\(value)") ||
+                normalized.contains("turn=\(value)") ||
+                normalized.contains("turn=turn.\(value)") ||
+                normalized.contains("turn=cubecore.turn.\(value)")
+        }
+        guard let turn else { return nil }
+
+        let amount: Amount
+        if normalized.contains("amount:clockwise") ||
+            normalized.contains("amount:amount.clockwise") ||
+            normalized.contains("amount:cubecore.amount.clockwise") ||
+            normalized.contains("amount=clockwise") ||
+            normalized.contains("amount=amount.clockwise") ||
+            normalized.contains("amount=cubecore.amount.clockwise") {
+            amount = .clockwise
+        } else if normalized.contains("amount:counter") ||
+                    normalized.contains("amount:amount.counter") ||
+                    normalized.contains("amount:cubecore.amount.counter") ||
+                    normalized.contains("amount=counter") ||
+                    normalized.contains("amount=amount.counter") ||
+                    normalized.contains("amount=cubecore.amount.counter") {
+            amount = .counter
+        } else if normalized.contains("amount:double") ||
+                    normalized.contains("amount:amount.double") ||
+                    normalized.contains("amount:cubecore.amount.double") ||
+                    normalized.contains("amount=double") ||
+                    normalized.contains("amount=amount.double") ||
+                    normalized.contains("amount=cubecore.amount.double") {
+            amount = .double
+        } else {
+            return nil
+        }
+
+        return Move(turn: turn, amount: amount)
     }
 }
 
 /// Manager for persisting and retrieving solve history
 @MainActor
-class SolveHistoryManager: ObservableObject {
+final class SolveHistoryManager: ObservableObject {
     
     // MARK: - Published Properties
     
@@ -97,6 +153,9 @@ class SolveHistoryManager: ObservableObject {
     
     private let userDefaultsKey = "com.cubesolver.savedSolves"
     private let maxSavedSolves = 100
+    #if canImport(OSLog)
+    private let logger = Logger(subsystem: "com.cubesolver.ui", category: "SolveHistory")
+    #endif
     
     // MARK: - Initialization
     
@@ -159,10 +218,20 @@ class SolveHistoryManager: ObservableObject {
         do {
             // Decode as an array of Persisted
             let persistedArray = try JSONDecoder().decode([SavedSolve.Persisted].self, from: data)
+            var droppedMoveCount = 0
+
             self.savedSolves = persistedArray.map { (persisted: SavedSolve.Persisted) in
-                let solutionMoves: [Move] = persisted.solutionStrings.compactMap { (s: String) -> Move? in
-                    SavedSolve.move(from: s)
+                var solutionMoves: [Move] = []
+                solutionMoves.reserveCapacity(persisted.solutionStrings.count)
+
+                for serializedMove in persisted.solutionStrings {
+                    if let move = SavedSolve.move(from: serializedMove) {
+                        solutionMoves.append(move)
+                    } else {
+                        droppedMoveCount += 1
+                    }
                 }
+
                 return SavedSolve(
                     id: persisted.id,
                     date: persisted.date,
@@ -172,8 +241,12 @@ class SolveHistoryManager: ObservableObject {
                     timeToSolve: persisted.timeToSolve
                 )
             }
+
+            if droppedMoveCount > 0 {
+                logWarning("Dropped \(droppedMoveCount) invalid persisted moves during decode")
+            }
         } catch {
-            print("Failed to decode saved solves: \(error)")
+            logError("Failed to decode saved solves: \(error.localizedDescription)")
             savedSolves = []
         }
     }
@@ -191,11 +264,26 @@ class SolveHistoryManager: ObservableObject {
             )
         }
         guard let encoded = try? JSONEncoder().encode(persistedArray) else {
-            print("Failed to encode saved solves")
+            logError("Failed to encode saved solves")
             return
         }
         UserDefaults.standard.set(encoded, forKey: userDefaultsKey)
     }
+
+    private func logWarning(_ message: String) {
+        #if canImport(OSLog)
+        logger.warning("\(message, privacy: .public)")
+        #else
+        print("WARNING: \(message)")
+        #endif
+    }
+
+    private func logError(_ message: String) {
+        #if canImport(OSLog)
+        logger.error("\(message, privacy: .public)")
+        #else
+        print("ERROR: \(message)")
+        #endif
+    }
 }
 #endif
-

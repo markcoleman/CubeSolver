@@ -8,10 +8,13 @@
 
 import Foundation
 import SwiftUI
+#if canImport(OSLog)
+import OSLog
+#endif
 
 /// Privacy and analytics settings manager
 @MainActor
-public class PrivacySettings: ObservableObject {
+public final class PrivacySettings: ObservableObject {
     
     // MARK: - Published Properties
     
@@ -67,9 +70,12 @@ public class PrivacySettings: ObservableObject {
 
 /// Anonymous analytics event tracker (opt-in only)
 @MainActor
-public class AnalyticsTracker: ObservableObject {
+public final class AnalyticsTracker: ObservableObject {
     
     private let privacySettings: PrivacySettings
+    #if canImport(OSLog)
+    private let logger = Logger(subsystem: "com.cubesolver.ui", category: "Analytics")
+    #endif
     
     // MARK: - Initialization
     
@@ -86,8 +92,7 @@ public class AnalyticsTracker: ObservableObject {
     public func trackSolve(moveCount: Int, solveTime: TimeInterval) {
         guard privacySettings.analyticsEnabled else { return }
         
-        // In a real app, this would send anonymous data to analytics service
-        print("Analytics: Solve tracked - \(moveCount) moves in \(solveTime)s")
+        log("Solve tracked - \(moveCount) moves in \(solveTime)s")
     }
     
     /// Track a scan event
@@ -97,7 +102,7 @@ public class AnalyticsTracker: ObservableObject {
     public func trackScan(success: Bool, scanTime: TimeInterval) {
         guard privacySettings.analyticsEnabled else { return }
         
-        print("Analytics: Scan tracked - success: \(success), time: \(scanTime)s")
+        log("Scan tracked - success: \(success), time: \(scanTime)s")
     }
     
     /// Track AR mode usage
@@ -105,14 +110,22 @@ public class AnalyticsTracker: ObservableObject {
     public func trackARUsage(duration: TimeInterval) {
         guard privacySettings.analyticsEnabled else { return }
         
-        print("Analytics: AR usage tracked - \(duration)s")
+        log("AR usage tracked - \(duration)s")
     }
     
     /// Track app launch
     public func trackAppLaunch() {
         guard privacySettings.analyticsEnabled else { return }
         
-        print("Analytics: App launch tracked")
+        log("App launch tracked")
+    }
+
+    private func log(_ message: String) {
+        #if canImport(OSLog)
+        logger.info("\(message, privacy: .public)")
+        #else
+        print("Analytics: \(message)")
+        #endif
     }
 }
 #endif

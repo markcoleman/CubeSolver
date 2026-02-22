@@ -8,9 +8,16 @@
 
 import SwiftUI
 import CubeCore
+#if canImport(OSLog)
+import OSLog
+#endif
 
 /// View for displaying and playing back cube solution steps with 3D animations
 public struct SolutionPlaybackView: View {
+    #if canImport(OSLog)
+    private static let logger = Logger(subsystem: "com.cubesolver.ui", category: "SolutionPlayback")
+    #endif
+
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     
@@ -31,7 +38,7 @@ public struct SolutionPlaybackView: View {
         } catch {
             // If solving fails, create empty solution
             // Note: This handles invalid cube states gracefully
-            print("Warning: Failed to solve cube - \(error.localizedDescription)")
+            Self.logWarning("Failed to solve cube: \(error.localizedDescription)")
             solution = CubeSolution(initialState: initialState, moves: [])
         }
         
@@ -201,6 +208,14 @@ public struct SolutionPlaybackView: View {
     
     private func handleAnimationComplete() {
         currentAnimatingMove = nil
+    }
+
+    private static func logWarning(_ message: String) {
+        #if canImport(OSLog)
+        logger.warning("\(message, privacy: .public)")
+        #else
+        print("WARNING: \(message)")
+        #endif
     }
 }
 
@@ -376,4 +391,3 @@ public struct PlaybackButton: View {
     )
 }
 #endif
-

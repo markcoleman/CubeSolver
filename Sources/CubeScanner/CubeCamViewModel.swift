@@ -116,6 +116,7 @@ public class CubeCamViewModel: ObservableObject {
     
     public init() {
         setupBindings()
+        currentFace = capturePipeline.getNextFaceToCapture()
     }
     
     // MARK: - Public Methods
@@ -124,6 +125,7 @@ public class CubeCamViewModel: ObservableObject {
     public func start() async {
         detectionStatus = .preparing
         captureProgressText = "Requesting camera permission..."
+        currentFace = capturePipeline.getNextFaceToCapture()
         
         // Request camera permission
         let authorized = await cameraSession.requestPermission()
@@ -165,6 +167,7 @@ public class CubeCamViewModel: ObservableObject {
         capturedFaceCount = 0
         detectionStatus = .detecting
         captureProgressText = "Position your cube in the frame"
+        currentFace = capturePipeline.getNextFaceToCapture()
         lastErrorMessage = nil
         duplicateFaceWarning = nil
         wrongFaceWarning = nil
@@ -219,8 +222,20 @@ public class CubeCamViewModel: ObservableObject {
             }
             .store(in: &cancellables)
         
+        capturePipeline.$visibleFaceEstimate
+            .sink { [weak self] visibleFace in
+                guard let self else { return }
+                self.currentFace = visibleFace ?? self.capturePipeline.pendingFace ?? self.capturePipeline.getNextFaceToCapture()
+            }
+            .store(in: &cancellables)
+
         capturePipeline.$pendingFace
-            .assign(to: &$currentFace)
+            .sink { [weak self] pendingFace in
+                guard let self else { return }
+                guard self.capturePipeline.visibleFaceEstimate == nil else { return }
+                self.currentFace = pendingFace ?? self.capturePipeline.getNextFaceToCapture()
+            }
+            .store(in: &cancellables)
         
         capturePipeline.$stability
             .assign(to: &$stability)

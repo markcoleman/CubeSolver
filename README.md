@@ -159,6 +159,76 @@ ARKit and RealityKit integration (iOS only)
 - **Modular Design**: Clean dependencies
 - **Protocol-Oriented**: Flexible abstractions
 
+## 🔄 Scan -> Solve Flow (New)
+
+This repository now includes an additive scan pipeline and guided solve flow with DI-friendly boundaries.
+
+### Main Types
+
+- `CubeCore`:
+  - `FaceId`, `CubeFaceGrid`, `CubeStateAssembler`
+  - `KociembaCodec`, `MoveNotationCodec`
+  - `CubeStateValidator` with structured `ValidationError`
+  - `CubeSolving` protocol + `KociembaCompatibleCubeSolver`
+- `CubeScanner`:
+  - `CameraFrameSource`, `FaceQuadDetecting`, `StickerColorClassifying`
+  - `DefaultFaceScanner`, `FaceWarpSampler`, `HSVStickerClassifier`
+  - `VisionFaceQuadDetector` and `CameraSessionFrameSource` adapters
+  - `SimulatedFaceScanner` for tests and demos
+- `CubeUI`:
+  - `CubeScanSolveFlowViewModel`
+  - `ScanWizardView`, `FaceConfirmView`, `CubeManualEditView`, `SolveStepsView`
+
+### Running The Flow
+
+Use dependency injection to choose live camera or simulated inputs.
+
+```swift
+import CubeCore
+import CubeScanner
+import CubeUI
+
+let scanner = SimulatedFaceScanner(scriptedFaces: [
+    .up: ScannedFaceData(id: .up, grid: CubeFaceGrid(repeating: .white), confidence: 1),
+    .right: ScannedFaceData(id: .right, grid: CubeFaceGrid(repeating: .blue), confidence: 1),
+    .front: ScannedFaceData(id: .front, grid: CubeFaceGrid(repeating: .red), confidence: 1),
+    .down: ScannedFaceData(id: .down, grid: CubeFaceGrid(repeating: .yellow), confidence: 1),
+    .left: ScannedFaceData(id: .left, grid: CubeFaceGrid(repeating: .green), confidence: 1),
+    .back: ScannedFaceData(id: .back, grid: CubeFaceGrid(repeating: .orange), confidence: 1)
+])
+
+let vm = CubeScanSolveFlowViewModel(scanner: scanner)
+let view = ScanWizardView(viewModel: vm)
+```
+
+### Testing The Flow
+
+Run all tests:
+
+```bash
+swift test --parallel
+```
+
+Run scanner-flow focused tests:
+
+```bash
+swift test --filter ScanSolvePipelineTests
+swift test --filter ScanSolveFlowIntegrationTests
+```
+
+### Known Limitations
+
+- `KociembaCompatibleCubeSolver` currently delegates to the built-in search solver (clean swap point for a true two-phase backend).
+- `DefaultFaceScanner` depends on provided frame source quality; production camera UX tuning is still needed for low light and motion blur.
+- Perspective handling uses bilinear face interpolation; a full homography/OpenCV warp can further improve edge cases.
+
+### Next Improvements
+
+- Add adaptive per-device color calibration from center stickers over multiple frames.
+- Replace bilinear warping with true homography and temporal smoothing.
+- Plug in a dedicated Kociemba/two-phase backend behind `CubeSolving`.
+- Add UI test automation for scan wizard and manual edit conflict flows.
+
 ## 🎨 Glassmorphism Design
 
 The app features a modern glassmorphic design inspired by macOS Big Sur and later:

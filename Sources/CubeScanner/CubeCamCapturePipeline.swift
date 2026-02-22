@@ -63,6 +63,9 @@ public final class CubeCamCapturePipeline: ObservableObject {
     
     /// Current face being tracked/captured
     @Published public var pendingFace: Face?
+
+    /// Face currently estimated as visible in the camera feed.
+    @Published public private(set) var visibleFaceEstimate: Face?
     
     /// Stability indicator (0-1, 1 = fully stable)
     @Published public var stability: Float = 0
@@ -292,6 +295,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
             lastEstimatedFace = nil
             consistentFaceEstimateCount = 0
             smoothedFaceEstimateConfidence = 0
+            visibleFaceEstimate = nil
             pendingFace = getNextFaceToCapture()
             
             // Reset to idle or detecting
@@ -328,6 +332,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
         capturedFaces = [:]
         capturedPatterns = [:]
         pendingFace = nil
+        visibleFaceEstimate = nil
         stability = 0
         lastDetection = nil
         currentError = nil
@@ -539,6 +544,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
         
         // Map center color to expected face (Rubik's cube centers are fixed)
         let expectedFace = faceFromCenterColor(centerColor)
+        visibleFaceEstimate = expectedFace
         updateSmoothedFaceConfidence(face: expectedFace, detectionConfidence: detection.confidence)
 
         let targetFace = getNextFaceToCapture()
@@ -767,6 +773,7 @@ public final class CubeCamCapturePipeline: ObservableObject {
     private func resetForNextFace() {
         logDebug("[CubeCam] 🔄 Resetting for next face")
         currentFaceEstimate = nil
+        visibleFaceEstimate = nil
         pendingFace = getNextFaceToCapture()
         detectionHistory = []
         consecutiveStableFrames = 0

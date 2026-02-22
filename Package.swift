@@ -81,7 +81,7 @@ let package = Package(
         ),
         .testTarget(
             name: "CubeUITests",
-            dependencies: ["CubeUI", "CubeCore"],
+            dependencies: ["CubeUI", "CubeCore", "CubeScanner"],
             path: "Tests/CubeUITests"
         ),
     ]

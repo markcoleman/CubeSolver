@@ -116,6 +116,17 @@ public struct HomeView: View {
                 )
             }
             #endif
+
+            #if canImport(AVFoundation) && os(iOS)
+            NavigationLink(destination: LiveScanWizardContainerView()) {
+                ActionCard(
+                    icon: "square.grid.3x3.fill",
+                    title: "Scan Wizard",
+                    subtitle: "Scan -> validate -> edit -> solve",
+                    color: .indigo
+                )
+            }
+            #endif
             
             // Photo Capture - Manual single-shot mode with debug
             #if os(iOS)

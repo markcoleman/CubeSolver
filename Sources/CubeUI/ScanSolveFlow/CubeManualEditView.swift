@@ -6,27 +6,25 @@ import CubeCore
 public struct CubeManualEditView: View {
     @ObservedObject private var viewModel: CubeScanSolveFlowViewModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
 
-    @State private var selectedFace: FaceId = .up
+    @State private var selectedFace: FaceId
     @State private var selectedColor: CubeColor = .white
 
-    public init(viewModel: CubeScanSolveFlowViewModel) {
+    public init(viewModel: CubeScanSolveFlowViewModel, initialFace: FaceId? = nil) {
         self.viewModel = viewModel
+        _selectedFace = State(initialValue: initialFace ?? viewModel.scanOrder.first ?? .up)
     }
 
     public var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Picker("Face", selection: $selectedFace) {
-                        ForEach(viewModel.scanOrder, id: \.self) { face in
-                            Text(face.displayName).tag(face)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                    facePicker
 
                     if let scanned = viewModel.scannedFaces[selectedFace] {
-                        Text("Tap a sticker to set \(selectedColor.rawValue)")
+                        Text("Selected color: \(selectedColor.rawValue). Tap any sticker to apply.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
@@ -36,6 +34,7 @@ public struct CubeManualEditView: View {
                         ) { index in
                             viewModel.updateSticker(face: selectedFace, index: index, color: selectedColor)
                         }
+                        .accessibilityIdentifier("editableFaceView")
 
                         if let error = viewModel.validationError {
                             VStack(alignment: .leading, spacing: 6) {
@@ -49,7 +48,7 @@ public struct CubeManualEditView: View {
                             .background(Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
                         }
                     } else {
-                        Text("Face not scanned yet.")
+                        Text("Face not scanned yet. Capture it first, or switch to a captured face.")
                             .foregroundStyle(.secondary)
                     }
 
@@ -60,12 +59,16 @@ public struct CubeManualEditView: View {
                             viewModel.resetFace(selectedFace)
                         }
                         .buttonStyle(.bordered)
+                        .accessibilityHint("Resets this face to its default center color.")
+                        .accessibilityIdentifier("resetFaceButton")
 
                         Button("Re-scan Face", systemImage: "camera.rotate") {
                             viewModel.markFaceForRescan(selectedFace)
                             dismiss()
                         }
                         .buttonStyle(.bordered)
+                        .accessibilityHint("Returns to scanning for this face.")
+                        .accessibilityIdentifier("rescanFaceButton")
                     }
                 }
                 .padding()
@@ -77,26 +80,84 @@ public struct CubeManualEditView: View {
                         viewModel.resumeWizard()
                         dismiss()
                     }
+                    .accessibilityIdentifier("doneButton")
                 }
             }
         }
     }
 
     private var colorPalette: some View {
-        HStack(spacing: 10) {
-            ForEach(CubeColor.allCases, id: \.self) { color in
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Input Color")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 46), spacing: 12)], alignment: .leading, spacing: 12) {
+                ForEach(CubeColor.allCases, id: \.self) { color in
+                    colorButton(for: color)
+                }
+            }
+        }
+        .accessibilityIdentifier("colorSelector")
+    }
+
+    private var facePicker: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                Picker("Face", selection: $selectedFace) {
+                    ForEach(viewModel.scanOrder, id: \.self) { face in
+                        Text(face.displayName).tag(face)
+                    }
+                }
+                .pickerStyle(.menu)
+            } else {
+                Picker("Face", selection: $selectedFace) {
+                    ForEach(viewModel.scanOrder, id: \.self) { face in
+                        Text(face.displayName).tag(face)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+        }
+        .accessibilityIdentifier("faceSelector")
+    }
+
+    private func colorButton(for color: CubeColor) -> some View {
+        let isSelected = selectedColor == color
+
+        return Button {
+            selectedColor = color
+        } label: {
+            ZStack {
                 Circle()
                     .fill(swiftUIColor(for: color))
-                    .frame(width: 34, height: 34)
-                    .overlay(
-                        Circle()
-                            .stroke(selectedColor == color ? Color.primary : Color.clear, lineWidth: 3)
-                    )
-                    .onTapGesture {
-                        selectedColor = color
-                    }
-                    .accessibilityLabel("Set color \(color.rawValue)")
+
+                Circle()
+                    .stroke(isSelected ? Color.primary : Color.black.opacity(0.2), lineWidth: isSelected ? 3 : 1)
+
+                if isSelected || differentiateWithoutColor {
+                    Image(systemName: isSelected ? "checkmark" : "circle")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(selectionIconColor(for: color))
+                        .opacity(isSelected ? 1 : 0.4)
+                }
             }
+            .frame(width: 46, height: 46)
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(color.rawValue) color")
+        .accessibilityValue(isSelected ? "Selected" : "Not selected")
+        .accessibilityHint("Sets the input color for the next sticker.")
+        .accessibilityIdentifier("\(color.rawValue)ColorButton")
+    }
+
+    private func selectionIconColor(for color: CubeColor) -> Color {
+        switch color {
+        case .white, .yellow, .orange:
+            return .black
+        case .red, .blue, .green:
+            return .white
         }
     }
 

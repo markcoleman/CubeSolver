@@ -54,6 +54,7 @@ struct ScanFaceGuidanceView: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Scan guidance")
         .accessibilityValue("Target \(targetFace.displayName) face, center color \(targetFace.expectedCenterColorName).")
+        .accessibilityIdentifier("scanFaceGuidanceCard")
     }
 
     private var previousCompletedFace: FaceId? {

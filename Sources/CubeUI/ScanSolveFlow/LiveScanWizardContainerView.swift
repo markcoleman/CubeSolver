@@ -7,6 +7,7 @@ import CubeScanner
 
 /// Composition root for the live scan wizard using CameraSession + Vision detector.
 public struct LiveScanWizardContainerView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var cameraSession: CameraSession
     @StateObject private var flowViewModel: CubeScanSolveFlowViewModel
     @State private var cameraError: String?
@@ -73,14 +74,28 @@ public struct LiveScanWizardContainerView: View {
                 cameraSession.stop()
             }
             .onAppear {
-                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
-                    isStatusPulseOn = true
-                }
+                updatePulseAnimation()
             }
+            .onChange(of: reduceMotion) { _, _ in
+                updatePulseAnimation()
+            }
+    }
+
+    private func updatePulseAnimation() {
+        guard !reduceMotion else {
+            isStatusPulseOn = false
+            return
+        }
+
+        isStatusPulseOn = false
+        withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+            isStatusPulseOn = true
+        }
     }
 }
 
 private struct LiveCameraPreviewCard: View {
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     let cameraSession: CameraSession
     let isRunning: Bool
     let isBusy: Bool
@@ -90,7 +105,7 @@ private struct LiveCameraPreviewCard: View {
     var body: some View {
         ZStack {
             LiveCameraPreviewView(cameraSession: cameraSession)
-                .overlay(Color.black.opacity(isRunning ? 0.14 : 0.28))
+                .overlay(Color.black.opacity(cameraOverlayOpacity))
             FaceTargetGridOverlay()
                 .padding(20)
 
@@ -107,13 +122,13 @@ private struct LiveCameraPreviewCard: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(Color.black.opacity(0.5), in: Capsule())
+                    .background(Color.black.opacity(capsuleOverlayOpacity), in: Capsule())
                 Text("Center color: \(currentFace.expectedCenterColorName)")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.white.opacity(0.92))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(Color.black.opacity(0.42), in: Capsule())
+                    .background(Color.black.opacity(capsuleOverlayOpacity - 0.08), in: Capsule())
             }
             .padding(10)
         }
@@ -127,6 +142,18 @@ private struct LiveCameraPreviewCard: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Live camera preview")
         .accessibilityHint("Align the target face inside the guide before scanning.")
+        .accessibilityIdentifier("liveCameraPreview")
+    }
+
+    private var cameraOverlayOpacity: Double {
+        if colorSchemeContrast == .increased {
+            return isRunning ? 0.34 : 0.46
+        }
+        return isRunning ? 0.2 : 0.32
+    }
+
+    private var capsuleOverlayOpacity: Double {
+        colorSchemeContrast == .increased ? 0.72 : 0.56
     }
 }
 
@@ -147,6 +174,7 @@ private struct LiveCameraPreviewView: UIViewRepresentable {
 }
 
 private struct LiveCameraStatusBanner: View {
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     let isRunning: Bool
     let isBusy: Bool
     let currentFace: FaceId
@@ -162,20 +190,27 @@ private struct LiveCameraStatusBanner: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(primaryText)
                     .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
                 Text("Target face: \(currentFace.displayName) (\(currentFace.rawValue)) - \(currentFace.expectedCenterColorName)")
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(colorSchemeContrast == .increased ? 1 : 0.9))
             }
 
             Spacer()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .background(
+            Color.black.opacity(colorSchemeContrast == .increased ? 0.72 : 0.55),
+            in: RoundedRectangle(cornerRadius: 12)
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.white.opacity(0.25), lineWidth: 1)
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(primaryText)
+        .accessibilityValue("Target \(currentFace.displayName) face, center color \(currentFace.expectedCenterColorName)")
     }
 
     private var primaryText: String {

@@ -4,6 +4,7 @@ import SwiftUI
 import CubeCore
 
 struct RotatingScanCubeView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let targetFace: FaceId
     let scannedFaces: [FaceId: ScannedFaceData]
     let isScanning: Bool
@@ -20,7 +21,10 @@ struct RotatingScanCubeView: View {
         let livePitch = clampedPitch(basePitch - (Double(dragInteraction.translation.height) * 0.010))
 
         return TimelineView(
-            .animation(minimumInterval: 1.0 / 24.0, paused: !autoRotate || dragInteraction.isActive)
+            .animation(
+                minimumInterval: 1.0 / 24.0,
+                paused: !autoRotate || reduceMotion || dragInteraction.isActive
+            )
         ) { timeline in
             Canvas { context, size in
                 drawCube(
@@ -43,7 +47,11 @@ struct RotatingScanCubeView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("3D cube scan preview")
         .accessibilityValue(accessibilityValue)
-        .accessibilityHint("Drag to rotate the cube. Double tap to reset orientation.")
+        .accessibilityHint(
+            reduceMotion
+                ? "Drag to rotate the cube. Motion effects are reduced."
+                : "Drag to rotate the cube. Double tap to reset orientation."
+        )
     }
 
     private func drawCube(
@@ -199,7 +207,8 @@ struct RotatingScanCubeView: View {
     }
 
     private func clampedPitch(_ value: Double) -> Double {
-        min(max(value, -1.05), 0.28)
+        // Allow users to rotate far enough to inspect top/bottom guidance faces.
+        min(max(value, -1.12), 1.12)
     }
 
     private func normalizedAngle(_ value: Double) -> Double {

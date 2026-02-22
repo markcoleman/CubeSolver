@@ -8,6 +8,7 @@ public struct ScanWizardView: View {
     private let cameraPreview: AnyView?
     @State private var showingManualEdit = false
     @State private var showingSteps = false
+    @State private var manualEditInitialFace: FaceId = .up
 
     public init(viewModel: CubeScanSolveFlowViewModel, cameraPreview: AnyView? = nil) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -20,15 +21,20 @@ public struct ScanWizardView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     Text("Scan -> Validate -> Edit -> Solve")
                         .font(.title2.bold())
+                        .accessibilityAddTraits(.isHeader)
+                        .accessibilityIdentifier("scanWizardTitle")
 
                     if let cameraPreview {
                         cameraPreview
+                            .accessibilityIdentifier("scanWizardCameraPreview")
                     }
 
                     ProgressView(value: Double(viewModel.scannedFaces.count), total: Double(viewModel.scanOrder.count)) {
                         Text(viewModel.progressText)
                             .font(.subheadline)
                     }
+                    .accessibilityValue("\(viewModel.progressText) captured")
+                    .accessibilityIdentifier("scanWizardProgress")
 
                     ScanFaceGuidanceView(
                         targetFace: viewModel.currentFaceId,
@@ -37,41 +43,7 @@ public struct ScanWizardView: View {
                         isScanning: viewModel.isBusy
                     )
 
-                    faceStatusRow
-
-                    if let pending = viewModel.pendingFace {
-                        FaceConfirmView(
-                            face: pending,
-                            onConfirm: { viewModel.confirmPendingFace() },
-                            onRescan: { viewModel.rejectPendingFaceAndRescan() }
-                        )
-                    } else {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Next face: \(viewModel.currentFaceId.displayName) (\(viewModel.currentFaceId.rawValue))")
-                                .font(.headline)
-                            Text("Keep the \(viewModel.currentFaceId.displayName.lowercased()) face centered, then tap scan.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
-                            Button {
-                                Task {
-                                    await viewModel.scanCurrentFace()
-                                }
-                            } label: {
-                                Label(
-                                    viewModel.isBusy
-                                        ? "Scanning \(viewModel.currentFaceId.displayName)..."
-                                        : "Scan \(viewModel.currentFaceId.displayName) Face",
-                                    systemImage: viewModel.isBusy ? "camera.aperture" : "camera"
-                                )
-                            }
-                            .disabled(viewModel.isBusy)
-                            .buttonStyle(.borderedProminent)
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                    }
+                    faceStatusSection
 
                     if let validationError = viewModel.validationError {
                         VStack(alignment: .leading, spacing: 6) {
@@ -81,9 +53,10 @@ public struct ScanWizardView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             Button("Open Manual Edit") {
-                                showingManualEdit = true
+                                presentManualEdit(startingAt: viewModel.currentFaceId)
                             }
                             .buttonStyle(.bordered)
+                            .accessibilityIdentifier("openManualEditButton")
                         }
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -101,6 +74,7 @@ public struct ScanWizardView: View {
                         }
                         .disabled(viewModel.isBusy)
                         .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("solveCubeButton")
                     }
 
                     if case .failed(let message) = viewModel.state {
@@ -114,14 +88,20 @@ public struct ScanWizardView: View {
                             showingSteps = true
                         }
                         .buttonStyle(.bordered)
+                        .accessibilityIdentifier("viewStepByStepButton")
                     }
                 }
                 .padding()
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                captureActionPanel
+            }
             .navigationTitle("Cube Scanner")
         }
-        .sheet(isPresented: $showingManualEdit) {
-            CubeManualEditView(viewModel: viewModel)
+        .sheet(isPresented: $showingManualEdit, onDismiss: {
+            viewModel.resumeWizard()
+        }) {
+            CubeManualEditView(viewModel: viewModel, initialFace: manualEditInitialFace)
         }
         .navigationDestination(isPresented: $showingSteps) {
             SolveStepsView(viewModel: viewModel)
@@ -133,22 +113,112 @@ public struct ScanWizardView: View {
         }
     }
 
+    private var faceStatusSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Captured Faces")
+                .font(.headline)
+
+            Text("Tap any captured face to review or edit.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            faceStatusRow
+        }
+    }
+
     private var faceStatusRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(viewModel.scanOrder, id: \.self) { face in
-                    FaceBadgeView(
-                        face: face,
-                        isComplete: viewModel.scannedFaces[face] != nil
-                    )
-                    .onTapGesture {
-                        if viewModel.scannedFaces[face] != nil {
-                            showingManualEdit = true
-                        }
+                    let isComplete = viewModel.scannedFaces[face] != nil
+                    let isCurrent = face == viewModel.currentFaceId
+
+                    Button {
+                        presentManualEdit(startingAt: face)
+                    } label: {
+                        FaceBadgeView(
+                            face: face,
+                            isComplete: isComplete,
+                            isCurrent: isCurrent
+                        )
                     }
+                    .buttonStyle(.plain)
+                    .disabled(!isComplete)
+                    .accessibilityLabel("\(face.displayName) face")
+                    .accessibilityValue(isComplete ? "Captured" : "Not captured")
+                    .accessibilityHint(
+                        isComplete
+                            ? "Opens manual edit for this face."
+                            : "Capture this face to enable editing."
+                    )
+                    .accessibilityIdentifier("scanFaceBadge_\(face.rawValue)")
                 }
             }
         }
+        .accessibilityIdentifier("scanFaceStatusRow")
+    }
+
+    private var captureActionPanel: some View {
+        VStack(spacing: 10) {
+            if let pending = viewModel.pendingFace {
+                FaceConfirmView(
+                    face: pending,
+                    onConfirm: { viewModel.confirmPendingFace() },
+                    onRescan: { viewModel.rejectPendingFaceAndRescan() }
+                )
+            } else if viewModel.scannedFaces.count == viewModel.scanOrder.count {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("All faces captured.")
+                        .font(.headline)
+                    Text("Review captured faces above or continue to solve.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Next face: \(viewModel.currentFaceId.displayName) (\(viewModel.currentFaceId.rawValue))")
+                        .font(.headline)
+                    Text("Keep the \(viewModel.currentFaceId.displayName.lowercased()) face centered, then tap scan.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        Task {
+                            await viewModel.scanCurrentFace()
+                        }
+                    } label: {
+                        Label(
+                            viewModel.isBusy
+                                ? "Scanning \(viewModel.currentFaceId.displayName)..."
+                                : "Scan \(viewModel.currentFaceId.displayName) Face",
+                            systemImage: viewModel.isBusy ? "camera.aperture" : "camera"
+                        )
+                    }
+                    .disabled(viewModel.isBusy)
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("scanCurrentFaceButton")
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .top) {
+            Divider()
+        }
+    }
+
+    private func presentManualEdit(startingAt face: FaceId?) {
+        manualEditInitialFace = face ?? viewModel.currentFaceId
+        viewModel.openManualEdit()
+        showingManualEdit = true
     }
 }
 

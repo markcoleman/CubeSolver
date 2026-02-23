@@ -24,7 +24,7 @@ public final class TimedCubeMoveAnimator: ConfigurableCubeMoveAnimator {
     private let baseDuration: TimeInterval
     private let queue: DispatchQueue
 
-    public init(baseDuration: TimeInterval = 0.55, queue: DispatchQueue = .main) {
+    public init(baseDuration: TimeInterval = 0.5, queue: DispatchQueue = .main) {
         self.baseDuration = max(0.05, baseDuration)
         self.queue = queue
     }

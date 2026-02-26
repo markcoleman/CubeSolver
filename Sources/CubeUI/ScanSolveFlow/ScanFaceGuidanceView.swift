@@ -10,7 +10,7 @@ struct ScanFaceGuidanceView: View {
     let isScanning: Bool
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(alignment: .center, spacing: 12) {
             RotatingScanCubeView(
                 targetFace: targetFace,
                 scannedFaces: scannedFaces,
@@ -18,36 +18,27 @@ struct ScanFaceGuidanceView: View {
                 showsFaceLabels: true,
                 autoRotate: true
             )
-            .frame(width: 132, height: 112)
+            .frame(width: 104, height: 90)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Next: \(targetFace.displayName) (\(targetFace.rawValue))")
+                Text("Next: \(targetFace.displayName) face")
                     .font(.headline)
-
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(swiftUIColor(for: targetFace.expectedCenterColor))
-                        .frame(width: 12, height: 12)
-                        .overlay(Circle().stroke(Color.primary.opacity(0.25), lineWidth: 1))
-                    Text("Center should be \(targetFace.expectedCenterColorName)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
 
                 RotationCoachBadge(cue: rotationCue)
 
-                Text(rotationCue.detail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Text("Drag mini cube to inspect orientation. Double-tap to reset.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary.opacity(0.9))
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(swiftUIColor(for: targetFace.expectedCenterColor))
+                        .frame(width: 10, height: 10)
+                        .overlay(Circle().stroke(Color.primary.opacity(0.25), lineWidth: 1))
+                    Text("Center: \(targetFace.expectedCenterColorName)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
-
-            Spacer(minLength: 0)
         }
-        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
@@ -55,7 +46,7 @@ struct ScanFaceGuidanceView: View {
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Scan guidance")
-        .accessibilityValue("Target \(targetFace.displayName) face, center color \(targetFace.expectedCenterColorName).")
+        .accessibilityValue("Target \(targetFace.displayName) face. \(rotationCue.headline). Center \(targetFace.expectedCenterColorName).")
         .accessibilityIdentifier("scanFaceGuidanceCard")
     }
 

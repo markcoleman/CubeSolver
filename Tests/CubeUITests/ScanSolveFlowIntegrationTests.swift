@@ -21,8 +21,11 @@ final class ScanSolveFlowIntegrationTests: XCTestCase {
             viewModel.confirmPendingFace()
         }
 
-        XCTAssertTrue(viewModel.canStartSolve)
+        XCTAssertTrue(viewModel.needsReview)
+        XCTAssertFalse(viewModel.canStartSolve)
         XCTAssertNil(viewModel.validationError)
+        viewModel.confirmReview()
+        XCTAssertTrue(viewModel.canStartSolve)
 
         await viewModel.solve()
 
@@ -54,7 +57,41 @@ final class ScanSolveFlowIntegrationTests: XCTestCase {
         viewModel.updateSticker(face: .front, index: 0, color: .red)
 
         XCTAssertNil(viewModel.validationError)
+        XCTAssertEqual(viewModel.state, .reviewing)
+        viewModel.confirmReview()
         XCTAssertEqual(viewModel.state, .readyToSolve)
+    }
+
+    func testCenterMismatchBlocksConfirmationUntilRescan() async {
+        var scriptedFaces = solvedScannedFaces()
+        var mismatchedUp = scriptedFaces[.up]!
+        mismatchedUp.grid[4] = .red
+        scriptedFaces[.up] = mismatchedUp
+
+        let scanner = SimulatedFaceScanner(scriptedFaces: scriptedFaces)
+        let viewModel = CubeScanSolveFlowViewModel(
+            scanner: scanner,
+            validator: CubeStateValidator(),
+            solver: KociembaCompatibleCubeSolver()
+        )
+
+        await viewModel.scanCurrentFace()
+        XCTAssertEqual(viewModel.pendingFace?.id, .up)
+        XCTAssertNotNil(viewModel.pendingCenterMismatch)
+
+        viewModel.confirmPendingFace()
+        XCTAssertTrue(viewModel.scannedFaces.isEmpty)
+        XCTAssertEqual(viewModel.state, .awaitingConfirmation(.up))
+
+        let correctedUp = ScannedFaceData(id: .up, grid: CubeFaceGrid(repeating: .white), confidence: 1)
+        await scanner.setFace(correctedUp)
+        viewModel.rejectPendingFaceAndRescan()
+
+        await viewModel.scanCurrentFace()
+        XCTAssertNil(viewModel.pendingCenterMismatch)
+        viewModel.confirmPendingFace()
+
+        XCTAssertNotNil(viewModel.scannedFaces[.up])
     }
 
     private func solvedScannedFaces() -> [FaceId: ScannedFaceData] {

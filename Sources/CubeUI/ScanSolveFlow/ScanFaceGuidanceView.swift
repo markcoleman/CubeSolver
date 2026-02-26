@@ -34,11 +34,13 @@ struct ScanFaceGuidanceView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Text(turnHint)
+                RotationCoachBadge(cue: rotationCue)
+
+                Text(rotationCue.detail)
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Text("Drag cube to rotate. Double-tap to reset.")
+                Text("Drag mini cube to inspect orientation. Double-tap to reset.")
                     .font(.caption2)
                     .foregroundStyle(.secondary.opacity(0.9))
             }
@@ -93,6 +95,81 @@ struct ScanFaceGuidanceView: View {
             return "From Left, rotate another quarter turn to show the Back face."
         default:
             return "Rotate until the \(targetFace.expectedCenterColorName.lowercased()) center sticker is in the guide."
+        }
+    }
+
+    private var rotationCue: RotationCue {
+        guard let previous = previousCompletedFace else {
+            return RotationCue(
+                symbol: "viewfinder.circle.fill",
+                headline: "Show \(targetFace.displayName) Face",
+                detail: "Start by showing the \(targetFace.displayName.lowercased()) center directly to the camera."
+            )
+        }
+
+        switch (previous, targetFace) {
+        case (.up, .right):
+            return RotationCue(
+                symbol: "arrow.uturn.right.circle.fill",
+                headline: "Rotate Right 90°",
+                detail: turnHint
+            )
+        case (.right, .front), (.down, .left), (.left, .back):
+            return RotationCue(
+                symbol: "arrow.uturn.left.circle.fill",
+                headline: "Rotate Left 90°",
+                detail: turnHint
+            )
+        case (.front, .down):
+            return RotationCue(
+                symbol: "arrow.up.circle.fill",
+                headline: "Tilt Up 90°",
+                detail: turnHint
+            )
+        default:
+            return RotationCue(
+                symbol: "arrow.triangle.2.circlepath.circle.fill",
+                headline: "Rotate to Match Center",
+                detail: turnHint
+            )
+        }
+    }
+}
+
+private struct RotationCue: Equatable {
+    let symbol: String
+    let headline: String
+    let detail: String
+}
+
+private struct RotationCoachBadge: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let cue: RotationCue
+    @State private var pulse = false
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: cue.symbol)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.blue)
+                .scaleEffect(reduceMotion ? 1 : (pulse ? 1.09 : 0.96))
+
+            Text(cue.headline)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.primary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color.blue.opacity(0.12), in: Capsule())
+        .overlay(
+            Capsule()
+                .stroke(Color.blue.opacity(0.35), lineWidth: 1)
+        )
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                pulse = true
+            }
         }
     }
 }

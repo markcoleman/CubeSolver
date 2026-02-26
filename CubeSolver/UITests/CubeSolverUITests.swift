@@ -33,7 +33,7 @@ final class CubeSolverUITests: XCTestCase {
         // Verify main title exists
         let mainTitle = app.staticTexts["mainTitle"]
         XCTAssertTrue(mainTitle.exists, "Main title should exist")
-        XCTAssertEqual(mainTitle.label, "Rubik's Cube Solver")
+        XCTAssertEqual(mainTitle.label, "Guided Rubik's Cube Solver")
         
         // Verify cube view exists
         let cubeView = app.otherElements["cubeView"]

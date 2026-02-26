@@ -81,6 +81,10 @@ public final class CameraSession: NSObject, ObservableObject {
         guard authorizationStatus == .authorized else {
             throw CameraSessionError.notAuthorized
         }
+
+        if isRunning {
+            return
+        }
         
         try await setupSession()
         let session = UncheckedCaptureSession(value: captureSession)
@@ -125,6 +129,13 @@ public final class CameraSession: NSObject, ObservableObject {
                 }
                 let session = captureSessionBox.value
 
+                let hasVideoInput = session.inputs.contains(where: { $0 is AVCaptureDeviceInput })
+                let hasVideoOutput = session.outputs.contains(where: { $0 is AVCaptureVideoDataOutput })
+                if hasVideoInput && hasVideoOutput {
+                    continuation.resume()
+                    return
+                }
+
                 do {
                     session.beginConfiguration()
                     
@@ -155,6 +166,10 @@ public final class CameraSession: NSObject, ObservableObject {
     }
     
     private nonisolated func addVideoInput(to session: AVCaptureSession) throws {
+        if session.inputs.contains(where: { $0 is AVCaptureDeviceInput }) {
+            return
+        }
+
         guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
             throw CameraSessionError.noVideoDevice
         }
@@ -194,6 +209,10 @@ public final class CameraSession: NSObject, ObservableObject {
     }
     
     private nonisolated func addVideoOutput(to session: AVCaptureSession) throws {
+        if session.outputs.contains(where: { $0 is AVCaptureVideoDataOutput }) {
+            return
+        }
+
         let output = AVCaptureVideoDataOutput()
         output.alwaysDiscardsLateVideoFrames = true
         output.setSampleBufferDelegate(self, queue: sessionQueue)
@@ -226,6 +245,10 @@ public final class CameraSession: NSObject, ObservableObject {
     
     private nonisolated func tryAddDepthOutput(to session: AVCaptureSession) {
         #if os(iOS)
+        if session.outputs.contains(where: { $0 is AVCaptureDepthDataOutput }) {
+            return
+        }
+
         // Need to get video device info from session inputs
         guard let videoInput = session.inputs.first as? AVCaptureDeviceInput else { return }
         let videoDevice = videoInput.device

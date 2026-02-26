@@ -9,7 +9,7 @@ import SwiftUI
 import CubeUI
 
 @main
-struct CubeSolverApp: App {
+struct CubePilotApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()

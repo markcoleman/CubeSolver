@@ -7,6 +7,7 @@ public struct ScanWizardView: View {
     @StateObject private var viewModel: CubeScanSolveFlowViewModel
     private let cameraPreview: AnyView?
     @State private var showingManualEdit = false
+    @State private var showingReview = false
     @State private var showingSolveMode = false
     @State private var manualEditInitialFace: FaceId = .up
 
@@ -19,10 +20,14 @@ public struct ScanWizardView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    Text("Scan -> Validate -> Edit -> Solve")
+                    Text("Scan Cube")
                         .font(.title2.bold())
                         .accessibilityAddTraits(.isHeader)
                         .accessibilityIdentifier("scanWizardTitle")
+
+                    Text("Capture each face, then review before solving.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
 
                     if let cameraPreview {
                         cameraPreview
@@ -75,6 +80,22 @@ public struct ScanWizardView: View {
                         .disabled(viewModel.isBusy)
                         .buttonStyle(.borderedProminent)
                         .accessibilityIdentifier("solveCubeButton")
+                    } else if viewModel.needsReview {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Review required")
+                                .font(.subheadline.weight(.semibold))
+                            Text("Review all faces before solving.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Button("Review All Faces", systemImage: "square.grid.3x3") {
+                                showingReview = true
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .accessibilityIdentifier("reviewAllFacesButton")
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.blue.opacity(0.11), in: RoundedRectangle(cornerRadius: 14))
                     }
 
                     if case .failed(let message) = viewModel.state {
@@ -84,7 +105,7 @@ public struct ScanWizardView: View {
                     }
 
                     if !viewModel.solvedMoves.isEmpty {
-                        Button("Open Solve Mode", systemImage: "list.number") {
+                        Button("View Solution Steps", systemImage: "list.number") {
                             showingSolveMode = true
                         }
                         .buttonStyle(.bordered)
@@ -96,12 +117,30 @@ public struct ScanWizardView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 captureActionPanel
             }
-            .navigationTitle("Cube Scanner")
+            .navigationTitle("Scan Cube")
         }
         .sheet(isPresented: $showingManualEdit, onDismiss: {
             viewModel.resumeWizard()
         }) {
             CubeManualEditView(viewModel: viewModel, initialFace: manualEditInitialFace)
+        }
+        .sheet(isPresented: $showingReview) {
+            CubeReviewGateView(
+                viewModel: viewModel,
+                onConfirmReview: {
+                    viewModel.confirmReview()
+                    showingReview = false
+                },
+                onEditFace: { face in
+                    showingReview = false
+                    presentManualEdit(startingAt: face)
+                },
+                onRescanFace: { face in
+                    viewModel.markFaceForRescan(face)
+                    showingReview = false
+                }
+            )
+            .interactiveDismissDisabled(viewModel.needsReview)
         }
         .navigationDestination(isPresented: $showingSolveMode) {
             if let solvedInitialState = viewModel.solvedInitialState {
@@ -123,6 +162,11 @@ public struct ScanWizardView: View {
                 showingSolveMode = true
             }
         }
+        .onChange(of: viewModel.needsReview) { _, needsReview in
+            if needsReview && !showingReview {
+                showingReview = true
+            }
+        }
     }
 
     private var faceStatusSection: some View {
@@ -130,7 +174,7 @@ public struct ScanWizardView: View {
             Text("Captured Faces")
                 .font(.headline)
 
-            Text("Tap any captured face to review or edit.")
+            Text("Tap a captured face to edit.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -175,25 +219,36 @@ public struct ScanWizardView: View {
             if let pending = viewModel.pendingFace {
                 FaceConfirmView(
                     face: pending,
+                    centerMismatch: viewModel.pendingCenterMismatch,
                     onConfirm: { viewModel.confirmPendingFace() },
                     onRescan: { viewModel.rejectPendingFaceAndRescan() }
                 )
             } else if viewModel.scannedFaces.count == viewModel.scanOrder.count {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("All faces captured.")
+                    Text("All faces captured")
                         .font(.headline)
-                    Text("Review captured faces above or continue to solve.")
+                    Text(
+                        viewModel.needsReview
+                            ? "Review your cube to continue."
+                            : "Review complete. You can solve now."
+                    )
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    if viewModel.needsReview {
+                        Button("Open Review", systemImage: "square.grid.3x3") {
+                            showingReview = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Next face: \(viewModel.currentFaceId.displayName) (\(viewModel.currentFaceId.rawValue))")
+                    Text("Next: \(viewModel.currentFaceId.displayName) face")
                         .font(.headline)
-                    Text("Keep the \(viewModel.currentFaceId.displayName.lowercased()) face centered, then tap scan.")
+                    Text("Center the \(viewModel.currentFaceId.displayName.lowercased()) face, then scan.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
@@ -204,8 +259,8 @@ public struct ScanWizardView: View {
                     } label: {
                         Label(
                             viewModel.isBusy
-                                ? "Scanning \(viewModel.currentFaceId.displayName)..."
-                                : "Scan \(viewModel.currentFaceId.displayName) Face",
+                                ? "Scanning..."
+                                : "Scan Face",
                             systemImage: viewModel.isBusy ? "camera.aperture" : "camera"
                         )
                     }

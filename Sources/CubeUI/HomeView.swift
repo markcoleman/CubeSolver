@@ -26,7 +26,6 @@ public struct HomeView: View {
     
     @StateObject private var historyManager = SolveHistoryManager()
     @StateObject private var cubeViewModel = CubeViewModel()
-    @StateObject private var sessionViewModel = CubeSessionViewModel()
     
     public init() {}
     
@@ -91,12 +90,12 @@ public struct HomeView: View {
                     .shadow(color: .blue.opacity(0.3), radius: 10, x: 0, y: 5)
             }
             
-            Text("CubeSolver")
+            Text("Cube Pilot")
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .foregroundColor(CubeSolverColors.primaryText(for: colorScheme))
             
-            Text("Next-Gen Rubik's Cube Solver")
+            Text("Guided Rubik's Cube Solver")
                 .font(.subheadline)
                 .foregroundColor(CubeSolverColors.secondaryText(for: colorScheme))
         }
@@ -105,28 +104,12 @@ public struct HomeView: View {
     
     private var mainActionsSection: some View {
         VStack(spacing: 16) {
-            // Cube Cam - Auto-scan with video
-            #if canImport(AVFoundation) && os(iOS)
-            NavigationLink(destination: EnhancedCubeCamView { cubeState in
-                // Handle completed cube state
-                sessionViewModel.setCubeStateFromScan(cubeState)
-                cubeViewModel.cube = cubeState.toRubiksCube()
-            }) {
-                ActionCard(
-                    icon: "video.fill",
-                    title: "Cube Cam",
-                    subtitle: "Auto-scan with guided capture",
-                    color: .cyan
-                )
-            }
-            #endif
-
             #if canImport(AVFoundation) && os(iOS)
             NavigationLink(destination: LiveScanWizardContainerView()) {
                 ActionCard(
-                    icon: "square.grid.3x3.fill",
-                    title: "Scan Wizard",
-                    subtitle: "Scan -> validate -> edit -> solve",
+                    icon: "viewfinder.circle.fill",
+                    title: "Scan Cube",
+                    subtitle: "Capture all six faces with guidance",
                     color: .indigo
                 )
             }

@@ -178,6 +178,31 @@ This repository now includes an additive scan pipeline and guided solve flow wit
 - `CubeUI`:
   - `CubeScanSolveFlowViewModel`
   - `ScanWizardView`, `FaceConfirmView`, `CubeManualEditView`, `SolveStepsView`
+  - `SolveModeView`, `SolveModeViewModel`, `SolveModeEngine`
+
+### Solve Mode (Guided)
+
+`SolveModeView` provides guided move-by-move solving with:
+- single-step controls (`Back`, `Next`, `Play/Pause`, speed, scrub slider)
+- deterministic state progression from `initialState + moves`
+- primary 3D visualization (`CubeRenderer3DView`) plus 2D fallback (`CubeRenderer2DView`)
+- human-readable move instructions and progress tracking
+
+Orientation assumptions:
+- Scan Wizard uses fixed orientation from capture order: `U, R, F, D, L, B`.
+- In this flow, `Front` maps to scanned `F`, `Up` maps to scanned `U`.
+- When orientation is not guaranteed (for example manual input), enable `requireOrientationConfirmation` in `SolveModeView` to show an Orientation Lock confirmation step before playback.
+
+### Extending Renderers
+
+Solve Mode rendering and animation are injected via protocols:
+- `CubeRenderer`: `setState`, `highlight(move:)`, `clearHighlight()`
+- `CubeMoveAnimator`: move animation contract with completion callback
+
+To add a renderer:
+1. Implement `CubeRenderer` for your view-backed renderer.
+2. Provide a `CubeMoveAnimator` implementation (or reuse `TimedCubeMoveAnimator`).
+3. Inject both into `SolveModeViewModel` for headless-testable behavior.
 
 ### Running The Flow
 
@@ -214,6 +239,17 @@ Run scanner-flow focused tests:
 ```bash
 swift test --filter ScanSolvePipelineTests
 swift test --filter ScanSolveFlowIntegrationTests
+```
+
+Run Solve Mode focused tests:
+
+```bash
+swift test --filter CubeMoveTests
+swift test --filter CubeReducerTests
+swift test --filter SolveModeEngineTests
+swift test --filter MoveInstructionFormatterTests
+swift test --filter SolveModeViewModelTests
+swift test --filter SolveModeRenderingTests
 ```
 
 ### Known Limitations

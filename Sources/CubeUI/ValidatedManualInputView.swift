@@ -21,7 +21,7 @@ public struct ValidatedManualInputView: View {
     @State private var validationError: String?
     @State private var showValidationAlert = false
     @State private var isValid = true
-    @State private var showingSolutionPlayback = false
+    @State private var showingSolveMode = false
     @State private var isSolving = false
     
     public var body: some View {
@@ -195,9 +195,11 @@ public struct ValidatedManualInputView: View {
             } message: {
                 Text(isValid ? "Cube configuration is valid!" : (validationError ?? "Unknown error"))
             }
-            .sheet(isPresented: $showingSolutionPlayback) {
-                SolutionPlaybackView(
-                    initialState: CubeState(from: cubeViewModel.cube)
+            .sheet(isPresented: $showingSolveMode) {
+                SolveModeView(
+                    state: CubeState(from: cubeViewModel.cube),
+                    solution: cubeViewModel.solution,
+                    requireOrientationConfirmation: true
                 )
             }
         }
@@ -220,10 +222,17 @@ public struct ValidatedManualInputView: View {
         // Solve the cube
         await cubeViewModel.solveAsync()
         
-        // Show solution playback
+        // Show guided solve mode
         await MainActor.run {
+            if let solveError = cubeViewModel.errorMessage {
+                validationError = solveError
+                isValid = false
+                isSolving = false
+                showValidationAlert = true
+                return
+            }
             isSolving = false
-            showingSolutionPlayback = true
+            showingSolveMode = true
         }
     }
     

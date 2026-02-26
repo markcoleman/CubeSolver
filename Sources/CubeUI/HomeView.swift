@@ -18,6 +18,10 @@ import CubeCore
 
 /// Home view showing recent solves and main navigation
 public struct HomeView: View {
+    #if DEBUG
+    private static let solveModeDebugFixture = SolveModeDebugFixture.stress()
+    #endif
+
     @Environment(\.colorScheme) private var colorScheme
     
     @StateObject private var historyManager = SolveHistoryManager()
@@ -148,9 +152,29 @@ public struct HomeView: View {
                     color: .green
                 )
             }
+
+            #if DEBUG
+            NavigationLink(destination: solveModeDebugDestination) {
+                ActionCard(
+                    icon: "ladybug.fill",
+                    title: "Solve Mode (Debug)",
+                    subtitle: "Launch guided solve without solver",
+                    color: .orange
+                )
+            }
+            #endif
         }
         .padding(.horizontal)
     }
+
+    #if DEBUG
+    private var solveModeDebugDestination: some View {
+        SolveModeView(
+            state: Self.solveModeDebugFixture.initialState,
+            solution: Self.solveModeDebugFixture.solution
+        )
+    }
+    #endif
     
     @ViewBuilder
     private var recentSolvesSection: some View {

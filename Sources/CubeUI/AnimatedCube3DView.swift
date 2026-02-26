@@ -219,14 +219,7 @@ private func createAnimatedCubeNode() -> SCNNode {
                 }
                 
                 let cubie = createAnimatedCubie(size: cubieSize)
-                let xPos = CGFloat(x - 1) * totalSize
-                let yPos = CGFloat(y - 1) * totalSize
-                let zPos = CGFloat(z - 1) * totalSize
-#if os(macOS)
-                cubie.position = SCNVector3(x: xPos, y: yPos, z: zPos)
-#else
-                cubie.position = SCNVector3(x: Float(xPos), y: Float(yPos), z: Float(zPos))
-#endif
+                cubie.position = canonicalCubiePosition(x: x, y: y, z: z, totalSize: totalSize)
                 cubie.name = "cubie_\(x)_\(y)_\(z)"
                 
                 containerNode.addChildNode(cubie)
@@ -266,7 +259,7 @@ private func updateCubeState(in sceneView: SCNView, cube: RubiksCube, currentMov
         isAnimatingLocal = value
     }
     var currentMoveLocal = currentMove
-    func clearCurrentMove() {
+    func consumeCurrentMove() {
         currentMoveLocal = nil
     }
     
@@ -276,14 +269,19 @@ private func updateCubeState(in sceneView: SCNView, cube: RubiksCube, currentMov
     // Animate move if needed
     if let move = currentMoveLocal, !isAnimatingLocal {
         setIsAnimating(true)
+        consumeCurrentMove()
         animateMove(in: scene, move: move, coordinator: coordinator) {
             setIsAnimating(false)
         }
     }
     
-    // Write back any changes from locals to inout parameters
-    currentMove = currentMoveLocal
-    isAnimating = isAnimatingLocal
+    // Avoid rebinding unchanged values to prevent update feedback loops.
+    if currentMove != currentMoveLocal {
+        currentMove = currentMoveLocal
+    }
+    if isAnimating != isAnimatingLocal {
+        isAnimating = isAnimatingLocal
+    }
 }
 
 private func updateCubeColors(in scene: SCNScene, with cube: RubiksCube) {
@@ -357,111 +355,80 @@ private func animateMove(in scene: SCNScene, move: Move, coordinator: AnimationC
     }
     
     // Determine which layer to rotate based on the move
-    let (axis, _, angle) = getMoveAnimation(for: move)
+    let (axis, angle) = getMoveAnimation(for: move)
     
     // Get cubies to rotate
     let cubiesToRotate = getCubiesForMove(containerNode, move: move)
+    guard !cubiesToRotate.isEmpty else {
+        completion()
+        return
+    }
     
     // Create a temporary parent node for the layer being rotated
     let layerNode = SCNNode()
     layerNode.name = "tempLayer"
+    layerNode.position = SCNVector3Zero
     scene.rootNode.addChildNode(layerNode)
-    
-    // Store original parents
-    var originalParents: [SCNNode: SCNNode] = [:]
-    
+
     // Reparent cubies to the layer node, preserving world position
     for cubie in cubiesToRotate {
-        guard let parent = cubie.parent else {
+        guard cubie.parent != nil else {
             // Skip cubies without a parent to avoid inconsistent state
             continue
         }
-        
-        originalParents[cubie] = parent
-        
-        // Convert position to layer node's coordinate system
-        let worldPosition = parent.convertPosition(cubie.position, to: nil)
+
+        let worldTransform = cubie.presentation.worldTransform
         cubie.removeFromParentNode()
         layerNode.addChildNode(cubie)
-        cubie.position = layerNode.convertPosition(worldPosition, from: nil)
+        cubie.transform = layerNode.convertTransform(worldTransform, from: nil)
     }
-    
+
     // Create rotation animation for the entire layer
     let duration: TimeInterval = 0.5
-    
-    SCNTransaction.begin()
-    SCNTransaction.animationDuration = duration
-    SCNTransaction.completionBlock = {
-        // Reparent cubies back to container with updated transforms
-        // Note: Only cubies that were successfully reparented to layerNode will be in childNodes,
-        // and all of those will have entries in originalParents due to the guard in reparenting loop
+    let rotation = SCNAction.rotate(by: angle, around: axis, duration: duration)
+    rotation.timingMode = .easeInEaseOut
+
+    // Rotate the layer node (which rotates all cubies as a group)
+    layerNode.runAction(rotation) {
+        // Reparent cubies back to container with updated transforms.
         for cubie in layerNode.childNodes {
-            guard let originalParent = originalParents[cubie] else {
-                continue
-            }
-            
-            let worldPosition = layerNode.convertPosition(cubie.position, to: nil)
-            let worldTransform = cubie.worldTransform
+            let worldTransform = cubie.presentation.worldTransform
             cubie.removeFromParentNode()
-            originalParent.addChildNode(cubie)
-            cubie.position = originalParent.convertPosition(worldPosition, from: nil)
-            cubie.transform = originalParent.convertTransform(worldTransform, from: nil)
+            containerNode.addChildNode(cubie)
+            cubie.transform = containerNode.convertTransform(worldTransform, from: nil)
         }
-        
-        // Remove temporary layer node
+
+        // Snap back to canonical grid/orientation so each move starts from an exact baseline.
+        snapCubiesToCanonicalGrid(in: containerNode)
+
         layerNode.removeFromParentNode()
-        
         coordinator.animationDidStop(CAAnimation(), finished: true)
         completion()
     }
-    
-    // Rotate the layer node (which rotates all cubies as a group)
-    let rotation = SCNAction.rotate(by: CGFloat(angle), around: axis, duration: duration)
-    layerNode.runAction(rotation)
-    
-    SCNTransaction.commit()
 }
 
-private func getMoveAnimation(for move: Move) -> (SCNVector3, CGFloat, CGFloat) {
-    // Parse from textual description to avoid relying on specific API
-    let text = String(describing: move).uppercased()
+private func getMoveAnimation(for move: Move) -> (SCNVector3, CGFloat) {
+    let baseAngle: CGFloat = move.amount == .double ? .pi : (.pi / 2)
+    let sign: CGFloat = move.amount == .counter ? -1 : 1
 
-    // Determine face letter
-    let faceChar: Character? = ["R","L","U","D","F","B"].first { text.contains(String($0)) }
-
-    // Determine amount (single or double)
-    let isDouble = text.contains("2")
-    let baseAngle: CGFloat = isDouble ? .pi : (.pi / 2)
-
-    // Determine direction (prime/counterclockwise)
-    let isPrime = text.contains("'") || text.contains("CCW") || text.contains("COUNTER") || text.contains("PRIME")
-    let sign: CGFloat = isPrime ? -1 : 1
-
-    // Map face to axis; L/D/B invert direction relative to R/U/F
-    switch faceChar {
-    case "R":
-        return (SCNVector3(1, 0, 0), sign, sign * baseAngle)
-    case "L":
-        return (SCNVector3(1, 0, 0), -sign, -sign * baseAngle)
-    case "U":
-        return (SCNVector3(0, 1, 0), sign, sign * baseAngle)
-    case "D":
-        return (SCNVector3(0, 1, 0), -sign, -sign * baseAngle)
-    case "F":
-        return (SCNVector3(0, 0, 1), sign, sign * baseAngle)
-    case "B":
-        return (SCNVector3(0, 0, 1), -sign, -sign * baseAngle)
-    default:
-        // Fallback: rotate front layer CW quarter-turn
-        return (SCNVector3(0, 0, 1), 1, .pi / 2)
+    switch move.turn {
+    case .R:
+        return (SCNVector3(1, 0, 0), sign * baseAngle)
+    case .L:
+        return (SCNVector3(1, 0, 0), -sign * baseAngle)
+    case .U:
+        return (SCNVector3(0, 1, 0), sign * baseAngle)
+    case .D:
+        return (SCNVector3(0, 1, 0), -sign * baseAngle)
+    case .F:
+        return (SCNVector3(0, 0, 1), sign * baseAngle)
+    case .B:
+        return (SCNVector3(0, 0, 1), -sign * baseAngle)
     }
 }
 
 private func getCubiesForMove(_ containerNode: SCNNode, move: Move) -> [SCNNode] {
     var cubies: [SCNNode] = []
-
-    let text = String(describing: move).uppercased()
-    let faceChar: Character? = ["R","L","U","D","F","B"].first { text.contains(String($0)) }
 
     for x in 0..<3 {
         for y in 0..<3 {
@@ -469,21 +436,19 @@ private func getCubiesForMove(_ containerNode: SCNNode, move: Move) -> [SCNNode]
                 if x == 1 && y == 1 && z == 1 { continue }
 
                 let shouldInclude: Bool
-                switch faceChar {
-                case "R":
+                switch move.turn {
+                case .R:
                     shouldInclude = x == 2
-                case "L":
+                case .L:
                     shouldInclude = x == 0
-                case "U":
+                case .U:
                     shouldInclude = y == 2
-                case "D":
+                case .D:
                     shouldInclude = y == 0
-                case "F":
+                case .F:
                     shouldInclude = z == 2
-                case "B":
+                case .B:
                     shouldInclude = z == 0
-                default:
-                    shouldInclude = false
                 }
 
                 if shouldInclude,
@@ -495,6 +460,47 @@ private func getCubiesForMove(_ containerNode: SCNNode, move: Move) -> [SCNNode]
     }
 
     return cubies
+}
+
+private func snapCubiesToCanonicalGrid(in containerNode: SCNNode) {
+    let totalSize: CGFloat = 1.0 + 0.05
+    for cubie in containerNode.childNodes {
+        guard let name = cubie.name,
+              let coordinates = cubieCoordinates(from: name) else {
+            continue
+        }
+
+        cubie.eulerAngles = SCNVector3Zero
+        cubie.position = canonicalCubiePosition(
+            x: coordinates.x,
+            y: coordinates.y,
+            z: coordinates.z,
+            totalSize: totalSize
+        )
+    }
+}
+
+private func cubieCoordinates(from name: String) -> (x: Int, y: Int, z: Int)? {
+    let parts = name.split(separator: "_")
+    guard parts.count == 4,
+          let x = Int(parts[1]),
+          let y = Int(parts[2]),
+          let z = Int(parts[3]) else {
+        return nil
+    }
+    return (x, y, z)
+}
+
+private func canonicalCubiePosition(x: Int, y: Int, z: Int, totalSize: CGFloat) -> SCNVector3 {
+    let xPos = CGFloat(x - 1) * totalSize
+    let yPos = CGFloat(y - 1) * totalSize
+    let zPos = CGFloat(z - 1) * totalSize
+
+#if os(macOS)
+    return SCNVector3(x: xPos, y: yPos, z: zPos)
+#else
+    return SCNVector3(x: Float(xPos), y: Float(yPos), z: Float(zPos))
+#endif
 }
 
 // MARK: - Platform Compatibility
@@ -525,4 +531,3 @@ struct AnimatedCube3DView_Previews: PreviewProvider {
 
 #endif // canImport(SceneKit)
 #endif // canImport(SwiftUI)
-

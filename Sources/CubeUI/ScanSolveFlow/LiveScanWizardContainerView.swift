@@ -116,24 +116,12 @@ private struct LiveCameraPreviewCard: View {
                     currentFace: currentFace,
                     pulse: pulse
                 )
-                Spacer()
-                Text("Align the \(currentFace.displayName.lowercased()) face inside the 3x3 guide")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.black.opacity(capsuleOverlayOpacity), in: Capsule())
-                Text("Center color: \(currentFace.expectedCenterColorName)")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.92))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.black.opacity(capsuleOverlayOpacity - 0.08), in: Capsule())
+                Spacer(minLength: 0)
             }
             .padding(10)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 250)
+        .frame(height: 272)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
@@ -150,10 +138,6 @@ private struct LiveCameraPreviewCard: View {
             return isRunning ? 0.34 : 0.46
         }
         return isRunning ? 0.2 : 0.32
-    }
-
-    private var capsuleOverlayOpacity: Double {
-        colorSchemeContrast == .increased ? 0.72 : 0.56
     }
 }
 
@@ -191,7 +175,7 @@ private struct LiveCameraStatusBanner: View {
                 Text(primaryText)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.white)
-                Text("Target face: \(currentFace.displayName) (\(currentFace.rawValue)) - \(currentFace.expectedCenterColorName)")
+                Text("Target: \(currentFace.displayName) face")
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(colorSchemeContrast == .increased ? 1 : 0.9))
             }
@@ -215,12 +199,12 @@ private struct LiveCameraStatusBanner: View {
 
     private var primaryText: String {
         if !isRunning {
-            return "Camera offline"
+            return "Camera unavailable"
         }
         if isBusy {
-            return "Scanning in progress"
+            return "Scanning"
         }
-        return "Camera live - ready to scan"
+        return "Ready to capture"
     }
 }
 

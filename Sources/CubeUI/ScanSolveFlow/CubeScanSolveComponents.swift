@@ -71,23 +71,16 @@ struct FaceBadgeView: View {
     var isCurrent: Bool = false
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Image(systemName: isComplete ? "checkmark.circle.fill" : "circle")
                 .foregroundStyle(isComplete ? Color.green : Color.secondary)
             Text(face.displayName)
                 .font(.caption.weight(.semibold))
-            Text(face.rawValue)
-                .font(.caption2.monospaced().bold())
-                .foregroundStyle(.secondary)
-            if isCurrent {
-                Text("Current")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.blue)
-            }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
         .frame(minHeight: 44)
+        .background((isCurrent ? Color.blue.opacity(0.15) : Color.clear), in: Capsule())
         .background(.thinMaterial, in: Capsule())
         .overlay(
             Capsule()

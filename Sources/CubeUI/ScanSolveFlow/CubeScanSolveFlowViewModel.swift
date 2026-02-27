@@ -11,20 +11,29 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
         case scanning
         case awaitingConfirmation(FaceId)
         case editing
+        case reviewing
         case readyToSolve
         case solving
         case solved
         case failed(String)
     }
 
+    public struct PendingCenterMismatch: Equatable {
+        public let face: FaceId
+        public let expectedCenter: CubeColor
+        public let detectedCenter: CubeColor
+    }
+
     @Published public private(set) var state: FlowState = .scanning
     @Published public private(set) var scannedFaces: [FaceId: ScannedFaceData] = [:]
     @Published public private(set) var pendingFace: ScannedFaceData?
+    @Published public private(set) var pendingCenterMismatch: PendingCenterMismatch?
     @Published public private(set) var validationError: ValidationError?
     @Published public private(set) var solvedMoves: [Move] = []
     @Published public private(set) var solvedInitialState: CubeState?
     @Published public private(set) var currentMoveIndex: Int = 0
     @Published public private(set) var isBusy = false
+    @Published public private(set) var reviewCompleted = false
 
     public let scanOrder: [FaceId]
 
@@ -45,7 +54,11 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
     }
 
     public var canStartSolve: Bool {
-        scannedFaces.count == scanOrder.count && validationError == nil
+        scannedFaces.count == scanOrder.count && validationError == nil && reviewCompleted
+    }
+
+    public var needsReview: Bool {
+        scannedFaces.count == scanOrder.count && validationError == nil && !reviewCompleted
     }
 
     public var currentInstruction: SolutionInstruction? {
@@ -92,6 +105,7 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
         do {
             let scanned = try await scanner.scanFace(for: currentFaceId)
             pendingFace = scanned
+            pendingCenterMismatch = centerMismatch(for: scanned)
             validationError = nil
             state = .awaitingConfirmation(scanned.id)
         } catch {
@@ -101,9 +115,12 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
 
     public func confirmPendingFace() {
         guard let pendingFace else { return }
+        guard pendingCenterMismatch == nil else { return }
 
         scannedFaces[pendingFace.id] = pendingFace
         self.pendingFace = nil
+        pendingCenterMismatch = nil
+        reviewCompleted = false
         solvedMoves = []
         solvedInitialState = nil
         currentMoveIndex = 0
@@ -117,6 +134,7 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
 
     public func rejectPendingFaceAndRescan() {
         pendingFace = nil
+        pendingCenterMismatch = nil
         state = .scanning
     }
 
@@ -127,9 +145,17 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
     public func resumeWizard() {
         if canStartSolve {
             state = .readyToSolve
+        } else if needsReview {
+            state = .reviewing
         } else {
             state = .scanning
         }
+    }
+
+    public func confirmReview() {
+        guard scannedFaces.count == scanOrder.count, validationError == nil else { return }
+        reviewCompleted = true
+        state = .readyToSolve
     }
 
     public func updateSticker(face: FaceId, index: Int, color: CubeColor) {
@@ -138,6 +164,7 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
 
         scanned.grid[index] = color
         scannedFaces[face] = scanned
+        reviewCompleted = false
         solvedMoves = []
         solvedInitialState = nil
         currentMoveIndex = 0
@@ -148,6 +175,7 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
         guard let center = defaultCenterColor(for: face) else { return }
         let replacement = CubeFaceGrid(repeating: center)
         scannedFaces[face] = ScannedFaceData(id: face, grid: replacement, confidence: 1)
+        reviewCompleted = false
         solvedMoves = []
         solvedInitialState = nil
         currentMoveIndex = 0
@@ -157,7 +185,9 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
     public func markFaceForRescan(_ face: FaceId) {
         scannedFaces.removeValue(forKey: face)
         pendingFace = nil
+        pendingCenterMismatch = nil
         validationError = nil
+        reviewCompleted = false
         solvedMoves = []
         solvedInitialState = nil
         currentMoveIndex = 0
@@ -198,7 +228,9 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
         state = .scanning
         scannedFaces = [:]
         pendingFace = nil
+        pendingCenterMismatch = nil
         validationError = nil
+        reviewCompleted = false
         solvedMoves = []
         solvedInitialState = nil
         currentMoveIndex = 0
@@ -241,10 +273,11 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
             switch validator.validate(state: cubeState) {
             case .success:
                 validationError = nil
-                state = .readyToSolve
+                state = reviewCompleted ? .readyToSolve : .reviewing
                 return true
             case .failure(let error):
                 validationError = error
+                reviewCompleted = false
                 state = .editing
                 return false
             }
@@ -254,9 +287,27 @@ public final class CubeScanSolveFlowViewModel: ObservableObject {
                 message: error.localizedDescription,
                 suggestedFix: "Finish scanning all six faces, then validate again."
             )
+            reviewCompleted = false
             state = .editing
             return false
         }
+    }
+
+    private func centerMismatch(for scannedFace: ScannedFaceData) -> PendingCenterMismatch? {
+        guard let expectedCenter = defaultCenterColor(for: scannedFace.id) else {
+            return nil
+        }
+
+        let detectedCenter = scannedFace.grid.center
+        guard detectedCenter != expectedCenter else {
+            return nil
+        }
+
+        return PendingCenterMismatch(
+            face: scannedFace.id,
+            expectedCenter: expectedCenter,
+            detectedCenter: detectedCenter
+        )
     }
 
     private func defaultCenterColor(for face: FaceId) -> CubeColor? {
